@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#08090F" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#F9F5ED" media="(prefers-color-scheme: light)" />
+
+    <title>NorthForge — Websites, Automation, AI & Growth Systems</title>
+    <meta
+      name="description"
+      content="NorthForge builds premium websites connected to lead capture, WhatsApp, AI, automation and analytics — so your website works as a business system, not a brochure."
+    />
+    <!-- Canonical/OG base URL — keep in sync with VITE_SITE_URL (src/data/site.ts). -->
+    <link rel="canonical" href="https://northforgestudio.vercel.app/" />
+    <meta name="robots" content="index,follow,max-image-preview:large" />
+    <meta name="author" content="NorthForge" />
+    <meta name="geo.region" content="IN-KA" />
+    <meta name="geo.placename" content="Mangaluru, Karnataka" />
+
+    <!-- OpenGraph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="NorthForge" />
+    <meta property="og:title" content="NorthForge — Websites That Don't Just Look Good. They Work." />
+    <meta
+      property="og:description"
+      content="Websites connected to lead capture, WhatsApp, AI, automation and analytics. Built as one system."
+    />
+    <meta property="og:url" content="https://northforgestudio.vercel.app/" />
+    <meta property="og:image" content="/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:alt" content="NorthForge — web, automation, AI and growth systems" />
+    <meta property="og:locale" content="en_IN" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="NorthForge — Websites That Don't Just Look Good. They Work." />
+    <meta
+      name="twitter:description"
+      content="Websites connected to lead capture, WhatsApp, AI, automation and analytics."
+    />
+    <meta name="twitter:image" content="/og.png" />
+
+    <!-- Brand assets -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- Type: preconnect + swap so text paints immediately. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      />
+    </noscript>
+
+    <!--
+      Theme bootstrap, before first paint. Kept as a separate file so the app
+      runs under a CSP with no 'unsafe-inline' scripts (see server/src/index.ts).
+    -->
+    <script src="/theme-init.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <div style="padding: 48px; font-family: system-ui, sans-serif">
+        <h1>NorthForge</h1>
+        <p>This application requires JavaScript to run. Please enable it and reload.</p>
+      </div>
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

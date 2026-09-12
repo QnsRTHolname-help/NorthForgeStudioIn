@@ -1,0 +1,46 @@
+# Local production-shaped run: the built image, a persistent volume for
+# SQLite, and automatic seeding on first start.
+#
+#   docker compose up --build
+#   docker compose run --rm seed
+services:
+  app:
+    build: .
+    image: northforge:latest
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      # Generate with: openssl rand -hex 48
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env before starting}
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-http://localhost:4000}
+      DATABASE_FILE: /app/data/northforge.db
+      AI_PROVIDER: ${AI_PROVIDER:-local}
+      SITE_URL: ${SITE_URL:-https://northforge.studio}
+    volumes:
+      - northforge-data:/app/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # One-shot seeder: docker compose run --rm seed
+  seed:
+    build: .
+    image: northforge:latest
+    profiles: ["seed"]
+    environment:
+      NODE_ENV: production
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env before starting}
+      DATABASE_FILE: /app/data/northforge.db
+    volumes:
+      - northforge-data:/app/data
+    entrypoint: ["node", "dist-server/seed.js"]
+    depends_on:
+      - app
+
+volumes:
+  northforge-data:

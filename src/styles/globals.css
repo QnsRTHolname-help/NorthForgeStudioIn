@@ -1,0 +1,293 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════════════════════════
+   NORTHFORGE DESIGN TOKENS
+   Three surfaces of truth: dark, light, and system (resolved at
+   boot by the theme provider). Everything in the product reads
+   from these variables — no component defines its own colour.
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer base {
+  :root {
+    --nf-blue: 59 130 255;
+    --nf-violet: 124 92 255;
+    --nf-blue-soft: 138 168 255;
+    --nf-blue-deep: 36 88 197;
+
+    --nf-success: 82 204 132;
+    --nf-warning: 240 176 32;
+    --nf-danger: 240 106 116;
+    --nf-info: 59 130 255;
+
+    --nf-grid-line: rgb(255 255 255 / 0.07);
+    --nf-header: rgb(9 10 13 / 0.72);
+    --nf-scrim: rgb(4 5 9 / 0.72);
+    --nf-shadow-soft: 0 1px 2px rgb(0 0 0 / 0.4);
+    --nf-shadow-lift: 0 18px 40px -20px rgb(0 0 0 / 0.78);
+    --nf-shadow-panel: 0 40px 88px -34px rgb(0 0 0 / 0.88);
+    --nf-focus-ring: rgb(var(--nf-blue) / 0.9);
+  }
+
+  /* ── Dark: "ink" ──────────────────────────────────────────
+     The NorthForge near-black — technical, premium, cinematic, never
+     neon. A muted charcoal blue-black with soft off-white text so the
+     dashboard and system sections stay calm for long sessions. The
+     only light is deliberate: the blue accent is a signal, not a wash.
+     ────────────────────────────────────────────────────────── */
+  :root,
+  [data-theme='dark'] {
+    color-scheme: dark;
+
+    --nf-canvas: 9 10 13;
+    --nf-surface: 14 16 20;
+    --nf-elevated: 19 22 28;
+    --nf-sunken: 23 26 33;
+
+    --nf-line: 255 255 255;
+    --nf-line-strong: 255 255 255;
+
+    --nf-fg: 245 245 242;
+    --nf-muted: 164 167 174;
+    --nf-faint: 112 116 125;
+
+    --nf-blue: 59 130 255;
+    --nf-violet: 124 92 255;
+    --nf-blue-soft: 138 168 255;
+    --nf-blue-deep: 36 88 197;
+
+    --nf-success: 82 204 132;
+    --nf-warning: 240 176 32;
+    --nf-danger: 240 106 116;
+    --nf-info: 59 130 255;
+
+    --nf-grid-line: rgb(255 255 255 / 0.09);
+    --nf-header: rgb(9 10 13 / 0.72);
+    --nf-scrim: rgb(4 5 9 / 0.72);
+  }
+
+  /* ── Light: cream ─────────────────────────────────────────
+     A warm premium cream, never clinical white. This is the primary
+     editorial experience — generous space, ink text on paper, and the
+     NorthForge blue used as an intelligent signal rather than a wash.
+     ────────────────────────────────────────────────────────── */
+  [data-theme='light'] {
+    color-scheme: light;
+
+    --nf-canvas: 245 241 232;
+    --nf-surface: 251 249 244;
+    --nf-elevated: 255 255 255;
+    --nf-sunken: 238 233 222;
+
+    --nf-line: rgb(16 17 20 / 0.10);
+    --nf-line-strong: 190 184 176;
+
+    --nf-fg: 16 17 20;
+    --nf-muted: 98 96 90;
+    --nf-faint: 138 135 127;
+
+    --nf-blue: 59 130 255;
+    --nf-violet: 124 92 255;
+    --nf-blue-soft: 126 158 255;
+    --nf-blue-deep: 36 88 197;
+
+    --nf-success: 22 148 92;
+    --nf-warning: 176 110 8;
+    --nf-danger: 203 58 74;
+    --nf-info: 59 130 255;
+
+    --nf-grid-line: rgb(16 17 20 / 0.06);
+    --nf-header: rgb(245 241 232 / 0.82);
+    --nf-scrim: rgb(38 33 26 / 0.4);
+    --nf-shadow-soft: 0 1px 2px rgb(60 48 32 / 0.06);
+    --nf-shadow-lift: 0 14px 28px -14px rgb(60 48 32 / 0.16);
+    --nf-shadow-panel: 0 32px 64px -28px rgb(60 48 32 / 0.22);
+  }
+
+  * {
+    border-color: rgb(var(--nf-line));
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  /* Lenis drives scrolling on the marketing site; native elsewhere. */
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+  .lenis.lenis-stopped {
+    overflow: hidden;
+  }
+
+  body {
+    @apply bg-canvas text-fg font-sans antialiased;
+    font-feature-settings: 'calt' 1, 'ss01' 1, 'cv11' 1;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: rgb(var(--nf-blue) / 0.28);
+    color: rgb(var(--nf-fg));
+  }
+
+  h1, h2, h3, h4 {
+    @apply text-fg;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Visible, consistent focus for keyboard users on every interactive element. */
+  :focus-visible {
+    outline: 2px solid var(--nf-focus-ring);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Never show the focus ring for mouse users on custom controls. */
+  [data-focus-hidden='true']:focus-visible {
+    outline: none;
+  }
+
+  input, textarea, select, button {
+    font: inherit;
+    color: inherit;
+  }
+
+  ::placeholder {
+    color: rgb(var(--nf-faint));
+  }
+
+  /* Scrollbars: present but quiet. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--nf-line-strong)) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--nf-line-strong) / 0.8);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--nf-faint) / 0.9);
+    background-clip: content-box;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+}
+
+@layer components {
+  /* Page shell — one max width rule for the whole product. */
+  .nf-shell {
+    @apply mx-auto w-full max-w-shell px-5 sm:px-8 lg:px-12;
+  }
+  .nf-shell-narrow {
+    @apply mx-auto w-full max-w-4xl px-5 sm:px-8;
+  }
+
+  .nf-eyebrow {
+    @apply font-mono text-2xs uppercase tracking-eyebrow text-faint;
+  }
+
+  /* Hairline separators that survive both themes. */
+  .nf-rule {
+    @apply border-line;
+  }
+
+  /* Blueprint grid used behind hero / showcase sections. */
+  .nf-grid-bg {
+    background-image:
+      linear-gradient(to right, var(--nf-grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--nf-grid-line) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+
+  .nf-dot-bg {
+    background-image: radial-gradient(var(--nf-grid-line) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+
+  /* Brand text gradient — used sparingly, never on body copy. */
+  .nf-gradient-text {
+    background: linear-gradient(96deg, rgb(var(--nf-fg)) 0%, rgb(var(--nf-fg)) 42%, rgb(var(--nf-blue)) 78%, rgb(var(--nf-violet)) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .nf-panel {
+    @apply rounded-lg border border-line bg-surface;
+  }
+
+  /* Tabular numbers for anything that changes value (counters, KPIs, tables). */
+  .nf-num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  .nf-scroll-x {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@layer utilities {
+  .nf-mask-fade-b {
+    -webkit-mask-image: linear-gradient(to bottom, black 55%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 55%, transparent 100%);
+  }
+  .nf-mask-fade-x {
+    -webkit-mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent);
+    mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent);
+  }
+  .nf-no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .nf-no-scrollbar {
+    scrollbar-width: none;
+  }
+  .nf-gpu {
+    will-change: transform;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   REDUCED MOTION
+   Content and functionality are preserved; choreography is not.
+   GSAP/Lenis read the same signal in JS via useReducedMotion().
+   ═══════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

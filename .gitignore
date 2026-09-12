@@ -1,0 +1,35 @@
+node_modules
+dist
+dist-server
+.DS_Store
+*.local
+server/data/*.db
+server/data/*.db-shm
+server/data/*.db-wal
+.env
+.env.production
+coverage
+
+# Local runtime state (database, WAL files, dev secrets)
+server/data/
+*.db
+*.db-shm
+*.db-wal
+.dev-secret
+
+# Secrets — never commit credentials (Supabase, SMTP, JWT, provider keys)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# SSH keys — never commit credentials of any kind
+.ssh/
+
+# Package manager caches and build artefacts
+.npm/
+.cache/
+.pnpm-store/
+tsconfig.tsbuildinfo
+*.tsbuildinfo
