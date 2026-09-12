@@ -4,6 +4,9 @@
   "version": "1.0.0",
   "type": "module",
   "description": "NorthForge — public website, client portal, agency operating system and AI platform.",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "concurrently -n API,WEB -c blue,magenta \"npm:dev:api\" \"npm:dev:web\"",
     "dev:api": "tsx watch server/src/index.ts",
