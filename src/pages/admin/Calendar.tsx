@@ -25,6 +25,7 @@ const KIND_TONE: Record<string, string> = {
   booking: 'bg-brand',
   task: 'bg-warning',
   deadline: 'bg-danger',
+  follow_up: 'bg-info',
 };
 
 /**
@@ -215,6 +216,7 @@ export default function Calendar() {
           <ul className="space-y-2.5">
             {[
               { kind: 'booking', label: 'Booking', description: 'An appointment booked through a client system.' },
+              { kind: 'follow_up', label: 'Lead follow-up', description: 'A scheduled follow-up set on a lead.' },
               { kind: 'task', label: 'Task due', description: 'An internal task with a due date.' },
               { kind: 'deadline', label: 'Project deadline', description: 'A project target completion date.' },
             ].map((entry) => (
@@ -229,6 +231,7 @@ export default function Calendar() {
           </ul>
           <div className="mt-4 flex flex-wrap gap-1.5 border-t border-line pt-3">
             <Badge tone="info">{monthEvents.filter((event) => event.kind === 'booking').length} bookings</Badge>
+            <Badge tone="info">{monthEvents.filter((event) => event.kind === 'follow_up').length} follow-ups</Badge>
             <Badge tone="warning">{monthEvents.filter((event) => event.kind === 'task').length} tasks</Badge>
             <Badge tone="danger">{monthEvents.filter((event) => event.kind === 'deadline').length} deadlines</Badge>
           </div>

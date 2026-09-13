@@ -8,6 +8,7 @@ import { DataTable } from '@/components/ui/Table';
 import { Modal } from '@/components/ui/Modal';
 import { Input, Select } from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
+import { ClientSelect } from '@/components/admin/ClientSelect';
 import { useAsync, useMutation } from '@/hooks/useAsync';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useToast } from '@/app/providers/ToastProvider';
@@ -28,7 +29,7 @@ export default function Websites() {
   const [creating, setCreating] = useState(false);
 
   const state = useAsync(() => websitesService.list(), []);
-  const clients = useAsync(() => clientsService.list({ pageSize: 200 }), []);
+  const clients = useAsync(() => clientsService.list({ pageSize: 1000 }), []);
   const clientName = (id: string) => clients.data?.items.find((client) => client.id === id)?.businessName ?? '—';
 
   const items = (state.data?.items ?? []).filter((site) => {
@@ -146,7 +147,6 @@ export default function Websites() {
 
       <Modal open={creating} onClose={() => setCreating(false)} title="New website">
         <WebsiteForm
-          clients={(clients.data?.items ?? []).map((client) => ({ id: client.id, name: client.businessName }))}
           onDone={async () => {
             setCreating(false);
             toast.success('Website created');
@@ -160,11 +160,9 @@ export default function Websites() {
 
 export function WebsiteForm({
   website,
-  clients,
   onDone,
 }: {
   website?: Website;
-  clients: { id: string; name: string }[];
   onDone: () => void;
 }) {
   const [form, setForm] = useState({
@@ -208,11 +206,10 @@ export function WebsiteForm({
       className="space-y-4"
     >
       <Input label="Website name" required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
-      <Select
+      <ClientSelect
         label="Client"
         value={form.clientId}
-        onChange={(event) => setForm({ ...form, clientId: event.target.value })}
-        options={[{ value: '', label: 'Unassigned' }, ...clients.map((client) => ({ value: client.id, label: client.name }))]}
+        onChange={(clientId) => setForm({ ...form, clientId })}
       />
       <div className="grid gap-4 sm:grid-cols-2">
         <Input label="Domain" value={form.domain} onChange={(event) => setForm({ ...form, domain: event.target.value })} placeholder="example.com" />

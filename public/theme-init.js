@@ -6,7 +6,9 @@
  */
 (function () {
   try {
-    var stored = localStorage.getItem('nf.theme') || 'system';
+    // Default is the warm cream theme — the public site is always cream and
+    // dashboard users who want dark pick it once (stored, then honoured).
+    var stored = localStorage.getItem('nf.theme') || 'light';
     var resolved =
       stored === 'system'
         ? window.matchMedia('(prefers-color-scheme: light)').matches
@@ -15,6 +17,6 @@
         : stored;
     document.documentElement.setAttribute('data-theme', resolved);
   } catch (e) {
-    document.documentElement.setAttribute('data-theme', 'light'); // Changed from 'dark' to 'light' for primary experience
+    document.documentElement.setAttribute('data-theme', 'light');
   }
 })();

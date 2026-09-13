@@ -29,7 +29,13 @@ export function AdminHeader({
           <Breadcrumb items={crumbs} />
         </div>
       ) : null}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      {/*
+        Three-row rhythm on narrow screens: eyebrow → heading → actions.
+        The action slot is its own row below the description instead of
+        wrapping beside it, so Add-style buttons never get squashed into a
+        cramped side-by-side strip on mobile (or wrapped mid-label).
+      */}
+      <div className="flex flex-col gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-[20px] font-semibold tracking-[-0.02em] text-fg">{title}</h1>
@@ -37,7 +43,7 @@ export function AdminHeader({
           </div>
           {description ? <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-muted">{description}</p> : null}
         </div>
-        {action ? <div className="flex shrink-0 flex-wrap gap-2">{action}</div> : null}
+        {action ? <div className="flex flex-wrap items-center gap-2">{action}</div> : null}
       </div>
     </header>
   );
@@ -95,11 +101,14 @@ export function ListToolbar({
       ) : null}
 
       {onCreate ? (
-        <div className="sm:ml-auto">
-          <Button size="md" iconLeft={<Plus className="h-3.5 w-3.5" />} onClick={onCreate}>
-            {createLabel}
-          </Button>
-        </div>
+        <Button
+          size="md"
+          className="shrink-0 self-start sm:self-auto"
+          iconLeft={<Plus className="h-3.5 w-3.5" />}
+          onClick={onCreate}
+        >
+          {createLabel}
+        </Button>
       ) : null}
     </div>
   );

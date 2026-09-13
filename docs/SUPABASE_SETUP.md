@@ -15,6 +15,10 @@ supabase/migrations/0001_northforge_supabase.sql
 supabase/migrations/0002_allow_admin_provisioning.sql
 supabase/migrations/0003_super_admin_role_management.sql
 supabase/migrations/0004_announcements_prefs_files_milestones_event_engine.sql
+supabase/migrations/0005_fix_enquiries_public_insert.sql
+supabase/migrations/0006_enquiries_become_leads.sql
+supabase/migrations/0007_enquiries_plan.sql
+supabase/migrations/0006_enquiries_become_leads.sql
 ```
 
 They are **non-destructive**: only `CREATE` / `CREATE OR REPLACE` /
@@ -48,6 +52,27 @@ They are **non-destructive**: only `CREATE` / `CREATE OR REPLACE` /
   bookings, invoice/payment events, task assignment + completion, client
   status changes, announcements published. The backend — not browser
   JavaScript — is the source of truth.
+
+0005 fixes the public contact form: it re-creates the anonymous/authenticated
+INSERT policy on `enquiries`, re-grants the table privileges, and adds an
+event-engine trigger so every new contact submission notifies admins and is
+written to the activity trail (exception-guarded, never blocks a submission).
+
+0006 turns every contact-form enquiry into a `leads` row (with a guarded
+backfill of existing enquiries), so submissions surface in the CRM pipeline
+instead of hiding in an admin-only table.
+
+0007 adds a nullable `plan` column to `enquiries` so the public contact form
+can record which plan an enquirer is interested in (prefilled from
+`/pricing?plan=…`). Until it is applied, submissions still succeed — the
+service layer detects the missing column and folds the plan into the message
+text instead.
+
+0006 turns every contact submission into a **lead**: the enquiry's full typed
+details (business type, tools, bottleneck, message) are composed into the
+`leads.message`, the existing `leads_event_engine` trigger raises the "New
+lead" admin notification and activity record, and pre-existing enquiries are
+backfilled into leads (guarded by email so re-running never duplicates).
 
 ## 2. Auth configuration (Supabase dashboard → Authentication)
 

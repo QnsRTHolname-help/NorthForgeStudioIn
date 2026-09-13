@@ -9,6 +9,11 @@ interface ThemeContextValue {
   setPreference: (preference: ThemePreference) => void;
   toggle: () => void;
   systemTheme: ResolvedTheme;
+  /**
+   * A surface-level override (e.g. the public site pins light while the
+   * dashboard honours the user's choice). Non-null wins over `theme`.
+   */
+  setOverride: (theme: ResolvedTheme | null) => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -21,7 +26,7 @@ function readStored(): ThemePreference {
   } catch {
     /* ignore */
   }
-  return 'system';
+  return 'light';
 }
 
 function systemPreference(): ResolvedTheme {
@@ -35,6 +40,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(() =>
     typeof window === 'undefined' ? 'dark' : systemPreference(),
   );
+  const [override, setOverride] = useState<ResolvedTheme | null>(null);
 
   // Follow the OS when the user has not made an explicit choice.
   useEffect(() => {
@@ -45,14 +51,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const theme: ResolvedTheme = preference === 'system' ? systemTheme : preference;
+  const effective = override ?? theme;
 
   useEffect(() => {
     const root = document.documentElement;
-    root.setAttribute('data-theme', theme);
-    root.style.colorScheme = theme;
+    root.setAttribute('data-theme', effective);
+    root.style.colorScheme = effective;
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', theme === 'dark' ? '#090A0D' : '#F5F1E8');
-  }, [theme]);
+    if (meta) meta.setAttribute('content', effective === 'dark' ? '#090A0D' : '#F5F1E8');
+  }, [effective]);
 
   const setPreference = useCallback((next: ThemePreference) => {
     setPreferenceState(next);
@@ -66,7 +73,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const toggle = useCallback(() => setPreference(theme === 'dark' ? 'light' : 'dark'), [theme, setPreference]);
 
   const value = useMemo(
-    () => ({ preference, theme, setPreference, toggle, systemTheme }),
+    () => ({ preference, theme, setPreference, toggle, systemTheme, setOverride }),
     [preference, theme, setPreference, toggle, systemTheme],
   );
 

@@ -283,24 +283,44 @@ export const catalogService = {
 
 export const contactService = {
   submit: async (input: Record<string, unknown>): Promise<{ received: boolean; reference: string | null }> => {
-    const rows = await run<Record<string, unknown>[]>('contact.submit', () =>
-      supabase
-        .from('enquiries')
-        .insert({
-          name: String(input.name ?? ''),
-          business_name: (input.businessName as string) ?? null,
-          email: String(input.email ?? ''),
-          whatsapp: (input.whatsapp as string) ?? null,
-          business_type: (input.businessType as string) ?? null,
-          current_tools: (input.currentTools as string) ?? null,
-          bottleneck: (input.bottleneck as string) ?? null,
-          monthly_enquiries: (input.monthlyEnquiries as string) ?? null,
-          message: (input.message as string) ?? null,
-        })
-        .select('id'),
-    );
-    const id = (rows?.[0] as { id?: string } | undefined)?.id ?? null;
-    return { received: true, reference: id };
+    // The enquiry id is generated here and sent with the insert. PostgREST
+    // must NOT read the row back (`return=representation`): the enquiries
+    // SELECT policy is admin-only by design, so asking for the row after
+    // insert fails with 42501 for anonymous visitors. An explicit id gives
+    // the visitor a real reference without any SELECT privilege.
+    const bytes = new Uint8Array(6);
+    crypto.getRandomValues(bytes);
+    const reference = 'eq_' + Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+
+    const base = {
+      id: reference,
+      name: String(input.name ?? ''),
+      business_name: (input.businessName as string) ?? null,
+      email: String(input.email ?? ''),
+      whatsapp: (input.whatsapp as string) ?? null,
+      business_type: (input.businessType as string) ?? null,
+      current_tools: (input.currentTools as string) ?? null,
+      bottleneck: (input.bottleneck as string) ?? null,
+      monthly_enquiries: (input.monthlyEnquiries as string) ?? null,
+      message: (input.message as string) ?? null,
+    };
+    const plan = (input.plan as string) ?? null;
+
+    // Primary attempt: the dedicated plan column (migration 0006).
+    const first = await supabase.from('enquiries').insert({ ...base, plan });
+    if (!first.error) return { received: true, reference };
+
+    // Pre-migration database: the schema cache has no `plan` column yet
+    // (PGRST204). Never lose the lead over it — retry without the column
+    // and carry the plan inside the message instead.
+    const missingPlan = first.error.code === 'PGRST204' && first.error.message?.includes("'plan'");
+    if (!missingPlan) throw mapDatabaseError(first.error, 'contact.submit');
+    const message = plan
+      ? [input.message, `Plan of interest: ${plan}`].filter((part) => String(part).trim()).join('\n\n')
+      : input.message;
+
+    await run<null>('contact.submit', () => supabase.from('enquiries').insert({ ...base, message }));
+    return { received: true, reference };
   },
 };
 
@@ -769,7 +789,7 @@ export const websitesService = {
 
 export interface CalendarEvent {
   id: string;
-  kind: 'booking' | 'task' | 'deadline';
+  kind: 'booking' | 'task' | 'deadline' | 'follow_up';
   title: string;
   detail: string;
   date: string;
@@ -782,20 +802,29 @@ export const calendarService = {
     let bookingQuery = supabase.from('bookings').select('*').order('starts_at');
     let taskQuery = supabase.from('tasks').select('*').not('due_date', 'is', null).order('due_date');
     let projectQuery = supabase.from('projects').select('*').not('due_date', 'is', null).order('due_date');
+    // Lead follow-ups are the "schedule I set on a lead" — they must surface
+    // on the main calendar (spec §113). Join to leads for the contact name.
+    let followUpQuery = supabase
+      .from('follow_ups')
+      .select('*, lead:leads(contact_name, business_name)')
+      .order('due_at');
     if (from) {
       bookingQuery = bookingQuery.gte('starts_at', from);
       taskQuery = taskQuery.gte('due_date', from);
       projectQuery = projectQuery.gte('due_date', from);
+      followUpQuery = followUpQuery.gte('due_at', from);
     }
     if (to) {
       bookingQuery = bookingQuery.lte('starts_at', to);
       taskQuery = taskQuery.lte('due_date', to);
       projectQuery = projectQuery.lte('due_date', to);
+      followUpQuery = followUpQuery.lte('due_at', to);
     }
-    const [bookings, tasks, projects] = await Promise.all([
+    const [bookings, tasks, projects, followUps] = await Promise.all([
       run<Record<string, unknown>[]>('calendar.bookings', () => bookingQuery),
       run<Record<string, unknown>[]>('calendar.tasks', () => taskQuery),
       run<Record<string, unknown>[]>('calendar.projects', () => projectQuery),
+      run<Record<string, unknown>[]>('calendar.followUps', () => followUpQuery),
     ]);
 
     const events: CalendarEvent[] = [
@@ -826,6 +855,22 @@ export const calendarService = {
         status: String(row.status ?? 'planning'),
         href: '/app/projects',
       })),
+      ...(followUps ?? []).map((row) => {
+        const lead = row.lead as Record<string, unknown> | null;
+        const channel = String(row.channel ?? '');
+        const contact = lead
+          ? String(lead.contact_name ?? lead.business_name ?? '')
+          : '';
+        return {
+          id: `followup-${row.id}`,
+          kind: 'follow_up' as const,
+          title: String(row.title ?? 'Follow up'),
+          detail: [contact || null, channel ? `via ${channel}` : null].filter(Boolean).join(' · ') || 'Lead follow up',
+          date: String(row.due_at ?? ''),
+          status: String(row.status ?? 'pending'),
+          href: row.lead_id ? `/app/leads/${String(row.lead_id)}` : '/app/leads',
+        };
+      }),
     ];
     events.sort((a, b) => a.date.localeCompare(b.date));
     return { events };

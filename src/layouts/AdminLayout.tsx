@@ -43,7 +43,7 @@ import { useAuth } from '@/app/providers/AuthProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { titleForPath } from '@/app/config/titles';
-import { insightsService } from '@/services';
+import { insightsService, announcementsService, requestsService } from '@/services';
 import { useAsync } from '@/hooks/useAsync';
 
 interface AdminNavItem {
@@ -142,8 +142,27 @@ export function AdminLayout() {
   useEffect(() => setMobileOpen(false), [location.pathname]);
 
   const notifications = useAsync(() => insightsService.notifications(), [location.pathname]);
+  const announcements = useAsync(() => announcementsService.list(), [location.pathname]);
+  const requests = useAsync(() => requestsService.list(), [location.pathname]);
 
   const unread = notifications.data?.unread ?? 0;
+  const unreadLeads = (notifications.data?.items ?? []).some(
+    (item) => !item.read && item.kind === 'lead',
+  );
+  const freshAnnouncement = (announcements.data?.items ?? []).some(
+    (item) => Date.now() - new Date(item.startsAt || item.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000,
+  );
+  const openRequests = (requests.data?.items ?? []).filter(
+    (item) => item.status === 'open' || item.status === 'in_progress' || item.status === 'blocked',
+  ).length;
+
+  /** Latest-activity dot per nav item (real backend data, no fake state). */
+  const hasDot = (to: string): boolean => {
+    if (to === '/app/notifications') return unread > 0;
+    if (to === '/app/announcements') return freshAnnouncement;
+    if (to === '/app/leads') return unreadLeads;
+    return false;
+  };
 
   const onLogout = async () => {
     await logout();
@@ -172,15 +191,27 @@ export function AdminLayout() {
                     )
                   }
                 >
-                  {({ isActive }) => (
-                    <>
-                      <item.icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-brand' : 'text-faint')} aria-hidden />
-                      <span className={cn('flex-1 truncate', collapsed && 'sr-only')}>{item.label}</span>
-                      {item.badge === 'requests' && (notifications.data?.items.length ?? 0) > 0 ? (
-                        <span className="nf-num rounded bg-sunken px-1.5 text-2xs text-muted">{notifications.data?.items.length}</span>
-                      ) : null}
-                    </>
-                  )}
+                  {({ isActive }) => {
+                    const dot = hasDot(item.to);
+                    return (
+                      <>
+                        <span className="relative shrink-0">
+                          <item.icon className={cn('h-4 w-4', isActive ? 'text-brand' : 'text-faint')} aria-hidden />
+                          {dot ? (
+                            <span
+                              className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-danger ring-2 ring-surface"
+                              role="img"
+                              aria-label="New activity"
+                            />
+                          ) : null}
+                        </span>
+                        <span className={cn('flex-1 truncate', collapsed && 'sr-only')}>{item.label}</span>
+                        {item.badge === 'requests' && openRequests > 0 ? (
+                          <span className="nf-num rounded bg-sunken px-1.5 text-2xs text-muted">{openRequests}</span>
+                        ) : null}
+                      </>
+                    );
+                  }}
                 </NavLink>
               </li>
             ))}

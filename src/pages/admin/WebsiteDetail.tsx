@@ -167,7 +167,6 @@ export default function WebsiteDetail() {
         <Modal open={editing} onClose={() => setEditing(false)} title="Edit website">
           <WebsiteForm
             website={site}
-            clients={[]}
             onDone={async () => {
               setEditing(false);
               await state.refetch().catch(() => undefined);

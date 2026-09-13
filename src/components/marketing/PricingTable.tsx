@@ -83,7 +83,7 @@ export function PricingTable({ showHeading = true }: { showHeading?: boolean }) 
 
                   <div className="mt-7">
                     <LinkButton
-                      to="/contact"
+                      to={`/contact?plan=${plan.slug}`}
                       fullWidth
                       variant={recommended ? 'primary' : 'secondary'}
                     >

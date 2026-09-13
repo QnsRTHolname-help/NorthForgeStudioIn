@@ -20,7 +20,9 @@ export function PortalHeader({
   className?: string;
 }) {
   return (
-    <header className={cn('mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between', className)}>
+    <header className={cn('mb-6 flex flex-col gap-4', className)}>
+      {/* Same rhythm as AdminHeader: actions get their own row on narrow
+          screens so Add-style buttons stay full-size and never wrap mid-label. */}
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2.5">
           <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-fg">{title}</h1>
@@ -28,7 +30,7 @@ export function PortalHeader({
         </div>
         {description ? <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-muted">{description}</p> : null}
       </div>
-      {action ? <div className="flex shrink-0 flex-wrap gap-2">{action}</div> : null}
+      {action ? <div className="flex flex-wrap items-center gap-2">{action}</div> : null}
     </header>
   );
 }

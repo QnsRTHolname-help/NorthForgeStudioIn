@@ -13,7 +13,8 @@ import { useAsync, useMutation } from '@/hooks/useAsync';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useToast } from '@/app/providers/ToastProvider';
 import { clientsService } from '@/services';
-import { formatDate, titleCase } from '@/lib/format';
+import { formatDate, formatMoney, titleCase } from '@/lib/format';
+import { PLANS } from '@shared/catalog';
 
 const STATUSES = ['lead', 'onboarding', 'active', 'paused', 'churned'];
 
@@ -161,6 +162,7 @@ export function ClientForm({
     city: client?.city ?? '',
     state: client?.state ?? '',
     websiteUrl: client?.websiteUrl ?? '',
+    planId: client?.planId ?? '',
     status: client?.status ?? 'lead',
     notes: client?.notes ?? '',
   });
@@ -176,6 +178,7 @@ export function ClientForm({
         city: form.city.trim() || null,
         state: form.state.trim() || null,
         websiteUrl: form.websiteUrl.trim() || null,
+        planId: form.planId || null,
         status: form.status as import('@/types').Client['status'],
         notes: form.notes.trim() || null,
       };
@@ -202,12 +205,27 @@ export function ClientForm({
         <Input label="City" value={form.city} onChange={(event) => setForm({ ...form, city: event.target.value })} />
         <Input label="State" value={form.state} onChange={(event) => setForm({ ...form, state: event.target.value })} />
       </div>
-      <Select
-        label="Status"
-        value={form.status}
-        onChange={(event) => setForm({ ...form, status: event.target.value as import('@/types').Client['status'] })}
-        options={STATUSES.map((value) => ({ value, label: titleCase(value) }))}
-      />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Select
+          label="Plan"
+          value={form.planId}
+          onChange={(event) => setForm({ ...form, planId: event.target.value })}
+          options={[
+            { value: '', label: 'No plan yet' },
+            ...PLANS.map((plan) => ({
+              value: plan.id,
+              label: `${plan.name}${plan.amount !== null ? ` — ${formatMoney(plan.amount)}/mo` : ' — custom'}`,
+            })),
+          ]}
+          hint="The subscription itself is created under Billing → Subscriptions."
+        />
+        <Select
+          label="Status"
+          value={form.status}
+          onChange={(event) => setForm({ ...form, status: event.target.value as import('@/types').Client['status'] })}
+          options={STATUSES.map((value) => ({ value, label: titleCase(value) }))}
+        />
+      </div>
       <Textarea label="Notes" rows={3} value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} />
       {mutation.error ? <p className="text-xs text-danger">{mutation.error}</p> : null}
       <div className="flex justify-end gap-2 border-t border-line pt-4">

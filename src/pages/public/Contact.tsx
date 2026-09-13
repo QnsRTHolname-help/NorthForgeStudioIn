@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { CheckCircle2, Clock, Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
 import { Input, Textarea, Select, Field, FormError } from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
@@ -9,6 +10,7 @@ import { useMutation } from '@/hooks/useAsync';
 import { useToast } from '@/app/providers/ToastProvider';
 import { contactService } from '@/services';
 import { CONTACT, emailLink, whatsappLink } from '@/data/site';
+import { PLANS, planAmountLabel } from '@shared/catalog';
 
 const BUSINESS_TYPES = [
   'Healthcare & clinic',
@@ -30,6 +32,7 @@ interface FormState {
   email: string;
   phone: string;
   businessType: string;
+  plan: string;
   currentTools: string;
   slowestProcess: string;
   monthlyEnquiries: string;
@@ -43,6 +46,7 @@ const EMPTY: FormState = {
   email: '',
   phone: '',
   businessType: '',
+  plan: '',
   currentTools: '',
   slowestProcess: '',
   monthlyEnquiries: '',
@@ -69,8 +73,15 @@ export default function Contact() {
     canonicalPath: '/contact',
   });
 
-  const [values, setValues] = useState<FormState>(EMPTY);
+  const [searchParams] = useSearchParams();
+  const selectedPlan = PLANS.find((plan) => plan.slug === searchParams.get('plan')) ?? null;
+  const [values, setValues] = useState<FormState>(() =>
+    // Arriving from /pricing?plan=<slug> pre-fills the plan selector, so a
+    // choice made on the pricing page is never lost in the form.
+    selectedPlan ? { ...EMPTY, plan: selectedPlan.name } : EMPTY,
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitted, setSubmitted] = useState(false);
   const [reference, setReference] = useState<string | null>(null);
   const toast = useToast();
 
@@ -82,6 +93,7 @@ export default function Contact() {
         email: payload.email,
         phone: payload.phone,
         businessType: payload.businessType,
+        plan: payload.plan || undefined,
         currentTools: payload.currentTools,
         slowestProcess: payload.slowestProcess,
         monthlyEnquiries: payload.monthlyEnquiries,
@@ -92,6 +104,7 @@ export default function Contact() {
     },
     {
       onSuccess: (result) => {
+        setSubmitted(true);
         setReference(result.reference);
         setValues(EMPTY);
         toast.success('Enquiry sent', 'We will reply within one business day.');
@@ -119,7 +132,7 @@ export default function Contact() {
     }
   };
 
-  if (reference) {
+  if (submitted) {
     return (
       <section className="nf-shell py-24">
         <div className="mx-auto max-w-xl text-center">
@@ -131,7 +144,9 @@ export default function Contact() {
             Thanks — your details are with the NorthForge team. We read every enquiry personally and reply within one
             business day with specific opportunities for your business.
           </p>
-          <p className="mt-3 font-mono text-2xs uppercase tracking-wider text-faint">Reference {reference}</p>
+          {reference ? (
+            <p className="mt-3 font-mono text-2xs uppercase tracking-wider text-faint">Reference {reference}</p>
+          ) : null}
 
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Button
@@ -141,7 +156,7 @@ export default function Contact() {
             >
               Continue on WhatsApp
             </Button>
-            <Button variant="ghost" onClick={() => setReference(null)}>
+            <Button variant="ghost" onClick={() => { setSubmitted(false); setReference(null); }}>
               Send another enquiry
             </Button>
           </div>
@@ -156,8 +171,12 @@ export default function Contact() {
         <div className="nf-shell">
           <SectionHeader
             eyebrow="Contact"
-            title="Find out where your business is losing time."
-            description="Answer a few questions about how your business handles enquiries today. We come back with the specific automation opportunities we would build for you."
+            title={selectedPlan ? `Let's get you on ${selectedPlan.name}.` : 'Find out where your business is losing time.'}
+            description={
+              selectedPlan
+                ? `${selectedPlan.outcome} Answer a few questions about your business and we will confirm the fit, timeline and setup fee for the ${selectedPlan.name} plan.`
+                : 'Answer a few questions about how your business handles enquiries today. We come back with the specific automation opportunities we would build for you.'
+            }
           />
         </div>
       </section>
@@ -203,6 +222,19 @@ export default function Contact() {
                   onChange={set('businessType')}
                   error={errors.businessType}
                   options={BUSINESS_TYPES.map((type) => ({ value: type, label: type }))}
+                />
+                <Select
+                  label="Plan you're interested in"
+                  placeholder="Not sure yet…"
+                  value={values.plan}
+                  onChange={set('plan')}
+                  options={[
+                    ...PLANS.map((plan) => ({
+                      value: plan.name,
+                      label: `${plan.name} — ${plan.amount !== null ? `${planAmountLabel(plan)}/mo` : 'custom quote'}`,
+                    })),
+                    { value: '', label: 'Not sure yet' },
+                  ]}
                 />
                 <Select
                   label="Approximate monthly enquiries"

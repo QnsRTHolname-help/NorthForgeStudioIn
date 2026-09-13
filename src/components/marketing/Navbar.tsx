@@ -5,7 +5,6 @@ import { gsap } from 'gsap';
 import { cn } from '@/lib/cn';
 import { Logo } from '@/components/brand/Logo';
 import { Button, LinkButton } from '@/components/ui/Button';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { StaggerMenu, StaggerItem } from '@/components/motion/primitives';
 import { PUBLIC_NAV, whatsappLink } from '@/data/site';
 import { useScrolled, useReducedMotion, useFocusTrap } from '@/hooks';
@@ -167,8 +166,6 @@ export function Navbar() {
             </nav>
 
             <div className="flex items-center gap-1.5">
-              <ThemeToggle />
-
               <a
                 href={whatsappLink('Hi NorthForge — I would like to know more.')}
                 target="_blank"

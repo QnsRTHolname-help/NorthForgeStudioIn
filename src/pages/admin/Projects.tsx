@@ -10,6 +10,7 @@ import { Progress } from '@/components/ui/Loader';
 import { useAsync, useMutation } from '@/hooks/useAsync';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useToast } from '@/app/providers/ToastProvider';
+import { ClientSelect } from '@/components/admin/ClientSelect';
 import { projectsService, clientsService, milestonesService } from '@/services';
 import { formatDate, titleCase } from '@/lib/format';
 import type { Project } from '@/types';
@@ -27,7 +28,7 @@ export default function Projects() {
   const [editing, setEditing] = useState<Project | null>(null);
 
   const state = useAsync(() => projectsService.list(), []);
-  const clients = useAsync(() => clientsService.list({ pageSize: 200 }), []);
+  const clients = useAsync(() => clientsService.list({ pageSize: 1000 }), []);
   const clientName = (id: string) => clients.data?.items.find((client) => client.id === id)?.businessName ?? '—';
 
   const items = (state.data?.items ?? []).filter((project) => {
@@ -142,7 +143,6 @@ export default function Projects() {
 
       <Modal open={creating} onClose={() => setCreating(false)} title="New project">
         <ProjectForm
-          clients={(clients.data?.items ?? []).map((client) => ({ id: client.id, name: client.businessName }))}
           onDone={async () => {
             setCreating(false);
             await state.refetch().catch(() => undefined);
@@ -155,7 +155,6 @@ export default function Projects() {
           <div className="space-y-5">
             <ProjectForm
               project={editing}
-              clients={(clients.data?.items ?? []).map((client) => ({ id: client.id, name: client.businessName }))}
               onDone={async () => {
                 setEditing(null);
                 await state.refetch().catch(() => undefined);
@@ -171,11 +170,9 @@ export default function Projects() {
 
 export function ProjectForm({
   project,
-  clients,
   onDone,
 }: {
   project?: Project;
-  clients: { id: string; name: string }[];
   onDone: () => void;
 }) {
   const toast = useToast();
@@ -221,11 +218,10 @@ export function ProjectForm({
       className="space-y-4"
     >
       <Input label="Project name" required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
-      <Select
+      <ClientSelect
         label="Client"
         value={form.clientId}
-        onChange={(event) => setForm({ ...form, clientId: event.target.value })}
-        options={[{ value: '', label: 'Unassigned' }, ...clients.map((client) => ({ value: client.id, label: client.name }))]}
+        onChange={(clientId) => setForm({ ...form, clientId })}
       />
       <div className="grid gap-4 sm:grid-cols-2">
         <Select label="Stage" value={form.stage} onChange={(event) => setForm({ ...form, stage: event.target.value as Project['stage'] })} options={STAGES.map((value) => ({ value, label: titleCase(value) }))} />

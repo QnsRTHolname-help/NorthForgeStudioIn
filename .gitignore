@@ -33,3 +33,6 @@ server/data/
 .pnpm-store/
 tsconfig.tsbuildinfo
 *.tsbuildinfo
+
+# Supabase CLI local state (project link cache)
+supabase/.temp/

@@ -18,6 +18,7 @@
     "typecheck": "tsc --noEmit --pretty",
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
+    "verify:plan": "node scripts/verify-plan-flow.mjs",
     "seed": "tsx server/src/seed.ts",
     "seed:demo": "tsx server/src/seed.ts --demo",
     "seed:clean": "tsx server/src/seed.ts --clean",

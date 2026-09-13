@@ -13,6 +13,7 @@ import { usePageMeta } from '@/hooks/usePageMeta';
 import { useToast } from '@/app/providers/ToastProvider';
 import { billingService, requestsService } from '@/services';
 import { formatMoney, formatDate, formatDaysUntil } from '@/lib/format';
+import type { Plan } from '@/types';
 
 /**
  * Subscription (spec §112, §123).
@@ -29,6 +30,8 @@ export default function Subscription() {
   const subs = useAsync(() => billingService.subscriptions(), []);
   const plans = useAsync(() => billingService.plans(), []);
   const invoices = useAsync(() => billingService.invoices(), []);
+
+  const availablePlans = plans.data?.plans ?? [];
 
   const subscription = subs.data?.items?.[0] ?? null;
   const plan = plans.data?.plans?.find((item) => item.id === subscription?.planId) ?? null;
@@ -147,6 +150,7 @@ export default function Subscription() {
       <Modal open={requesting} onClose={() => setRequesting(false)} title="Request a plan change">
         <PlanChangeRequest
           currentPlan={plan?.name ?? 'current plan'}
+          plans={availablePlans}
           onDone={() => {
             setRequesting(false);
             toast.success('Request sent', 'We will confirm before anything changes.');
@@ -157,7 +161,15 @@ export default function Subscription() {
   );
 }
 
-function PlanChangeRequest({ currentPlan, onDone }: { currentPlan: string; onDone: () => void }) {
+function PlanChangeRequest({
+  currentPlan,
+  plans,
+  onDone,
+}: {
+  currentPlan: string;
+  plans: Plan[];
+  onDone: () => void;
+}) {
   const [planName, setPlanName] = useState('');
   const [reason, setReason] = useState('');
 
@@ -183,6 +195,9 @@ function PlanChangeRequest({ currentPlan, onDone }: { currentPlan: string; onDon
       <p className="text-[13px] leading-relaxed text-muted">
         Tell us which plan you would like. We will confirm the change and it takes effect from your next billing cycle.
       </p>
+      {/* Options come from the live catalog — never a hardcoded list that
+          can drift from what actually exists (this used to offer a "Growth"
+          and "Pro" plan that are not real plans). */}
       <Select
         label="Requested plan"
         required
@@ -190,9 +205,10 @@ function PlanChangeRequest({ currentPlan, onDone }: { currentPlan: string; onDon
         value={planName}
         onChange={(event) => setPlanName(event.target.value)}
         options={[
-          { value: 'lead', label: 'LEAD' },
-          { value: 'Growth', label: 'Growth' },
-          { value: 'Pro', label: 'Pro' },
+          ...plans.map((item) => ({
+            value: item.name,
+            label: `${item.name} · ${item.amount !== null ? formatMoney(item.amount) : 'Custom'}`,
+          })),
           { value: 'Custom', label: 'Custom / talk to us first' },
         ]}
       />
