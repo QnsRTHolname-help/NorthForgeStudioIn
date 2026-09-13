@@ -45,6 +45,8 @@ const PortalSubscription = lazyPage(() => import('@/pages/portal/Subscription'))
 const PortalInvoices = lazyPage(() => import('@/pages/portal/Invoices'));
 const PortalRequests = lazyPage(() => import('@/pages/portal/Requests'));
 const PortalSupport = lazyPage(() => import('@/pages/portal/Support'));
+const PortalAnnouncements = lazyPage(() => import('@/pages/portal/Announcements'));
+const PortalFiles = lazyPage(() => import('@/pages/portal/Files'));
 const PortalSettings = lazyPage(() => import('@/pages/portal/Settings'));
 
 /* ── Admin operating system ────────────────────────────────────── */
@@ -77,6 +79,7 @@ const AdminInvoices = lazyPage(() => import('@/pages/admin/Invoices'));
 const AdminPlans = lazyPage(() => import('@/pages/admin/Plans'));
 const AdminServices = lazyPage(() => import('@/pages/admin/Services'));
 const AdminNotifications = lazyPage(() => import('@/pages/admin/Notifications'));
+const AdminAnnouncements = lazyPage(() => import('@/pages/admin/Announcements'));
 const AdminActivity = lazyPage(() => import('@/pages/admin/Activity'));
 const AdminSupport = lazyPage(() => import('@/pages/admin/Support'));
 const AdminSystemHealth = lazyPage(() => import('@/pages/admin/SystemHealth'));
@@ -147,6 +150,8 @@ export const AppRoutes: RouteDefinition[] = [
       { path: 'invoices', element: <PortalInvoices /> },
       { path: 'requests', element: <PortalRequests /> },
       { path: 'support', element: <PortalSupport /> },
+      { path: 'announcements', element: <PortalAnnouncements /> },
+      { path: 'files', element: <PortalFiles /> },
       { path: 'settings', element: <PortalSettings /> },
       { path: '*', element: <NotFoundPage /> },
     ],
@@ -190,6 +195,7 @@ export const AppRoutes: RouteDefinition[] = [
       { path: 'plans', element: <AdminPlans /> },
       { path: 'services', element: <AdminServices /> },
       { path: 'notifications', element: <AdminNotifications /> },
+      { path: 'announcements', element: <AdminAnnouncements /> },
       { path: 'activity', element: <AdminActivity /> },
       { path: 'support', element: <AdminSupport /> },
       { path: 'system-health', element: <AdminSystemHealth /> },

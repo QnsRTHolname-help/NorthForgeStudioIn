@@ -16,6 +16,7 @@ import {
   LayoutDashboard,
   LifeBuoy,
   LogOut,
+  Megaphone,
   Menu,
   MessagesSquare,
   PanelLeftClose,
@@ -111,6 +112,7 @@ const SECTIONS: { title: string; items: AdminNavItem[] }[] = [
     title: 'System',
     items: [
       { to: '/app/notifications', label: 'Notifications', icon: Bell },
+      { to: '/app/announcements', label: 'Announcements', icon: Megaphone },
       { to: '/app/activity', label: 'Activity', icon: Activity },
       { to: '/app/support', label: 'Support', icon: LifeBuoy },
       { to: '/app/system-health', label: 'System Health', icon: ShieldCheck },

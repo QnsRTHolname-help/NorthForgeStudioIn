@@ -1,14 +1,17 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Panel } from '@/components/ui/Card';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
 import { Badge } from '@/components/ui/Badge';
 import { AdminHeader } from '@/components/admin/AdminHeader';
+import { Drawer } from '@/components/ui/Modal';
+import { Input, Select, Textarea } from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
-import { useAsync } from '@/hooks/useAsync';
+import { useAsync, useMutation } from '@/hooks/useAsync';
 import { usePageMeta } from '@/hooks/usePageMeta';
-import { calendarService } from '@/services';
+import { useToast } from '@/app/providers/ToastProvider';
+import { bookingsService, calendarService, clientsService } from '@/services';
 import { formatTime, titleCase } from '@/lib/format';
 import { cn } from '@/lib/cn';
 
@@ -30,6 +33,8 @@ const KIND_TONE: Record<string, string> = {
  */
 export default function Calendar() {
   usePageMeta({ title: 'Calendar', noIndex: true });
+  const toast = useToast();
+  const [creating, setCreating] = useState(false);
   const [cursor, setCursor] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -39,6 +44,18 @@ export default function Calendar() {
   const to = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 7).toISOString();
 
   const state = useAsync(() => calendarService.events(from, to), [from, to]);
+  const clients = useAsync(() => clientsService.list({ pageSize: 200 }), []);
+
+  const createBooking = useMutation(
+    (input: Parameters<typeof bookingsService.create>[0]) => bookingsService.create(input),
+    {
+      onSuccess: async () => {
+        toast.success('Booking added');
+        setCreating(false);
+        await state.refetch().catch(() => undefined);
+      },
+    },
+  );
   const events = useMemo(() => state.data?.events ?? [], [state.data]);
 
   const byDay = useMemo(() => {
@@ -80,6 +97,9 @@ export default function Calendar() {
         crumbs={[{ label: 'Calendar' }]}
         action={
           <div className="flex items-center gap-2">
+            <Button size="md" iconLeft={<Plus className="h-3.5 w-3.5" />} onClick={() => setCreating(true)}>
+              Add booking
+            </Button>
             <Button
               variant="secondary"
               size="sm"
@@ -214,6 +234,67 @@ export default function Calendar() {
           </div>
         </Panel>
       </div>
+
+      <Drawer open={creating} onClose={() => setCreating(false)} title="Add a booking" width="md">
+        <form
+          onSubmit={async (event) => {
+            event.preventDefault();
+            const data = new FormData(event.currentTarget);
+            await createBooking
+              .mutate({
+                customerName: String(data.get('customerName') ?? ''),
+                customerPhone: String(data.get('customerPhone') ?? '') || undefined,
+                email: String(data.get('email') ?? '') || undefined,
+                service: String(data.get('service') ?? '') || undefined,
+                startsAt: new Date(String(data.get('startsAt') ?? '')).toISOString(),
+                durationMins: Number(data.get('durationMins') ?? 30),
+                notes: String(data.get('notes') ?? '') || undefined,
+                clientId: String(data.get('clientId') ?? '') || undefined,
+              })
+              .catch(() => undefined);
+          }}
+          className="space-y-4"
+        >
+          <Input label="Customer name" name="customerName" required />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input label="Phone" name="customerPhone" />
+            <Input label="Email" type="email" name="email" />
+          </div>
+          <Select
+            label="Client"
+            name="clientId"
+            options={[
+              { value: '', label: 'Unassigned' },
+              ...(clients.data?.items ?? []).map((client) => ({ value: client.id, label: client.businessName })),
+            ]}
+          />
+          <Input label="Service" name="service" />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input label="Starts at" name="startsAt" type="datetime-local" required />
+            <Select
+              label="Duration"
+              name="durationMins"
+              defaultValue="30"
+              options={[
+                { value: '15', label: '15 minutes' },
+                { value: '30', label: '30 minutes' },
+                { value: '60', label: '1 hour' },
+                { value: '90', label: '1.5 hours' },
+              ]}
+            />
+          </div>
+          <Textarea label="Notes" name="notes" rows={3} />
+          {createBooking.error ? <p className="text-xs text-danger">{createBooking.error}</p> : null}
+          <div className="flex justify-end gap-2 border-t border-line pt-4">
+            <Button variant="ghost" size="sm" onClick={() => setCreating(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" type="submit" loading={createBooking.pending}>
+              Create booking
+            </Button>
+          </div>
+        </form>
+      </Drawer>
     </div>
   );
 }

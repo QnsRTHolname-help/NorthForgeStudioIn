@@ -1,15 +1,20 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarClock } from 'lucide-react';
+import { CalendarClock, CheckCircle2, Plus, XCircle } from 'lucide-react';
 import { Panel } from '@/components/ui/Card';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
 import { Badge } from '@/components/ui/Badge';
 import { AdminHeader } from '@/components/admin/AdminHeader';
 import { Segmented } from '@/components/ui/Tabs';
-import { useAsync } from '@/hooks/useAsync';
+import { Drawer } from '@/components/ui/Modal';
+import { Input, Textarea } from '@/components/ui/Form';
+import { Button } from '@/components/ui/Button';
+import { useAsync, useMutation } from '@/hooks/useAsync';
 import { usePageMeta } from '@/hooks/usePageMeta';
+import { useToast } from '@/app/providers/ToastProvider';
 import { leadsService } from '@/services';
 import { formatDateTime, titleCase } from '@/lib/format';
+import type { Lead } from '@/types';
 
 /**
  * Follow-ups (spec §113).
@@ -17,7 +22,9 @@ import { formatDateTime, titleCase } from '@/lib/format';
  */
 export default function FollowUps() {
   usePageMeta({ title: 'Follow-ups', noIndex: true });
+  const toast = useToast();
   const [view, setView] = useState<'open' | 'all'>('open');
+  const [logging, setLogging] = useState<Lead | null>(null);
 
   const state = useAsync(async () => {
     const result = await leadsService.list({ pageSize: 200 });
@@ -25,6 +32,28 @@ export default function FollowUps() {
   }, []);
 
   const leads = state.data?.items ?? [];
+
+  const setStatus = useMutation((input: { id: string; status: 'won' | 'lost' }) => leadsService.update(input.id, { status: input.status }), {
+    onSuccess: async () => {
+      toast.success('Lead updated');
+      await state.refetch().catch(() => undefined);
+    },
+  });
+
+  const logAction = useMutation(
+    (input: { lead: Lead; nextAction: string; title: string; dueAt: string }) =>
+      leadsService.addFollowUp(input.lead.id, { title: input.title, dueAt: input.dueAt, channel: 'call' }),
+    {
+      onSuccess: async (_result, input) => {
+        toast.success('Follow-up logged');
+        await leadsService
+          .update(input.lead.id, { nextAction: input.nextAction })
+          .catch(() => undefined);
+        setLogging(null);
+        await state.refetch().catch(() => undefined);
+      },
+    },
+  );
 
   const withNextAction = leads
     .filter((lead) => lead.nextAction && (view === 'all' || !['won', 'lost'].includes(lead.status)))
@@ -84,6 +113,31 @@ export default function FollowUps() {
                       <Badge tone={age > 3 ? 'warning' : 'neutral'}>{age === 0 ? 'Today' : `${age}d old`}</Badge>
                       <Badge tone={lead.status === 'won' ? 'success' : 'info'}>{titleCase(lead.status)}</Badge>
                     </div>
+                    {!['won', 'lost'].includes(lead.status) ? (
+                      <div className="flex shrink-0 flex-col gap-1.5">
+                        <Button size="sm" variant="secondary" iconLeft={<Plus className="h-3 w-3" />} onClick={() => setLogging(lead)}>
+                          Log next action
+                        </Button>
+                        <div className="flex gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            aria-label={`Mark ${lead.contactName} as won`}
+                            onClick={() => void setStatus.mutate({ id: lead.id, status: 'won' }).catch(() => undefined)}
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5 text-success" aria-hidden />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            aria-label={`Mark ${lead.contactName} as lost`}
+                            onClick={() => void setStatus.mutate({ id: lead.id, status: 'lost' }).catch(() => undefined)}
+                          >
+                            <XCircle className="h-3.5 w-3.5 text-danger" aria-hidden />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
                   </li>
                 );
               })}
@@ -97,6 +151,43 @@ export default function FollowUps() {
           />
         )}
       </AsyncBoundary>
+
+      <Drawer open={!!logging} onClose={() => setLogging(null)} title="Log next action" width="md">
+        {logging ? (
+          <form
+            onSubmit={async (event) => {
+              event.preventDefault();
+              const data = new FormData(event.currentTarget);
+              await logAction
+                .mutate({
+                  lead: logging,
+                  nextAction: String(data.get('nextAction') ?? ''),
+                  title: String(data.get('title') ?? ''),
+                  dueAt: new Date(String(data.get('dueAt') ?? '')).toISOString(),
+                })
+                .catch(() => undefined);
+            }}
+            className="space-y-4"
+          >
+            <p className="text-[13px] text-muted">
+              For <span className="font-medium text-fg">{logging.contactName}</span>
+              {logging.businessName ? ` · ${logging.businessName}` : ''}
+            </p>
+            <Textarea label="Next action (shown here)" name="nextAction" rows={2} required placeholder="Send proposal, follow up on pricing…" />
+            <Input label="Follow-up title" name="title" required placeholder="Call to confirm" />
+            <Input label="Due at" name="dueAt" type="datetime-local" required />
+            {logAction.error ? <p className="text-xs text-danger">{logAction.error}</p> : null}
+            <div className="flex justify-end gap-2 border-t border-line pt-4">
+              <Button variant="ghost" size="sm" onClick={() => setLogging(null)}>
+                Cancel
+              </Button>
+              <Button size="sm" type="submit" loading={logAction.pending}>
+                Log action
+              </Button>
+            </div>
+          </form>
+        ) : null}
+      </Drawer>
     </div>
   );
 }

@@ -490,6 +490,67 @@ export interface OnboardingDraft {
   updatedAt: string;
 }
 
+/* ── Announcements (§18) ─────────────────────────────────────── */
+
+export type AnnouncementPriority = 'normal' | 'high' | 'critical';
+export type AnnouncementAudience = 'all_clients' | 'selected_clients' | 'internal_admins';
+
+export interface Announcement {
+  id: ID;
+  title: string;
+  message: string;
+  priority: AnnouncementPriority;
+  audience: AnnouncementAudience;
+  clientIds: ID[];
+  startsAt: string;
+  endsAt: string | null;
+  createdAt: string;
+  isDemo: boolean;
+}
+
+/* ── Notification preferences (§6) ───────────────────────────── */
+
+export interface NotificationPreferences {
+  projectUpdates: boolean;
+  leads: boolean;
+  appointments: boolean;
+  billing: boolean;
+  support: boolean;
+  marketing: boolean;
+  system: boolean;
+}
+
+/* ── Milestones (§25) ────────────────────────────────────────── */
+
+export type MilestoneStatus = 'planning' | 'in_progress' | 'completed';
+
+export interface Milestone {
+  id: ID;
+  projectId: ID;
+  clientId: ID;
+  title: string;
+  description: string | null;
+  status: MilestoneStatus;
+  sortOrder: number;
+  dueDate: string | null;
+  completedAt: string | null;
+  isDemo: boolean;
+  createdAt: string;
+}
+
+/* ── Files (§26) ─────────────────────────────────────────────── */
+
+export interface FileRecord {
+  id: ID;
+  clientId: ID;
+  name: string;
+  storagePath: string;
+  sizeBytes: number;
+  mimeType: string | null;
+  createdAt: string;
+}
+
+
 /* ── Metrics & API envelope ──────────────────────────────────── */
 
 export interface SeriesPoint {

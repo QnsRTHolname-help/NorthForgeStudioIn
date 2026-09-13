@@ -75,29 +75,30 @@
   [data-theme='light'] {
     color-scheme: light;
 
-    --nf-canvas: 245 241 232;
-    --nf-surface: 251 249 244;
-    --nf-elevated: 255 255 255;
-    --nf-sunken: 238 233 222;
+    /* Master prompt light mode colors */
+    --nf-canvas: 245 241 232; /* #F5F1E8 */
+    --nf-surface: 255 255 255; /* #FFFFFF (cards) */
+    --nf-elevated: 251 249 244; /* #FBF9F4 */
+    --nf-sunken: 238 233 222; /* #EEE9DE */
 
-    --nf-line: rgb(16 17 20 / 0.10);
-    --nf-line-strong: 190 184 176;
+    --nf-line: 16 17 20; /* rgba(16,17,20,0.10) for border */
+    --nf-line-strong: 190 184 176; /* rgb(190,184,176) */
 
-    --nf-fg: 16 17 20;
-    --nf-muted: 98 96 90;
-    --nf-faint: 138 135 127;
+    --nf-fg: 16 17 20; /* #101114 */
+    --nf-muted: 138 135 127; /* #8A877F */
+    --nf-faint: 98 96 90; /* #62605A */
 
-    --nf-blue: 59 130 255;
-    --nf-violet: 124 92 255;
-    --nf-blue-soft: 126 158 255;
-    --nf-blue-deep: 36 88 197;
+    --nf-blue: 59 130 255; /* #3B82FF */
+    --nf-violet: 124 92 255; /* #7C5CFF */
+    --nf-blue-soft: 138 168 255; /* Not in master prompt but keeping for compatibility */
+    --nf-blue-deep: 36 88 197; /* #2458C5 */
 
-    --nf-success: 22 148 92;
-    --nf-warning: 176 110 8;
-    --nf-danger: 203 58 74;
-    --nf-info: 59 130 255;
+    --nf-success: 22 148 92; /* Not in master prompt but keeping for compatibility */
+    --nf-warning: 176 110 8; /* Not in master prompt but keeping for compatibility */
+    --nf-danger: 203 58 74; /* Not in master prompt but keeping for compatibility */
+    --nf-info: 59 130 255; /* Not in master prompt but keeping for compatibility */
 
-    --nf-grid-line: rgb(16 17 20 / 0.06);
+    --nf-grid-line: rgb(255 255 255 / 0.09);
     --nf-header: rgb(245 241 232 / 0.82);
     --nf-scrim: rgb(38 33 26 / 0.4);
     --nf-shadow-soft: 0 1px 2px rgb(60 48 32 / 0.06);

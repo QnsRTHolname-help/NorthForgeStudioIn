@@ -1,22 +1,48 @@
 import { useState } from 'react';
-import { CreditCard } from 'lucide-react';
+import { CreditCard, FilePlus2 } from 'lucide-react';
 import { Panel, KpiCard } from '@/components/ui/Card';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
 import { Badge } from '@/components/ui/Badge';
 import { AdminHeader, ListToolbar } from '@/components/admin/AdminHeader';
-import { useAsync } from '@/hooks/useAsync';
+import { Modal } from '@/components/ui/Modal';
+import { Input, Select } from '@/components/ui/Form';
+import { Button } from '@/components/ui/Button';
+import { useAsync, useMutation } from '@/hooks/useAsync';
 import { usePageMeta } from '@/hooks/usePageMeta';
+import { useToast } from '@/app/providers/ToastProvider';
 import { billingService, clientsService } from '@/services';
 import { formatDate, formatMoney, titleCase } from '@/lib/format';
+import type { PaymentStatus } from '@/types';
 
 /** Payments (spec §124): money actually received. */
 export default function Payments() {
   usePageMeta({ title: 'Payments', noIndex: true });
+  const toast = useToast();
   const [query, setQuery] = useState('');
+  const [creating, setCreating] = useState(false);
 
   const state = useAsync(() => billingService.payments(), []);
   const clients = useAsync(() => clientsService.list({ pageSize: 200 }), []);
+  const invoices = useAsync(() => billingService.invoices(), []);
   const clientName = (id: string) => clients.data?.items.find((client) => client.id === id)?.businessName ?? 'Unknown';
+
+  const record = useMutation(
+    (input: { clientId: string; amount: number; status: string; method: string; invoiceId: string }) =>
+      billingService.createPayment({
+        clientId: input.clientId,
+        amount: input.amount,
+        status: input.status as PaymentStatus,
+        method: input.method,
+        invoiceId: input.invoiceId || undefined,
+      }),
+    {
+      onSuccess: async () => {
+        toast.success('Payment recorded');
+        setCreating(false);
+        await state.refetch().catch(() => undefined);
+      },
+    },
+  );
 
   const items = (state.data?.items ?? []).filter((payment) =>
     !query ? true : clientName(payment.clientId).toLowerCase().includes(query.toLowerCase()),
@@ -32,6 +58,11 @@ export default function Payments() {
         title="Payments"
         description="Money received, with method and status for every transaction."
         crumbs={[{ label: 'Billing', to: '/app/invoices' }, { label: 'Payments' }]}
+        action={
+          <Button size="md" iconLeft={<FilePlus2 className="h-3.5 w-3.5" />} onClick={() => setCreating(true)}>
+            Record payment
+          </Button>
+        }
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
@@ -94,6 +125,83 @@ export default function Payments() {
           you get from storing rupees as floats — the ledger always reconciles to the paisa.
         </p>
       </Panel>
+
+      <Modal open={creating} onClose={() => setCreating(false)} title="Record a payment">
+        <form
+          onSubmit={async (event) => {
+            event.preventDefault();
+            const data = new FormData(event.currentTarget);
+            const rupees = Number(data.get('amount') ?? 0);
+            if (!rupees || rupees <= 0) return;
+            await record
+              .mutate({
+                clientId: String(data.get('clientId') ?? ''),
+                amount: Math.round(rupees * 100),
+                status: String(data.get('status') ?? 'succeeded'),
+                method: String(data.get('method') ?? 'manual'),
+                invoiceId: String(data.get('invoiceId') ?? ''),
+              })
+              .catch(() => undefined);
+          }}
+          className="space-y-4"
+        >
+          <Select
+            label="Client"
+            name="clientId"
+            required
+            options={[
+              { value: '', label: 'Select a client…' },
+              ...(clients.data?.items ?? []).map((client) => ({ value: client.id, label: client.businessName })),
+            ]}
+          />
+          <Input label="Amount (₹)" name="amount" type="number" min="1" step="0.01" required placeholder="15000" />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Select
+              label="Status"
+              name="status"
+              defaultValue="succeeded"
+              options={[
+                { value: 'succeeded', label: 'Succeeded' },
+                { value: 'pending', label: 'Pending' },
+                { value: 'failed', label: 'Failed' },
+                { value: 'refunded', label: 'Refunded' },
+              ]}
+            />
+            <Select
+              label="Method"
+              name="method"
+              defaultValue="bank_transfer"
+              options={[
+                { value: 'bank_transfer', label: 'Bank transfer' },
+                { value: 'upi', label: 'UPI' },
+                { value: 'cash', label: 'Cash' },
+                { value: 'cheque', label: 'Cheque' },
+                { value: 'gateway', label: 'Payment gateway' },
+              ]}
+            />
+          </div>
+          <Select
+            label="Link to invoice (optional)"
+            name="invoiceId"
+            options={[
+              { value: '', label: 'No invoice' },
+              ...(invoices.data?.items ?? []).map((invoice) => ({
+                value: invoice.id,
+                label: `${invoice.number} · ${titleCase(invoice.status)}`,
+              })),
+            ]}
+          />
+          {record.error ? <p className="text-xs text-danger">{record.error}</p> : null}
+          <div className="flex justify-end gap-2 border-t border-line pt-4">
+            <Button variant="ghost" size="sm" onClick={() => setCreating(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" type="submit" loading={record.pending}>
+              Record payment
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

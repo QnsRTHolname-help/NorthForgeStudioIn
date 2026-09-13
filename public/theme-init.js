@@ -15,6 +15,6 @@
         : stored;
     document.documentElement.setAttribute('data-theme', resolved);
   } catch (e) {
-    document.documentElement.setAttribute('data-theme', 'dark');
+    document.documentElement.setAttribute('data-theme', 'light'); // Changed from 'dark' to 'light' for primary experience
   }
 })();

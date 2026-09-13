@@ -25,6 +25,8 @@ export const TITLES: Record<string, string> = {
   '/portal/invoices': 'Invoices',
   '/portal/requests': 'Requests',
   '/portal/support': 'Support',
+  '/portal/announcements': 'Announcements',
+  '/portal/files': 'Files',
   '/portal/settings': 'Settings',
 
   '/app': 'Dashboard',
@@ -52,6 +54,7 @@ export const TITLES: Record<string, string> = {
   '/app/plans': 'Plans',
   '/app/services': 'Services',
   '/app/notifications': 'Notifications',
+  '/app/announcements': 'Announcements',
   '/app/activity': 'Activity',
   '/app/support': 'Support',
   '/app/system-health': 'System health',

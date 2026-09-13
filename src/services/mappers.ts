@@ -1,7 +1,7 @@
 import type {
-  ActivityRecord, Booking, Client, ClientRequest, FollowUp, Invoice, Lead, NotificationRecord,
-  Payment, Project, Proposal, Subscription, Task, Ticket, Website, WhatsAppMessage,
-  WhatsAppTemplate, Workflow, WorkflowNode,
+  ActivityRecord, Announcement, Booking, Client, ClientRequest, FileRecord, FollowUp, Invoice,
+  Lead, Milestone, NotificationPreferences, NotificationRecord, Payment, Project, Proposal,
+  Subscription, Task, Ticket, Website, WhatsAppMessage, WhatsAppTemplate, Workflow, WorkflowNode,
 } from '@/types';
 
 /**
@@ -338,5 +338,62 @@ export function mapNotification(row: Record<string, unknown>): NotificationRecor
     entityType: (row.entity_type as string) ?? null,
     entityId: (row.entity_id as string) ?? null,
     createdAt: String(row.created_at ?? ''),
+  };
+}
+
+/* ── Announcements, preferences, milestones & files ─────────── */
+
+export function mapAnnouncement(row: Record<string, unknown>): Announcement {
+  return {
+    id: String(row.id ?? ''),
+    title: String(row.title ?? ''),
+    message: String(row.message ?? ''),
+    priority: (row.priority as Announcement['priority']) ?? 'normal',
+    audience: (row.audience as Announcement['audience']) ?? 'all_clients',
+    clientIds: Array.isArray(row.client_ids) ? (row.client_ids as string[]) : [],
+    startsAt: String(row.starts_at ?? ''),
+    endsAt: (row.ends_at as string) ?? null,
+    createdAt: String(row.created_at ?? ''),
+    isDemo: Boolean(row.is_demo ?? false),
+  };
+}
+
+export function mapMilestone(row: Record<string, unknown>): Milestone {
+  return {
+    id: String(row.id ?? ''),
+    projectId: String(row.project_id ?? ''),
+    clientId: String(row.client_id ?? ''),
+    title: String(row.title ?? ''),
+    description: (row.description as string) ?? null,
+    status: (row.status as Milestone['status']) ?? 'planning',
+    sortOrder: Number(row.sort_order ?? 0),
+    dueDate: (row.due_date as string) ?? null,
+    completedAt: (row.completed_at as string) ?? null,
+    isDemo: Boolean(row.is_demo ?? false),
+    createdAt: String(row.created_at ?? ''),
+  };
+}
+
+export function mapFileRecord(row: Record<string, unknown>): FileRecord {
+  return {
+    id: String(row.id ?? ''),
+    clientId: String(row.client_id ?? ''),
+    name: String(row.name ?? ''),
+    storagePath: String(row.storage_path ?? ''),
+    sizeBytes: Number(row.size_bytes ?? 0),
+    mimeType: (row.mime_type as string) ?? null,
+    createdAt: String(row.created_at ?? ''),
+  };
+}
+
+export function mapNotificationPreferences(row: Record<string, unknown>): NotificationPreferences {
+  return {
+    projectUpdates: Boolean(row.project_updates ?? true),
+    leads: Boolean(row.leads ?? true),
+    appointments: Boolean(row.appointments ?? true),
+    billing: Boolean(row.billing ?? true),
+    support: Boolean(row.support ?? true),
+    marketing: Boolean(row.marketing ?? true),
+    system: Boolean(row.system ?? true),
   };
 }

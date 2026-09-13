@@ -10,7 +10,7 @@ import { Progress } from '@/components/ui/Loader';
 import { useAsync, useMutation } from '@/hooks/useAsync';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useToast } from '@/app/providers/ToastProvider';
-import { projectsService, clientsService } from '@/services';
+import { projectsService, clientsService, milestonesService } from '@/services';
 import { formatDate, titleCase } from '@/lib/format';
 import type { Project } from '@/types';
 
@@ -152,14 +152,17 @@ export default function Projects() {
 
       <Modal open={!!editing} onClose={() => setEditing(null)} title="Edit project">
         {editing ? (
-          <ProjectForm
-            project={editing}
-            clients={(clients.data?.items ?? []).map((client) => ({ id: client.id, name: client.businessName }))}
-            onDone={async () => {
-              setEditing(null);
-              await state.refetch().catch(() => undefined);
-            }}
-          />
+          <div className="space-y-5">
+            <ProjectForm
+              project={editing}
+              clients={(clients.data?.items ?? []).map((client) => ({ id: client.id, name: client.businessName }))}
+              onDone={async () => {
+                setEditing(null);
+                await state.refetch().catch(() => undefined);
+              }}
+            />
+            <MilestoneEditor project={editing} />
+          </div>
         ) : null}
       </Modal>
     </div>
@@ -242,5 +245,126 @@ export function ProjectForm({
         </Button>
       </div>
     </form>
+  );
+}
+
+/**
+ * Milestones editor (spec §25). Lives inside the edit-project modal.
+ * Clients see the same milestones read-only on /portal/project; completion
+ * is stamped server-side and recorded in the activity trail by triggers.
+ */
+export function MilestoneEditor({ project }: { project: Project }) {
+  const toast = useToast();
+  const state = useAsync(() => milestonesService.listByProject(project.id), [project.id]);
+  const items = state.data?.items ?? [];
+
+  const create = useMutation(
+    (input: { title: string; dueDate: string | null }) =>
+      milestonesService.create({
+        projectId: project.id,
+        clientId: project.clientId,
+        title: input.title,
+        dueDate: input.dueDate,
+        sortOrder: items.length,
+      }),
+    {
+      onSuccess: async () => {
+        toast.success('Milestone added');
+        await state.refetch().catch(() => undefined);
+      },
+    },
+  );
+
+  const update = useMutation(
+    (input: { id: string; status?: string }) => milestonesService.update(input.id, { status: input.status }),
+    {
+      onSuccess: async () => {
+        await state.refetch().catch(() => undefined);
+      },
+    },
+  );
+
+  const remove = useMutation((id: string) => milestonesService.remove(id), {
+    onSuccess: async () => {
+      toast.success('Milestone removed');
+      await state.refetch().catch(() => undefined);
+    },
+  });
+
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    event.currentTarget.reset();
+    await create
+      .mutate({
+        title: String(form.get('title') ?? ''),
+        dueDate: String(form.get('dueDate') ?? '') || null,
+      })
+      .catch(() => undefined);
+  };
+
+  return (
+    <div className="border-t border-line pt-4">
+      <p className="text-[13px] font-semibold text-fg">Milestones</p>
+      <p className="mt-0.5 text-xs text-muted">Visible to the client in their portal project page.</p>
+
+      {items.length ? (
+        <ul className="mt-3 space-y-2">
+          {items.map((milestone) => (
+            <li key={milestone.id} className="flex flex-wrap items-center justify-between gap-2 rounded border border-line px-3 py-2">
+              <div className="min-w-0">
+                <p className="truncate text-[13px] text-fg">{milestone.title}</p>
+                <p className="text-2xs text-faint">
+                  {milestone.completedAt
+                    ? `Completed ${formatDate(milestone.completedAt)}`
+                    : milestone.dueDate
+                      ? `Due ${formatDate(milestone.dueDate)}`
+                      : 'No due date'}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <select
+                  value={milestone.status}
+                  aria-label={`Status for ${milestone.title}`}
+                  onChange={(event) => {
+                    void update.mutate({ id: milestone.id, status: event.target.value }).catch(() => undefined);
+                  }}
+                  className="rounded border border-line bg-surface px-1.5 py-1 text-2xs text-fg"
+                >
+                  <option value="planning">Planning</option>
+                  <option value="in_progress">In progress</option>
+                  <option value="completed">Completed</option>
+                </select>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  loading={remove.pending}
+                  onClick={() => {
+                    void remove.mutate(milestone.id).catch(() => undefined);
+                  }}
+                >
+                  Delete
+                </Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-3 text-xs text-faint">No milestones yet — add the delivery phases below.</p>
+      )}
+
+      <form onSubmit={submit} className="mt-3 flex flex-wrap items-end gap-2">
+        <div className="min-w-40 flex-1">
+          <Input label="New milestone" name="title" required placeholder="e.g. Design sign-off" />
+        </div>
+        <div className="w-40">
+          <Input label="Due (optional)" name="dueDate" type="date" />
+        </div>
+        <Button size="sm" type="submit" loading={create.pending} iconLeft={<Plus className="h-3.5 w-3.5" />}>
+          Add
+        </Button>
+      </form>
+      {create.error ? <p className="mt-1 text-xs text-danger">{create.error}</p> : null}
+    </div>
   );
 }

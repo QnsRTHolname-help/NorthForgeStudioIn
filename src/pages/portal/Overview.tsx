@@ -8,7 +8,7 @@ import { PortalHeader, Explain } from '@/components/portal/PortalHeader';
 import { AreaChart } from '@/components/charts/AreaChart';
 import { Timeline } from '@/components/ui/Data';
 import { useAsync } from '@/hooks/useAsync';
-import { insightsService, billingService } from '@/services';
+import { insightsService, billingService, announcementsService } from '@/services';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { formatMoney, formatNumber, formatPercent, formatRelative, formatDateTime } from '@/lib/format';
 import { titleForPath } from '@/app/config/titles';
@@ -24,6 +24,7 @@ export default function Overview() {
   usePageMeta({ title: titleForPath('/portal') ?? 'Client portal', noIndex: true });
   const state = useAsync(() => insightsService.clientDashboard(), []);
   const invoices = useAsync(() => billingService.invoices(), []);
+  const announcements = useAsync(() => announcementsService.list(), []);
 
   const dashboard = state.data?.dashboard ?? null;
   const metrics = dashboard?.metrics;
@@ -171,6 +172,31 @@ export default function Overview() {
                 </div>
               )}
             </Panel>
+
+            {/* Announcements (real, RLS-scoped; spec §18) */}
+            {announcements.data?.items.length ? (
+              <Panel title="From the NorthForge team">
+                <ul className="space-y-3">
+                  {announcements.data.items.slice(0, 3).map((item) => (
+                    <li key={item.id} className="rounded-lg border border-line bg-sunken/30 p-3.5">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-[13px] font-medium text-fg">{item.title}</p>
+                        <span className="text-2xs text-faint">{formatDateTime(item.startsAt)}</span>
+                      </div>
+                      <p className="mt-1 line-clamp-3 text-[13px] leading-relaxed text-muted">{item.message}</p>
+                    </li>
+                  ))}
+                </ul>
+                {announcements.data.items.length > 3 ? (
+                  <Link
+                    to="/portal/announcements"
+                    className="mt-3 inline-flex items-center gap-1 text-2xs text-brand hover:underline"
+                  >
+                    All announcements <ArrowRight className="h-3 w-3" aria-hidden />
+                  </Link>
+                ) : null}
+              </Panel>
+            ) : null}
 
             <div className="grid gap-4 lg:grid-cols-2">
               {/* Activity */}

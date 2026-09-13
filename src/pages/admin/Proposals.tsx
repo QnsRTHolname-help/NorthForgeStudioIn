@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText } from 'lucide-react';
+import { CheckCircle2, FileText, XCircle } from 'lucide-react';
 import { Panel, KpiCard } from '@/components/ui/Card';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
 import { Badge } from '@/components/ui/Badge';
 import { AdminHeader } from '@/components/admin/AdminHeader';
-import { useAsync } from '@/hooks/useAsync';
+import { Button } from '@/components/ui/Button';
+import { useAsync, useMutation } from '@/hooks/useAsync';
 import { usePageMeta } from '@/hooks/usePageMeta';
+import { useToast } from '@/app/providers/ToastProvider';
 import { leadsService } from '@/services';
 import { SERVICES } from '@shared/catalog';
 import { formatMoney, titleCase } from '@/lib/format';
@@ -19,9 +21,20 @@ import { formatMoney, titleCase } from '@/lib/format';
  */
 export default function Proposals() {
   usePageMeta({ title: 'Proposals', noIndex: true });
+  const toast = useToast();
   const [selected, setSelected] = useState<string[]>([]);
   const state = useAsync(() => leadsService.list({ status: 'proposal', pageSize: 100 }), []);
   const items = state.data?.items ?? [];
+
+  const setStatus = useMutation(
+    (input: { id: string; contactName: string; status: 'won' | 'lost' }) => leadsService.update(input.id, { status: input.status }),
+    {
+      onSuccess: async (_result, input) => {
+        toast.success(`${input.contactName} marked ${input.status}`);
+        await state.refetch().catch(() => undefined);
+      },
+    },
+  );
 
   const toggle = (id: string) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
@@ -74,6 +87,22 @@ export default function Proposals() {
                     <div className="flex shrink-0 items-center gap-2">
                       {lead.value ? <span className="nf-num text-[13px] text-fg">{formatMoney(lead.value)}</span> : null}
                       <Badge tone="warning">{titleCase(lead.status)}</Badge>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        aria-label={`Mark ${lead.contactName} as won`}
+                        onClick={() => void setStatus.mutate({ id: lead.id, contactName: lead.contactName, status: 'won' }).catch(() => undefined)}
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5 text-success" aria-hidden />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        aria-label={`Mark ${lead.contactName} as lost`}
+                        onClick={() => void setStatus.mutate({ id: lead.id, contactName: lead.contactName, status: 'lost' }).catch(() => undefined)}
+                      >
+                        <XCircle className="h-3.5 w-3.5 text-danger" aria-hidden />
+                      </Button>
                     </div>
                   </li>
                 ))}
@@ -111,6 +140,14 @@ export default function Proposals() {
           />
         )}
       </AsyncBoundary>
+
+      <Panel className="mt-4" title="Closing a proposal">
+        <p className="text-[13px] leading-relaxed text-muted">
+          Mark a proposal won or lost with the ✓ / ✕ buttons — the CRM, pipeline and analytics update from the same
+          record. Marking one won does not create an invoice; generate that from the subscription once the client is
+          onboarded.
+        </p>
+      </Panel>
     </div>
   );
 }

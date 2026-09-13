@@ -11,10 +11,17 @@ import { Button } from '@/components/ui/Button';
 import { useAsync, useMutation } from '@/hooks/useAsync';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useToast } from '@/app/providers/ToastProvider';
-import { projectsService } from '@/services';
+import { projectsService, milestonesService } from '@/services';
 import { formatDate } from '@/lib/format';
+import type { Milestone } from '@/types';
 
 const STAGES = ['discovery', 'design', 'development', 'review', 'launch', 'maintenance'];
+
+const MILESTONE_STATE: Record<Milestone['status'], 'done' | 'current' | 'upcoming'> = {
+  completed: 'done',
+  in_progress: 'current',
+  planning: 'upcoming',
+};
 
 /** Project progress (spec §112): clear, honest, with a feedback channel. */
 export default function Project() {
@@ -22,6 +29,11 @@ export default function Project() {
   const toast = useToast();
   const state = useAsync(() => projectsService.list(), []);
   const project = state.data?.items?.[0] ?? null;
+  const milestones = useAsync(
+    () => (project ? milestonesService.listByProject(project.id) : Promise.resolve({ items: [] })),
+    [project?.id],
+    { enabled: !!project },
+  );
 
   const [feedback, setFeedback] = useState('');
   const send = useMutation(
@@ -86,6 +98,28 @@ export default function Project() {
                   }))}
                 />
               </Panel>
+
+              {milestones.data?.items.length ? (
+                <Panel title="Milestones">
+                  <Timeline
+                    items={milestones.data.items.map((milestone) => ({
+                      id: milestone.id,
+                      label: milestone.title,
+                      detail: [
+                        milestone.status === 'completed' && milestone.completedAt
+                          ? `Completed ${formatDate(milestone.completedAt)}`
+                          : milestone.dueDate
+                            ? `Due ${formatDate(milestone.dueDate)}`
+                            : undefined,
+                        milestone.description ?? undefined,
+                      ]
+                        .filter(Boolean)
+                        .join(' · '),
+                      state: MILESTONE_STATE[milestone.status],
+                    }))}
+                  />
+                </Panel>
+              ) : null}
 
               {project.notes ? (
                 <Panel title="Notes from the team">

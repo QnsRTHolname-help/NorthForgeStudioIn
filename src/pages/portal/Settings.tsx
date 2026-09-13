@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { LogOut, Monitor, Moon, Sun } from 'lucide-react';
 import { Panel, Card } from '@/components/ui/Card';
 import { PortalHeader, MetricRow } from '@/components/portal/PortalHeader';
@@ -9,11 +9,22 @@ import { usePageMeta } from '@/hooks/usePageMeta';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { useTheme } from '@/app/providers/ThemeProvider';
-import { useMutation } from '@/hooks/useAsync';
-import { useLocalStorage } from '@/hooks';
-import { authService } from '@/services';
+import { useAsync, useMutation } from '@/hooks/useAsync';
+import { authService, preferencesService } from '@/services';
 import { cn } from '@/lib/cn';
 import { formatDateTime } from '@/lib/format';
+import type { NotificationPreferences } from '@/types';
+
+/** Categories the backend event engine reads from this table (spec §6). */
+const CATEGORIES: { key: keyof NotificationPreferences; label: string; description: string }[] = [
+  { key: 'projectUpdates', label: 'Project updates', description: 'Progress, milestones and website status changes.' },
+  { key: 'leads', label: 'Lead notifications', description: 'New enquiries captured for your business.' },
+  { key: 'appointments', label: 'Appointment notifications', description: 'Bookings, confirmations and changes.' },
+  { key: 'billing', label: 'Billing notifications', description: 'Invoices issued and payments recorded.' },
+  { key: 'support', label: 'Support notifications', description: 'Replies and status changes on your tickets and requests.' },
+  { key: 'marketing', label: 'Announcements & marketing', description: 'Product updates and NorthForge news.' },
+  { key: 'system', label: 'System notifications', description: 'Account and security notices. Recommended.' },
+];
 
 /** Settings (spec §112): theme, notifications, security. */
 export default function Settings() {
@@ -22,8 +33,27 @@ export default function Settings() {
   const { preference, setPreference } = useTheme();
   const toast = useToast();
 
-  const [emailNotifications, setEmailNotifications] = useLocalStorage('nf-portal-notify-email', true);
-  const [whatsappNotifications, setWhatsappNotifications] = useLocalStorage('nf-portal-notify-whatsapp', true);
+  // Notification preferences live in the database (migration 0004) and are
+  // read by the backend event engine — not browser localStorage (spec §6).
+  const prefs = useAsync(() => preferencesService.get(), []);
+  const [draft, setDraft] = useState<NotificationPreferences | null>(null);
+
+  useEffect(() => {
+    if (prefs.data && !draft) setDraft(prefs.data);
+  }, [prefs.data, draft]);
+
+  const savePrefs = useMutation((next: NotificationPreferences) => preferencesService.save(next), {
+    onSuccess: () => toast.success('Notification preferences saved'),
+  });
+
+  const toggle = (key: keyof NotificationPreferences) => {
+    if (!draft) return;
+    const next = { ...draft, [key]: !draft[key] };
+    setDraft(next);
+    savePrefs.mutate(next).catch(() => {
+      setDraft(draft); // revert on failure
+    });
+  };
 
   const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' });
   const [error, setError] = useState<string | null>(null);
@@ -76,23 +106,28 @@ export default function Settings() {
         </Panel>
 
         <Panel title="Notifications">
-          <div className="space-y-1">
-            <Switch
-              checked={emailNotifications}
-              onChange={setEmailNotifications}
-              label="Email me about new enquiries"
-              description="A short summary when someone contacts your business."
-            />
-            <div className="my-1 h-px bg-line" />
-            <Switch
-              checked={whatsappNotifications}
-              onChange={setWhatsappNotifications}
-              label="WhatsApp me about new enquiries"
-              description="Fastest way to hear about an enquiry while you are out."
-            />
-          </div>
+          {!draft ? (
+            <p className="text-[13px] text-muted">
+              {prefs.loading ? 'Loading your preferences…' : (prefs.error ?? 'Preferences are unavailable.')}
+            </p>
+          ) : (
+            <div className="space-y-1">
+              {CATEGORIES.map((category, index) => (
+                <span key={category.key} className="block">
+                  {index > 0 ? <div className="my-1 h-px bg-line" /> : null}
+                  <Switch
+                    checked={draft[category.key]}
+                    onChange={() => toggle(category.key)}
+                    label={category.label}
+                    description={category.description}
+                  />
+                </span>
+              ))}
+            </div>
+          )}
           <p className="mt-4 text-xs text-faint">
-            Reminders about bookings and renewals are sent automatically and are not affected by these switches.
+            These switches control your in-portal notifications and are stored on your account.
+            Account and security notices about your business cannot be fully disabled.
           </p>
         </Panel>
       </div>

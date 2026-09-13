@@ -112,9 +112,15 @@ export function titleCase(value: string) {
 }
 
 export function formatDuration(minutes: number | null | undefined) {
-  if (!minutes) return '—';
+  if (minutes === null || minutes === undefined) return '—';
   if (minutes < 60) return `${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return mins ? `${hours}h ${mins}m` : `${hours}h`;
+  return `${Math.floor(minutes / 60)}h ${minutes % 60 ? `${minutes % 60}m` : ''}`.trim();
 }
+
+export function formatBytes(bytes: number | null | undefined) {
+  if (bytes === null || bytes === undefined) return '—';
+  if (bytes >= 1048576) return `${(bytes / 1048576).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${bytes} B`;
+}
+

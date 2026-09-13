@@ -6,17 +6,20 @@ table is the real security boundary. The frontend talks to Supabase directly
 through one client (`src/lib/supabase.ts`) and one service layer
 (`src/services/index.ts`).
 
-## 1. Database — run the migration
+## 1. Database — run the migrations
 
-In the Supabase dashboard (SQL Editor) or via the CLI, run:
+In the Supabase dashboard (SQL Editor) or via the CLI, run — in order:
 
 ```
 supabase/migrations/0001_northforge_supabase.sql
+supabase/migrations/0002_allow_admin_provisioning.sql
+supabase/migrations/0003_super_admin_role_management.sql
+supabase/migrations/0004_announcements_prefs_files_milestones_event_engine.sql
 ```
 
-It is **non-destructive**: only `CREATE` / `CREATE OR REPLACE` /
+They are **non-destructive**: only `CREATE` / `CREATE OR REPLACE` /
 `drop policy if exists` statements. Safe to re-run; no tables are dropped.
-It provisions:
+0001 provisions:
 
 - `clients`, `profiles` (id = `auth.users.id`), and every business table
 - the `handle_new_user` signup trigger — public signup can **only** create
@@ -25,6 +28,26 @@ It provisions:
   `role` / `client_id`
 - RLS enabled on every table with explicit policies
   (admin = all; client = own rows only; enquiries = public insert, admin read)
+
+0002 / 0003 lock role changes to super admins and add auth activity logging.
+0004 provisions the operating-system layer:
+
+- **`announcements`** (§18) — admin broadcasts to all clients, selected
+  clients, or internal admins; clients read only published rows addressed
+  to them (RLS)
+- **`notification_preferences`** (§6) — per-user switches; the signup
+  trigger seeds defaults; the event engine honours them
+- **`milestones`** (§25) — project milestones; completion is stamped
+  server-side (`guard_milestone_status`)
+- **`files`** + private **`client-files` storage bucket** (§26–§27) —
+  objects live under `{client_id}/…`; storage policies derive access from
+  the same RLS identity (`app_can_see` / `app_is_admin`); never public URLs
+- **Event engine** (§8, §9, §46, §54) — security-definer triggers turn
+  database events into notifications (respecting preferences) and activity
+  records: leads created, requests/tickets created + status changes,
+  bookings, invoice/payment events, task assignment + completion, client
+  status changes, announcements published. The backend — not browser
+  JavaScript — is the source of truth.
 
 ## 2. Auth configuration (Supabase dashboard → Authentication)
 
@@ -92,6 +115,9 @@ Register two clients (A and B) and one admin, then verify:
 - [ ] Client A sees only their own leads/requests/invoices/analytics
 - [ ] Client A cannot read Client B's rows (even by guessing IDs — RLS returns empty/denied, never the data)
 - [ ] Client A cannot update another client's records (policies reject, error maps to "You don't have permission…")
+- [ ] Client A cannot list or download Client B's files (signed URL creation for another client's path is denied)
+- [ ] Client A does not receive announcements addressed to Client B or unpublished announcements
+- [ ] Client A's notification preferences are their own — toggles never affect Client B
 - [ ] Client A hitting `/app` lands on `/unauthorized`
 - [ ] Client A calling admin-only tables gets empty results / denials
 - [ ] Admin can read/manage authorized business data

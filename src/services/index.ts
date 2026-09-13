@@ -3,18 +3,20 @@ import { AuthError, logAuthEvent, mapAuthError } from '@/lib/auth-errors';
 import { ApiError } from '@/types';
 import { authUserId, compact, run, mapDatabaseError } from '@/services/db';
 import {
-  mapActivity, mapBooking, mapClient, mapFollowUp, mapInvoice, mapLead, mapNotification,
-  mapPayment, mapProject, mapProposal, mapRequest, mapSubscription, mapTask, mapTicket,
-  mapWebsite, mapWhatsAppMessage, mapWhatsAppTemplate, mapWorkflow,
+  mapActivity, mapAnnouncement, mapBooking, mapClient, mapFileRecord, mapFollowUp, mapInvoice,
+  mapLead, mapMilestone, mapNotification, mapNotificationPreferences, mapPayment, mapProject,
+  mapProposal, mapRequest, mapSubscription, mapTask, mapTicket, mapWebsite, mapWhatsAppMessage,
+  mapWhatsAppTemplate, mapWorkflow,
 } from '@/services/mappers';
 import { CATALOG } from '@/services/catalog';
 import { CONTACT } from '@/data/site';
 import type {
-  ActivityRecord, AdminDashboard, Booking, Client, ClientDashboard, ClientRequest, FollowUp,
-  Invoice, Lead, NotificationRecord, OnboardingDraft, Payment, Plan, Project, Proposal, Service,
-  Subscription, SystemHealthReport, Task, Ticket, Website, Workflow, WhatsAppMessage, WhatsAppTemplate,
+  ActivityRecord, AdminDashboard, Announcement, Booking, Client, ClientDashboard, ClientRequest,
+  FileRecord, FollowUp, Invoice, Lead, Milestone, NotificationPreferences, NotificationRecord,
+  OnboardingDraft, Payment, Plan, Project, Proposal, Service, Subscription, SystemHealthReport,
+  Task, Ticket, Website, Workflow, WhatsAppMessage, WhatsAppTemplate,
 } from '@/types';
-import type { Paginated, Role } from '@/types';
+import type { Paginated, PaymentStatus, Role } from '@/types';
 
 /**
  * Service layer (spec §81).
@@ -914,6 +916,28 @@ export const billingService = {
     );
     return { items: (rows ?? []).map(mapPayment) };
   },
+  /** Record a payment received outside the app (bank transfer, UPI, cash). Never marks an invoice paid on its own — use updateInvoice for that. */
+  createPayment: async (input: {
+    clientId: string;
+    amount: number;
+    status?: PaymentStatus;
+    method?: string;
+    invoiceId?: string;
+  }): Promise<{ payment: Payment }> => {
+    const rows = await run<Record<string, unknown>[]>('billing.createPayment', () =>
+      supabase
+        .from('payments')
+        .insert({
+          client_id: input.clientId,
+          amount: input.amount,
+          status: input.status ?? 'succeeded',
+          method: input.method ?? 'manual',
+          invoice_id: input.invoiceId ?? null,
+        })
+        .select(),
+    );
+    return { payment: mapPayment(rows![0]) };
+  },
   plans: async (): Promise<{ plans: (Plan & { subscribers: number })[] }> => {
     const rows = await run<Record<string, unknown>[]>('billing.plans', () => supabase.from('subscriptions').select('plan_id'));
     const counts = new Map<string, number>();
@@ -1229,7 +1253,203 @@ export const ticketsService = {
   },
 };
 
-/* ── Insights ── */
+/* ── Announcements, preferences, milestones & files ─────────── */
+
+/**
+ * Announcements (spec §18). The database decides what the caller may see:
+ * clients read only published announcements addressed to them, admins read
+ * everything — same query, different RLS result.
+ */
+export const announcementsService = {
+  list: async (): Promise<{ items: Announcement[] }> => {
+    const rows = await run<Record<string, unknown>[]>('announcements.list', () =>
+      supabase.from('announcements').select('*').order('starts_at', { ascending: false }).limit(50),
+    );
+    return { items: (rows ?? []).map(mapAnnouncement) };
+  },
+  create: async (input: {
+    title: string;
+    message: string;
+    priority?: string;
+    audience?: string;
+    clientIds?: string[];
+    startsAt?: string;
+    endsAt?: string | null;
+  }): Promise<{ announcement: Announcement }> => {
+    const session = await loadProfile();
+    const rows = await run<Record<string, unknown>[]>('announcements.create', () =>
+      supabase
+        .from('announcements')
+        .insert({
+          title: input.title,
+          message: input.message,
+          priority: input.priority ?? 'normal',
+          audience: input.audience ?? 'all_clients',
+          client_ids: input.clientIds ?? [],
+          starts_at: input.startsAt ?? new Date().toISOString(),
+          ...(input.endsAt ? { ends_at: input.endsAt } : {}),
+          created_by: session.user.id,
+        })
+        .select(),
+    );
+    return { announcement: mapAnnouncement(rows![0]) };
+  },
+  remove: async (id: string): Promise<void> => {
+    await run('announcements.remove', () => supabase.from('announcements').delete().eq('id', id));
+  },
+};
+
+/** Per-user notification preferences (spec §6) — stored in the database. */
+export const preferencesService = {
+  get: async (): Promise<NotificationPreferences> => {
+    const userId = await authUserId();
+    if (!userId) throw sessionError();
+    const rows = await run<Record<string, unknown>[]>('preferences.get', () =>
+      supabase.from('notification_preferences').select('*').eq('user_id', userId).limit(1),
+    );
+    if (rows?.[0]) return mapNotificationPreferences(rows[0]);
+    // Missing row (accounts created before migration 0004) → all on.
+    return {
+      projectUpdates: true, leads: true, appointments: true, billing: true,
+      support: true, marketing: true, system: true,
+    };
+  },
+  save: async (input: NotificationPreferences): Promise<NotificationPreferences> => {
+    const userId = await authUserId();
+    if (!userId) throw sessionError();
+    const rows = await run<Record<string, unknown>[]>('preferences.save', () =>
+      supabase
+        .from('notification_preferences')
+        .upsert({
+          user_id: userId,
+          project_updates: input.projectUpdates,
+          leads: input.leads,
+          appointments: input.appointments,
+          billing: input.billing,
+          support: input.support,
+          marketing: input.marketing,
+          system: input.system,
+        })
+        .select(),
+    );
+    return mapNotificationPreferences(rows![0]);
+  },
+};
+
+/* ── Milestones & files ─────────────────────────────────────── */
+
+/** Project milestones (spec §25). Clients read; admins manage. */
+export const milestonesService = {
+  listByProject: async (projectId: string): Promise<{ items: Milestone[] }> => {
+    const rows = await run<Record<string, unknown>[]>('milestones.list', () =>
+      supabase
+        .from('milestones')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('sort_order', { ascending: true }),
+    );
+    return { items: (rows ?? []).map(mapMilestone) };
+  },
+  create: async (input: {
+    projectId: string;
+    clientId: string;
+    title: string;
+    description?: string | null;
+    dueDate?: string | null;
+    sortOrder?: number;
+  }): Promise<{ milestone: Milestone }> => {
+    const rows = await run<Record<string, unknown>[]>('milestones.create', () =>
+      supabase
+        .from('milestones')
+        .insert({
+          project_id: input.projectId,
+          client_id: input.clientId,
+          title: input.title,
+          description: input.description ?? null,
+          due_date: input.dueDate ?? null,
+          sort_order: input.sortOrder ?? 0,
+        })
+        .select(),
+    );
+    return { milestone: mapMilestone(rows![0]) };
+  },
+  update: async (id: string, input: { status?: string; title?: string; dueDate?: string | null }): Promise<{ milestone: Milestone }> => {
+    const rows = await run<Record<string, unknown>[]>('milestones.update', () =>
+      supabase
+        .from('milestones')
+        .update(compact({ status: input.status, title: input.title, due_date: input.dueDate }))
+        .eq('id', id)
+        .select(),
+    );
+    if (!rows?.[0]) throw new ApiError("We couldn't find that milestone.", 404, 'not_found');
+    return { milestone: mapMilestone(rows[0]) };
+  },
+  remove: async (id: string): Promise<void> => {
+    await run('milestones.remove', () => supabase.from('milestones').delete().eq('id', id));
+  },
+};
+
+/**
+ * Files (spec §26, §27). Private 'client-files' bucket; objects live under
+ * `{client_id}/…` and every access is authorised by RLS-derived storage
+ * policies. Downloads use short-lived signed URLs — never public paths.
+ */
+export const filesService = {
+  list: async (): Promise<{ items: FileRecord[] }> => {
+    const rows = await run<Record<string, unknown>[]>('files.list', () =>
+      supabase.from('files').select('*').order('created_at', { ascending: false }).limit(100),
+    );
+    return { items: (rows ?? []).map(mapFileRecord) };
+  },
+  upload: async (file: File): Promise<{ record: FileRecord }> => {
+    const session = await loadProfile();
+    const clientId = session.user.clientId;
+    if (!clientId) throw new ApiError('No business profile is linked to this account.', 400, 'no_client');
+
+    const safeName = file.name.replace(/[^\w.-]+/g, '_').slice(-80);
+    const path = `${clientId}/${Date.now()}_${safeName}`;
+
+    const { error } = await supabase.storage.from('client-files').upload(path, file, {
+      cacheControl: '3600',
+      upsert: false,
+    });
+    if (error) throw new ApiError(error.message, 400, 'upload_failed');
+
+    try {
+      const rows = await run<Record<string, unknown>[]>('files.upload', () =>
+        supabase
+          .from('files')
+          .insert({
+            client_id: clientId,
+            uploaded_by: session.user.id,
+            name: file.name,
+            storage_path: path,
+            size_bytes: file.size,
+            mime_type: file.type || null,
+          })
+          .select(),
+      );
+      return { record: mapFileRecord(rows![0]) };
+    } catch (cause) {
+      // Registry write failed — remove the orphaned object so storage and
+      // the table never disagree.
+      await supabase.storage.from('client-files').remove([path]);
+      throw cause;
+    }
+  },
+  downloadUrl: async (storagePath: string): Promise<string> => {
+    const { data, error } = await supabase.storage
+      .from('client-files')
+      .createSignedUrl(storagePath, 300);
+    if (error || !data) throw new ApiError('The file link could not be created.', 400, 'sign_failed');
+    return data.signedUrl;
+  },
+  remove: async (record: FileRecord): Promise<void> => {
+    const { error } = await supabase.storage.from('client-files').remove([record.storagePath]);
+    if (error) throw new ApiError(error.message, 400, 'delete_failed');
+    await run('files.remove', () => supabase.from('files').delete().eq('id', record.id));
+  },
+};
 
 export const insightsService = {
   clientDashboard: async (): Promise<{ dashboard: ClientDashboard | null }> => {
