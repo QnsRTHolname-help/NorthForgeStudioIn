@@ -963,6 +963,47 @@ export const billingService = {
     );
     return { invoice: mapInvoice(rows![0]) };
   },
+  /**
+   * Create an invoice directly for a client + plan. This is the path that
+   * works even when no subscription record exists yet — the common state for
+   * a new client, where the subscription-based generator has nothing to list.
+   */
+  createInvoice: async (input: {
+    clientId: string;
+    planId: string;
+    subscriptionId?: string | null;
+    dueInDays?: number;
+  }): Promise<{ invoice: Invoice }> => {
+    if (!input.clientId) throw new ApiError('Choose a client for this invoice.', 400, 'validation');
+    if (!input.planId) throw new ApiError('Choose a plan for this invoice.', 400, 'validation');
+    const plan = CATALOG.plans.find((candidate) => candidate.id === input.planId);
+    const amount = plan?.amount ?? 0;
+    const tax = Math.round(amount * 0.18);
+    const now = new Date();
+    const rows = await run<Record<string, unknown>[]>('billing.createInvoice', () =>
+      supabase
+        .from('invoices')
+        .insert({
+          number: `NF-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${Date.now().toString(36).toUpperCase()}`,
+          client_id: input.clientId,
+          subscription_id: input.subscriptionId ?? null,
+          amount,
+          tax,
+          total: amount + tax,
+          status: 'open',
+          due_at: new Date(now.getTime() + (input.dueInDays ?? 14) * 86400000).toISOString(),
+          line_items: [
+            {
+              label: plan?.name ?? 'Subscription',
+              amount,
+              description: `${input.dueInDays ?? 14}-day term · one-time setup + monthly management`,
+            },
+          ],
+        })
+        .select(),
+    );
+    return { invoice: mapInvoice(rows![0]) };
+  },
   updateInvoice: async (id: string, status: string): Promise<{ invoice: Invoice }> => {
     const rows = await run<Record<string, unknown>[]>('billing.updateInvoice', () =>
       supabase

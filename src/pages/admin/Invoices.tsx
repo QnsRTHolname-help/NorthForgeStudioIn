@@ -8,10 +8,12 @@ import { AdminHeader, ListToolbar } from '@/components/admin/AdminHeader';
 import { Drawer, Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
+import { ClientSelect } from '@/components/admin/ClientSelect';
 import { useAsync, useMutation } from '@/hooks/useAsync';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useToast } from '@/app/providers/ToastProvider';
 import { billingService, clientsService } from '@/services';
+import { PLANS, planAmountLabel } from '@shared/catalog';
 import { formatDate, formatMoney, formatMoneyPrecise, titleCase } from '@/lib/format';
 import type { Invoice } from '@/types';
 
@@ -25,12 +27,17 @@ export default function Invoices() {
   const [query, setQuery] = useState('');
   const [detail, setDetail] = useState<Invoice | null>(null);
   const [generating, setGenerating] = useState(false);
-  const [subscriptionId, setSubscriptionId] = useState('');
+  const [invoiceClientId, setInvoiceClientId] = useState('');
+  const [invoicePlanId, setInvoicePlanId] = useState('');
+  const [invoiceSubId, setInvoiceSubId] = useState('');
 
   const state = useAsync(() => billingService.invoices(), []);
   const subs = useAsync(() => billingService.subscriptions(), []);
-  const clients = useAsync(() => clientsService.list({ pageSize: 200 }), []);
+  const clients = useAsync(() => clientsService.list({ pageSize: 1000 }), []);
   const clientName = (id: string) => clients.data?.items.find((client) => client.id === id)?.businessName ?? 'Unknown';
+
+  /** Subscriptions belonging to the selected client (often none, early on). */
+  const clientSubs = (subs.data?.items ?? []).filter((subscription) => subscription.clientId === invoiceClientId);
 
   const items = (state.data?.items ?? []).filter((invoice) => {
     const matchesQuery = !query || invoice.number.toLowerCase().includes(query.toLowerCase());
@@ -40,13 +47,28 @@ export default function Invoices() {
   const outstanding = items.filter((invoice) => invoice.status !== 'paid').reduce((sum, invoice) => sum + invoice.total, 0);
   const collected = items.filter((invoice) => invoice.status === 'paid').reduce((sum, invoice) => sum + invoice.total, 0);
 
-  const generate = useMutation(() => billingService.generateInvoice(subscriptionId), {
-    onSuccess: async () => {
-      toast.success('Invoice generated');
-      setGenerating(false);
-      await state.refetch().catch(() => undefined);
+  const generate = useMutation(
+    () =>
+      // Prefer the client+plan path: it works with or without a subscription
+      // record, so an invoice can always be raised.
+      invoiceSubId
+        ? billingService.generateInvoice(invoiceSubId)
+        : billingService.createInvoice({
+            clientId: invoiceClientId,
+            planId: invoicePlanId,
+            subscriptionId: null,
+          }),
+    {
+      onSuccess: async () => {
+        toast.success('Invoice generated');
+        setGenerating(false);
+        setInvoiceClientId('');
+        setInvoicePlanId('');
+        setInvoiceSubId('');
+        await state.refetch().catch(() => undefined);
+      },
     },
-  });
+  );
 
   const setStatus = useMutation(
     (input: { id: string; status: string }) => billingService.updateInvoice(input.id, input.status),
@@ -212,25 +234,67 @@ export default function Invoices() {
           }}
           className="space-y-4"
         >
+          <ClientSelect
+            label="Client"
+            value={invoiceClientId}
+            onChange={(clientId) => {
+              setInvoiceClientId(clientId);
+              setInvoiceSubId('');
+            }}
+            required
+          />
+
           <Select
-            label="Subscription"
-            value={subscriptionId}
-            onChange={(event) => setSubscriptionId(event.target.value)}
+            label="Plan"
+            value={invoicePlanId}
+            onChange={(event) => setInvoicePlanId(event.target.value)}
             required
             options={[
-              { value: '', label: 'Select a subscription…' },
-              ...(subs.data?.items ?? []).map((subscription) => ({
-                value: subscription.id,
-                label: `${clientName(subscription.clientId)} · ${titleCase(subscription.status)}`,
+              { value: '', label: 'Choose a plan…' },
+              ...PLANS.filter((plan) => plan.amount !== null).map((plan) => ({
+                value: plan.id,
+                label: `${plan.name} — ${planAmountLabel(plan)}/mo`,
               })),
             ]}
+            hint="Amount and 18% GST are taken from the catalog — never typed by hand."
           />
+
+          {invoiceClientId ? (
+            clientSubs.length ? (
+              <Select
+                label="Subscription (optional)"
+                value={invoiceSubId}
+                onChange={(event) => setInvoiceSubId(event.target.value)}
+                options={[
+                  { value: '', label: 'No subscription — invoice the plan above' },
+                  ...clientSubs.map((subscription) => ({
+                    value: subscription.id,
+                    label: `${titleCase(subscription.status)} · started ${formatDate(subscription.startedAt)}`,
+                  })),
+                ]}
+                hint="Picking a subscription bills its own plan and links the invoice to it."
+              />
+            ) : (
+              <p className="rounded border border-line bg-sunken/40 px-3 py-2 text-xs text-muted">
+                This client has no subscription record yet — the invoice will be created from the plan you chose.{' '}
+                <Link to="/app/subscriptions" className="text-brand hover:underline">
+                  Add a subscription
+                </Link>
+              </p>
+            )
+          ) : null}
+
           {generate.error ? <p className="text-xs text-danger">{generate.error}</p> : null}
           <div className="flex justify-end gap-2 border-t border-line pt-4">
             <Button variant="ghost" size="sm" onClick={() => setGenerating(false)}>
               Cancel
             </Button>
-            <Button size="sm" type="submit" loading={generate.pending} disabled={!subscriptionId}>
+            <Button
+              size="sm"
+              type="submit"
+              loading={generate.pending}
+              disabled={!invoiceClientId || !(invoiceSubId || invoicePlanId)}
+            >
               Generate
             </Button>
           </div>
