@@ -1,7 +1,6 @@
 /** Human page titles for document metadata and layout headers. */
 export const TITLES: Record<string, string> = {
   '/': 'Websites that work',
-  '/services': 'Services',
   '/how-it-works': 'How it works',
   '/pricing': 'Pricing',
   '/faq': 'Frequently asked questions',

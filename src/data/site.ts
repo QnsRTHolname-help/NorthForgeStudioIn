@@ -59,10 +59,8 @@ export function emailLink(subject?: string) {
  * properly when you are not.
  */
 export const PUBLIC_NAV = [
-  { label: 'Services', to: '/services', id: 'services' },
   { label: 'How It Works', to: '/how-it-works', id: 'process' },
-  { label: 'Work', to: '/#work', id: 'work' },
-  { label: 'Pricing', to: '/pricing', id: 'pricing' },
+  { label: 'Pricing', to: '/#pricing', id: 'pricing' },
   { label: 'FAQ', to: '/faq', id: 'faq' },
 ] as const;
 
@@ -70,10 +68,8 @@ export const FOOTER_NAV = [
   {
     title: 'Product',
     links: [
-      { label: 'Services', to: '/services' },
       { label: 'How It Works', to: '/how-it-works' },
-      { label: 'Work', to: '/#work' },
-      { label: 'Pricing', to: '/pricing' },
+      { label: 'Pricing', to: '/#pricing' },
       { label: 'FAQ', to: '/faq' },
     ],
   },
@@ -104,7 +100,10 @@ export function organizationSchema() {
       addressRegion: CONTACT.state,
       addressCountry: CONTACT.country,
     },
-    areaServed: { '@type': 'State', name: CONTACT.state },
+    areaServed: [
+      { '@type': 'City', name: CONTACT.city },
+      { '@type': 'State', name: CONTACT.state },
+    ],
     knowsAbout: [
       'Business process automation',
       'AI automation for small business',

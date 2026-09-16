@@ -6,7 +6,6 @@ import {
   ProblemSection,
   PromiseSection,
   WhyNorthForge,
-  WorkSection,
   FinalCta,
 } from '@/components/marketing/Sections';
 import { ServiceRows } from '@/components/marketing/ServicesGrid';
@@ -43,7 +42,7 @@ export default function Home() {
       <ProblemSection />
       <PromiseSection />
 
-      <section className="nf-shell py-20 lg:py-28">
+      <section id="services" className="nf-shell scroll-mt-28 py-20 lg:py-28">
         <SectionHeader
           eyebrow="Services"
           title="What we build."
@@ -58,8 +57,7 @@ export default function Home() {
       <AutomationShowcase />
       <CrmShowcase />
       <WhyNorthForge />
-      <WorkSection />
-      <PricingTable />
+      <PricingTable showDetail={false} />
       <FaqSection limit={6} />
       <FinalCta />
     </>

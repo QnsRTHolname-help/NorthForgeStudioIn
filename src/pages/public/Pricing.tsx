@@ -32,11 +32,6 @@ export default function Pricing() {
           <NextSteps
             items={[
               {
-                label: 'What is included',
-                to: '/services',
-                description: 'The full list of services behind each capability group.',
-              },
-              {
                 label: 'How long it takes',
                 to: '/how-it-works',
                 description: 'The six stages from first call to launch and growth.',

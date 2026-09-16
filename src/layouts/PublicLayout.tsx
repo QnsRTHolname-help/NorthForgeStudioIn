@@ -29,7 +29,7 @@ export function PublicLayout() {
   }, [setOverride]);
 
   useEffect(() => {
-    // Arriving with a hash (e.g. /#work) scrolls to that section instead
+    // Arriving with a hash (e.g. /#pricing) scrolls to that section instead
     // of the top; otherwise every route change starts at the top.
     if (hash) {
       const target = document.getElementById(hash.slice(1));

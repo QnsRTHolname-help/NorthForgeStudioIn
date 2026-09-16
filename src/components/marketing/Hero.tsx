@@ -152,7 +152,7 @@ export function Hero() {
         </dl>
 
         <Link
-          to="/services"
+          to="/#services"
           className="nf-focus mt-12 inline-flex items-center gap-2 text-[13px] text-muted transition-colors hover:text-fg"
         >
           See what we build

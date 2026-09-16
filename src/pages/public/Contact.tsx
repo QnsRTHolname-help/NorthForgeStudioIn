@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { CheckCircle2, Clock, Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { ArrowRight, Check, CheckCircle2, Clock, Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
 import { Input, Textarea, Select, Field, FormError } from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -10,7 +10,7 @@ import { useMutation } from '@/hooks/useAsync';
 import { useToast } from '@/app/providers/ToastProvider';
 import { contactService } from '@/services';
 import { CONTACT, emailLink, whatsappLink } from '@/data/site';
-import { PLANS, planAmountLabel } from '@shared/catalog';
+import { PLANS, planAmountLabel, planSetupLabel } from '@shared/catalog';
 
 const BUSINESS_TYPES = [
   'Healthcare & clinic',
@@ -185,6 +185,37 @@ export default function Contact() {
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.65fr)] lg:gap-16">
           {/* Form */}
           <Card padded={false} className="p-6 sm:p-8">
+            {selectedPlan ? (
+              <div className="mb-6 rounded-lg border border-brand/40 bg-brand/[0.06] p-5">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="text-[15px] font-semibold tracking-tight text-fg">
+                    You chose the {selectedPlan.name} plan
+                  </p>
+                  <p className="nf-num text-[13px] font-medium text-brand">
+                    {planAmountLabel(selectedPlan)}
+                    {!selectedPlan.amount ? null : <span className="text-muted">/ month</span>}
+                    {' · '}
+                    {planSetupLabel(selectedPlan)}
+                  </p>
+                </div>
+                <p className="mt-1.5 text-[13px] text-muted">{selectedPlan.outcome}</p>
+                <ul className="mt-4 grid gap-2 border-t border-brand/20 pt-4 sm:grid-cols-2">
+                  {selectedPlan.features.slice(0, 8).map((feature) => (
+                    <li key={feature} className="flex items-start gap-2 text-[13px] text-fg">
+                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand" aria-hidden />
+                      <span className="leading-snug">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  to="/pricing"
+                  className="mt-4 inline-flex items-center gap-1.5 text-xs text-brand hover:underline"
+                >
+                  See full pricing details
+                  <ArrowRight className="h-3 w-3" aria-hidden />
+                </Link>
+              </div>
+            ) : null}
             <form onSubmit={onSubmit} noValidate className="space-y-5">
               <div className="grid gap-5 sm:grid-cols-2">
                 <Input label="Your name" required value={values.name} onChange={set('name')} error={errors.name} autoComplete="name" />

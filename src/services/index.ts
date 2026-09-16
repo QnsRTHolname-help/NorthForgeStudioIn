@@ -157,6 +157,25 @@ export const authService = {
     return { signedOut: true };
   },
 
+  /**
+   * Re-send the signup confirmation email (spec: expired/used links must
+   * never dead-end a new account). Always resolves successfully — Supabase
+   * deliberately does not reveal whether the address exists.
+   */
+  resendConfirmation: async (email: string): Promise<{ sent: boolean }> => {
+    assertSupabaseConfigured();
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/login` },
+    });
+    if (error) {
+      const mapped = mapAuthError(error);
+      throw new AuthError(mapped);
+    }
+    return { sent: true };
+  },
+
   updateProfile: async (input: { name?: string; phone?: string }): Promise<AuthSession> => {
     const userId = await authUserId();
     if (!userId) throw sessionError();

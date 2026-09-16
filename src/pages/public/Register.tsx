@@ -8,6 +8,7 @@ import { usePageMeta } from '@/hooks/usePageMeta';
 import { useMutation } from '@/hooks/useAsync';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useToast } from '@/app/providers/ToastProvider';
+import { authService } from '@/services';
 
 export default function Register() {
   usePageMeta({ title: 'Create your account', description: 'Create a NorthForge client account.', noIndex: true });
@@ -49,6 +50,8 @@ export default function Register() {
     },
   );
 
+  const resend = useMutation((email: string) => authService.resendConfirmation(email));
+
   const set = (key: keyof typeof values) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setValues((prev) => ({ ...prev, [key]: event.target.value }));
     setErrors((prev) => ({ ...prev, [key]: '' }));
@@ -87,18 +90,31 @@ export default function Register() {
           <span className="mb-6 inline-flex h-11 w-11 items-center justify-center rounded-full border border-success/30 bg-success/10 text-success">
             <CheckCircle2 className="h-5 w-5" />
           </span>
-          <h1 className="text-[26px] font-semibold tracking-[-0.02em] text-fg">Confirm your email.</h1>
+                    <h1 className="text-[26px] font-semibold tracking-[-0.02em] text-fg">Confirm your email.</h1>
           <p className="mt-3 text-[13px] leading-relaxed text-muted">
             We sent a verification link to <span className="font-medium text-fg">{values.email}</span>. Confirm it to
             activate your workspace, then sign in.
           </p>
-          <div className="mt-8">
-            <Link
-              to="/login"
-              className="text-[13px] font-medium text-brand underline decoration-brand/30 underline-offset-2"
+          <div className="mt-8 space-y-3">
+            <Button
+              variant="secondary"
+              size="sm"
+              loading={resend.pending}
+              onClick={() => {
+                void resend.mutate(values.email).catch(() => undefined);
+              }}
             >
-              Continue to sign in →
-            </Link>
+              {resend.success ? 'Email sent again — check your inbox' : 'Resend verification email'}
+            </Button>
+            {resend.error ? <p className="text-xs text-danger">{resend.error}</p> : null}
+            <div>
+              <Link
+                to="/login"
+                className="text-[13px] font-medium text-brand underline decoration-brand/30 underline-offset-2"
+              >
+                Continue to sign in →
+              </Link>
+            </div>
           </div>
         </div>
       </main>

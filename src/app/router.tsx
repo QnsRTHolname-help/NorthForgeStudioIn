@@ -18,7 +18,6 @@ const lazyPage = (loader: () => Promise<{ default: ComponentType<any> }>) => laz
 
 /* ── Public ────────────────────────────────────────────────────── */
 const Home = lazyPage(() => import('@/pages/public/Home'));
-const ServicesPage = lazyPage(() => import('@/pages/public/Services'));
 const HowItWorks = lazyPage(() => import('@/pages/public/HowItWorks'));
 const PricingPage = lazyPage(() => import('@/pages/public/Pricing'));
 const FaqPage = lazyPage(() => import('@/pages/public/Faq'));
@@ -98,7 +97,6 @@ export const AppRoutes: RouteDefinition[] = [
     element: <PublicLayout />,
     children: [
       { index: true, element: <Home /> },
-      { path: 'services', element: <ServicesPage /> },
       { path: 'how-it-works', element: <HowItWorks /> },
       { path: 'pricing', element: <PricingPage /> },
       { path: 'faq', element: <FaqPage /> },

@@ -43,61 +43,106 @@ export function AutomationShowcase() {
 
   useLayoutEffect(() => {
     const node = root.current;
-    if (!node || reduced) return;
+    if (!node) return;
+
+    // Reduced motion: show the finished state — the line fully drawn, no
+    // travelling dot, all steps legible.
+    if (reduced) {
+      const spine = node.querySelector<HTMLElement>('[data-spine]');
+      const packet = node.querySelector<HTMLElement>('[data-packet]');
+      if (spine) spine.style.transform = 'scaleY(1)';
+      if (packet) packet.style.opacity = '0';
+      node.querySelectorAll<HTMLElement>('[data-flow-step]').forEach((step) => {
+        step.style.opacity = '1';
+        step.style.transform = 'none';
+      });
+      return;
+    }
+
+    let cleanupResize: (() => void) | undefined;
 
     const ctx = gsap.context(() => {
-      // The spine grows as the section scrolls through the viewport.
-      gsap.fromTo(
-        '[data-spine]',
-        { scaleY: 0 },
-        {
-          scaleY: 1,
-          ease: 'none',
-          transformOrigin: 'top center',
-          scrollTrigger: { trigger: node, start: 'top 65%', end: 'bottom 75%', scrub: 0.4 },
-        },
-      );
+      const track = node.querySelector<HTMLElement>('[data-flow-track]');
+      const spine = node.querySelector<HTMLElement>('[data-spine]');
+      const packet = node.querySelector<HTMLElement>('[data-packet]');
+      if (!track || !spine || !packet) return;
 
-      // One packet of data travels the spine as the section scrolls, and the
-      // clock above it counts the elapsed window the copy describes.
-      gsap.fromTo(
-        '[data-packet]',
-        { y: 0 },
-        {
-          y: () => {
-            const list = node.querySelector('ol');
-            return list ? list.offsetHeight - 8 : 0;
-          },
-          ease: 'none',
-          scrollTrigger: {
-            trigger: node,
-            start: 'top 65%',
-            end: 'bottom 75%',
-            scrub: 0.4,
-            onUpdate: (self) => {
-              const clock = node.querySelector('[data-elapsed]');
-              if (clock) clock.textContent = formatElapsed(self.progress);
-            },
+      const steps = gsap.utils.toArray<HTMLElement>('[data-flow-step]', track);
+
+      // Geometry: the bright line and the packet travel exactly from the
+      // first step's dot centre to the last one, so the dot always rides the
+      // tip of the line.
+      let travel = 0;
+      const measure = () => {
+        const last = steps[steps.length - 1];
+        // First dot centre sits at 23.5px in the track; the line spans from
+        // there to the last dot's centre.
+        travel = last ? Math.max(0, last.offsetTop) : 0;
+        spine.style.top = '23.5px';
+        spine.style.height = `${travel}px`;
+        return travel;
+      };
+      measure();
+
+      // ONE master timeline scrubbed by one ScrollTrigger — the line, the
+      // packet and every step highlight are positions on the same progress
+      // value, so they can never drift apart. Each step lights up at the
+      // exact moment the packet reaches its dot.
+      const tl = gsap.timeline({
+        defaults: { ease: 'none' },
+        scrollTrigger: {
+          trigger: track,
+          start: 'top 72%',
+          end: 'bottom 55%',
+          scrub: 0.6, // gentle smoothing; still locked to scroll
+          invalidateOnRefresh: true,
+          onUpdate: (self) => {
+            const clock = node.querySelector('[data-elapsed]');
+            if (clock) clock.textContent = formatElapsed(self.progress);
           },
         },
-      );
-
-      gsap.utils.toArray<HTMLElement>('[data-flow-step]').forEach((step) => {
-        gsap.fromTo(
-          step,
-          { opacity: 0.28, x: -6 },
-          {
-            opacity: 1,
-            x: 0,
-            duration: 0.4,
-            ease: 'power2.out',
-            scrollTrigger: { trigger: step, start: 'top 82%', end: 'top 62%', scrub: true },
-          },
-        );
       });
+
+      tl.fromTo(packet, { y: 0 }, { y: () => travel, duration: 1 }, 0);
+      tl.fromTo(spine, { scaleY: 0 }, { scaleY: 1, transformOrigin: 'top center', duration: 1 }, 0);
+
+      steps.forEach((step, index) => {
+        const center = step.offsetTop + 23.5;
+        const at = travel > 0 ? Math.min(1, Math.max(0, center - 23.5) / travel) : 0;
+        const innerDot = step.querySelector<HTMLElement>('[data-step-dot]');
+        tl.fromTo(
+          step,
+          { opacity: 0.3, x: -6 },
+          { opacity: 1, x: 0, duration: 0.1, ease: 'power2.out' },
+          Math.max(0, at - 0.05),
+        );
+        if (innerDot) {
+          tl.fromTo(
+            innerDot,
+            { scale: 0.4, opacity: 0.5 },
+            { scale: 1, opacity: 1, duration: 0.06, transformOrigin: 'center center' },
+            at,
+          );
+          if (index === steps.length - 1) {
+            // A soft arrival pulse on the final step.
+            tl.to(innerDot, { scale: 1.8, duration: 0.06, yoyo: true, repeat: 1 }, Math.min(1, at + 0.02));
+          }
+        }
+      });
+
+      // Keep the geometry exact on resize (text rewraps change dot centres).
+      const onResize = () => {
+        measure();
+        tl.scrollTrigger?.refresh();
+      };
+      window.addEventListener('resize', onResize);
+      cleanupResize = () => window.removeEventListener('resize', onResize);
     }, node);
 
-    return () => ctx.revert();
+    return () => {
+      cleanupResize?.();
+      ctx.revert();
+    };
   }, [reduced]);
 
   return (
@@ -118,41 +163,49 @@ export function AutomationShowcase() {
             </span>
           </div>
 
-          <span
-            aria-hidden
-            className="absolute inset-y-0 left-[7px] w-px bg-gradient-to-b from-brand/60 via-brand/25 to-line sm:left-[9px]"
-          />
-          <span data-spine aria-hidden className="absolute inset-y-0 left-[7px] w-px origin-top bg-brand sm:left-[9px]" style={{ transform: 'scaleY(0)' }} />
-          <span
-            data-packet
-            aria-hidden
-            className="absolute left-[7px] top-0 h-2 w-2 -translate-x-[3.5px] rounded-full bg-brand shadow-[0_0_14px_2px_rgb(var(--nf-blue)/0.55)] sm:left-[9px]"
-            style={{ marginTop: '3.25rem' }}
-          />
+          {/* The track spans exactly the step list, so the line and the
+              travelling packet stay locked to the step dots. */}
+          <div data-flow-track className="relative">
+            <span
+              aria-hidden
+              className="absolute bottom-[20px] left-[7px] top-[19px] w-px bg-gradient-to-b from-brand/25 via-brand/25 to-line"
+            />
+            <span
+              data-spine
+              aria-hidden
+              className="absolute left-[7px] w-px origin-top bg-brand"
+              style={{ transform: 'scaleY(0)' }}
+            />
+            <span
+              data-packet
+              aria-hidden
+              className="absolute left-[3.5px] top-[19.5px] h-2 w-2 rounded-full bg-brand shadow-[0_0_14px_2px_rgb(var(--nf-blue)/0.55)]"
+            />
 
-          <ol className="space-y-3">
-            {AUTOMATION_FLOW.map((step, index) => (
-              <li key={step} data-flow-step className="relative">
-                <span
-                  aria-hidden
-                  className="absolute -left-8 top-4 flex h-[15px] w-[15px] items-center justify-center rounded-full border border-line-strong bg-canvas sm:-left-10"
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-brand" />
-                </span>
-                <div className="flex items-center gap-4 rounded border border-line bg-surface px-4 py-3 transition-colors duration-300 hover:border-line-strong">
-                  <span className="nf-num shrink-0 font-mono text-2xs text-faint">
-                    {String(index + 1).padStart(2, '0')}
+            <ol className="space-y-3">
+              {AUTOMATION_FLOW.map((step, index) => (
+                <li key={step} data-flow-step className="relative">
+                  <span
+                    aria-hidden
+                    className="absolute -left-8 top-4 flex h-[15px] w-[15px] items-center justify-center rounded-full border border-line-strong bg-canvas sm:-left-10"
+                  >
+                    <span data-step-dot className="h-1.5 w-1.5 rounded-full bg-brand" />
                   </span>
-                  <span className="text-[13px] font-medium text-fg">{step}</span>
-                  {index === 2 || index === 3 ? (
-                    <span className="ml-auto shrink-0 rounded border border-brand-violet/30 bg-brand-violet/10 px-1.5 py-0.5 text-2xs uppercase tracking-wide text-brand-violet">
-                      AI
+                  <div className="flex items-center gap-4 rounded border border-line bg-surface px-4 py-3 transition-colors duration-300 hover:border-line-strong">
+                    <span className="nf-num shrink-0 font-mono text-2xs text-faint">
+                      {String(index + 1).padStart(2, '0')}
                     </span>
-                  ) : null}
-                </div>
-              </li>
-            ))}
-          </ol>
+                    <span className="text-[13px] font-medium text-fg">{step}</span>
+                    {index === 2 || index === 3 ? (
+                      <span className="ml-auto shrink-0 rounded border border-brand-violet/30 bg-brand-violet/10 px-1.5 py-0.5 text-2xs uppercase tracking-wide text-brand-violet">
+                        AI
+                      </span>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
         </div>
 
         {/* Monitor */}

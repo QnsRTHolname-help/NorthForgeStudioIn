@@ -96,7 +96,7 @@ export function Drawer({
   children,
   footer,
   side = 'right',
-  width = 'max-w-md',
+  width = 'md',
 }: {
   open: boolean;
   onClose: () => void;
@@ -105,7 +105,9 @@ export function Drawer({
   children: ReactNode;
   footer?: ReactNode;
   side?: 'right' | 'left';
-  width?: string;
+  /** Semantic size — previously a raw class was expected and invalid values
+   *  (e.g. "md") silently rendered the panel full-screen width. */
+  width?: 'sm' | 'md' | 'lg' | 'xl';
 }) {
   const trapRef = useFocusTrap<HTMLDivElement>(open);
   useScrollLock(open);
@@ -119,6 +121,13 @@ export function Drawer({
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [open, onClose]);
 
+  const WIDTHS: Record<NonNullable<typeof width>, string> = {
+    sm: 'sm:max-w-sm',
+    md: 'sm:max-w-md',
+    lg: 'sm:max-w-lg',
+    xl: 'sm:max-w-xl',
+  };
+
   if (!open) return null;
 
   return createPortal(
@@ -131,7 +140,7 @@ export function Drawer({
         aria-label={typeof title === 'string' ? title : undefined}
         className={cn(
           'absolute inset-y-0 flex w-full flex-col border-line bg-surface shadow-panel',
-          width,
+          WIDTHS[width],
           side === 'right' ? 'right-0 border-l' : 'left-0 border-r',
           side === 'right' ? 'animate-slide-in-right' : 'animate-slide-in-left',
         )}

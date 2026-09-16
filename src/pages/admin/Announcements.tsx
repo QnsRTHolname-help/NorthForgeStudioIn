@@ -30,6 +30,7 @@ export default function Announcements() {
   usePageMeta({ title: 'Announcements', noIndex: true });
   const toast = useToast();
   const [creating, setCreating] = useState(false);
+  const [audience, setAudience] = useState('all_clients');
 
   const state = useAsync(() => announcementsService.list(), []);
   const clients = useAsync(() => clientsService.list({ pageSize: 200 }), []);
@@ -151,33 +152,51 @@ export default function Announcements() {
             required
             placeholder="What should clients know, and what (if anything) should they do?"
           />
-          <Select
-            label="Priority"
-            name="priority"
-            defaultValue="normal"
-            options={[
-              { value: 'normal', label: 'Notice' },
-              { value: 'high', label: 'High' },
-              { value: 'critical', label: 'Critical' },
-            ]}
-          />
-          <Select label="Audience" name="audience" defaultValue="all_clients" options={AUDIENCES} />
-          <Input label="Ends at (optional)" name="endsAt" type="datetime-local" />
-          <div>
-            <p className="mb-2 text-[13px] font-medium text-fg">Selected clients</p>
-            <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-line p-2">
-              {(clients.data?.items ?? []).map((client) => (
-                <label key={client.id} className="flex items-center gap-2 text-[13px] text-muted">
-                  <input type="checkbox" name="clientIds" value={client.id} className="accent-brand" />
-                  {client.businessName}
-                </label>
-              ))}
-              {!clients.data?.items.length ? <p className="text-xs text-faint">No clients yet.</p> : null}
-            </div>
-            <p className="mt-1.5 text-xs text-faint">
-              Used when the audience is “Selected clients”. Publishing notifies the addressed clients automatically.
-            </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Select
+              label="Priority"
+              name="priority"
+              defaultValue="normal"
+              options={[
+                { value: 'normal', label: 'Notice' },
+                { value: 'high', label: 'High' },
+                { value: 'critical', label: 'Critical' },
+              ]}
+            />
+            <Select
+              label="Audience"
+              name="audience"
+              value={audience}
+              onChange={(event) => setAudience(event.target.value)}
+              options={AUDIENCES}
+            />
           </div>
+          <Input label="Ends at (optional)" name="endsAt" type="datetime-local" />
+          {audience === 'selected_clients' ? (
+            <div>
+              <p className="mb-2 text-[13px] font-medium text-fg">Selected clients</p>
+              <div className="max-h-44 divide-y divide-line overflow-y-auto rounded-lg border border-line">
+                {(clients.data?.items ?? []).map((client) => (
+                  <label
+                    key={client.id}
+                    className="flex cursor-pointer items-center gap-2.5 px-3 py-2 text-[13px] transition-colors hover:bg-sunken/60"
+                  >
+                    <input type="checkbox" name="clientIds" value={client.id} className="h-3.5 w-3.5 accent-brand" />
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium text-fg">{client.businessName}</span>
+                      <span className="block truncate text-xs text-faint">{client.contactName}</span>
+                    </span>
+                  </label>
+                ))}
+                {!clients.data?.items.length ? (
+                  <p className="px-3 py-3 text-xs text-faint">No clients yet — publish to all clients instead.</p>
+                ) : null}
+              </div>
+              <p className="mt-1.5 text-xs text-faint">
+                Only the ticked clients will see this announcement, and each is notified automatically.
+              </p>
+            </div>
+          ) : null}
           {create.error ? <p className="text-xs text-danger">{create.error}</p> : null}
           <Button type="submit" loading={create.pending}>
             Publish announcement

@@ -31,8 +31,8 @@ export default function NotFound() {
           Pricing <ArrowRight className="h-3 w-3" aria-hidden />
         </Link>
         <span aria-hidden>·</span>
-        <Link to="/services" className="inline-flex items-center gap-1 hover:text-muted">
-          Services <ArrowRight className="h-3 w-3" aria-hidden />
+        <Link to="/how-it-works" className="inline-flex items-center gap-1 hover:text-muted">
+          How it works <ArrowRight className="h-3 w-3" aria-hidden />
         </Link>
       </p>
     </main>

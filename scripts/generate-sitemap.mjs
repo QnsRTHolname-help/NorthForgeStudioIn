@@ -24,7 +24,6 @@ const TODAY = new Date().toISOString().slice(0, 10);
  */
 const PUBLIC_ROUTES = [
   { path: '/', priority: '1.0', changefreq: 'weekly' },
-  { path: '/services', priority: '0.9', changefreq: 'monthly' },
   { path: '/how-it-works', priority: '0.8', changefreq: 'monthly' },
   { path: '/pricing', priority: '0.9', changefreq: 'monthly' },
   { path: '/faq', priority: '0.6', changefreq: 'monthly' },

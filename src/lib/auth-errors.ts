@@ -76,8 +76,13 @@ export function mapAuthError(error: unknown): MappedAuthError {
         return { code: 'AUTH_EMAIL_NOT_CONFIRMED', message: 'Please verify your email before signing in.' };
       case 'user_already_exists':
         return { code: 'AUTH_EMAIL_EXISTS', message: 'An account with this email already exists. Try signing in instead.' };
-      case 'over_request_rate_limit':
       case 'over_email_send_rate_limit':
+        return {
+          code: 'AUTH_RATE_LIMIT',
+          message:
+            'Too many verification emails have been sent from this project just now. Wait about an hour and try again, or sign in if the account was already created.',
+        };
+      case 'over_request_rate_limit':
         return {
           code: 'AUTH_RATE_LIMIT',
           message: 'Too many attempts. Please wait a minute and try again.',
@@ -117,10 +122,28 @@ export function mapAuthError(error: unknown): MappedAuthError {
     };
   }
 
-  if (status >= 500 || err?.name === 'AuthApiError') {
+  if (status >= 500) {
+    // Almost always project-side (paused free-tier project, or an outage) —
+    // never blame the person filling in the form.
+    if (import.meta.env.DEV) {
+      console.warn('[northforge:auth] auth server error', { code, status, name: err?.name });
+    }
     return {
       code: 'AUTH_SERVER_ERROR',
-      message: 'NorthForge authentication is temporarily unavailable. Please try again.',
+      message:
+        'NorthForge authentication is temporarily unavailable. If this keeps happening, the Supabase project may be paused or unreachable — an operator can restore it and you can try again in a minute.',
+    };
+  }
+
+  // Any other provider error WITH details: surface a safe, specific message
+  // instead of a misleading "service is down". The raw text is never shown.
+  if (code || message) {
+    if (import.meta.env.DEV) {
+      console.warn('[northforge:auth] unmapped auth error', { code, status });
+    }
+    return {
+      code: 'AUTH_UNKNOWN',
+      message: 'We could not complete that request. Check your details and try again.',
     };
   }
 

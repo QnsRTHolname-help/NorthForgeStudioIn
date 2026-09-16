@@ -39,7 +39,7 @@ export default function HowItWorks() {
             items={[
               {
                 label: 'Services',
-                to: '/services',
+                to: '/#services',
                 description: 'The five capability groups and what each one includes.',
               },
               {

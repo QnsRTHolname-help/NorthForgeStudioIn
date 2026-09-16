@@ -22,7 +22,7 @@ import { SectionHeader } from '@/components/ui/Card';
  * monthly subscription. Nothing is buried, and third-party costs are listed
  * separately rather than folded into the headline price.
  */
-export function PricingTable({ showHeading = true }: { showHeading?: boolean }) {
+export function PricingTable({ showHeading = true, showDetail = true }: { showHeading?: boolean; showDetail?: boolean }) {
   const priced = PLANS.filter((plan) => plan.amount !== null);
 
   return (
@@ -89,6 +89,12 @@ export function PricingTable({ showHeading = true }: { showHeading?: boolean }) 
                     >
                       {custom ? 'Request a quote' : `Choose ${plan.name.toLowerCase()}`}
                     </LinkButton>
+                    <Link
+                      to="/pricing#scope"
+                      className="nf-focus mt-2.5 block text-center text-xs text-muted underline decoration-line-strong underline-offset-4 transition-colors hover:text-fg"
+                    >
+                      See full pricing details
+                    </Link>
                   </div>
                 </div>
               </TiltCard>
@@ -98,7 +104,8 @@ export function PricingTable({ showHeading = true }: { showHeading?: boolean }) 
       </div>
 
       {/* Scope comparison — the honest limits, side by side. */}
-      <div className="mt-16">
+      {showDetail ? (
+        <div id="scope" className="mt-16 scroll-mt-28">
         <h3 className="text-headline font-semibold text-fg">
           <SplitText text="What each plan includes." stagger={0.04} />
         </h3>
@@ -151,9 +158,11 @@ export function PricingTable({ showHeading = true }: { showHeading?: boolean }) 
           change. We do not promise unlimited automation.
         </p>
       </div>
+      ) : null}
 
       {/* Honest billing notes (spec §123, §124) */}
-      <div className="mt-14 grid gap-6 lg:grid-cols-2">
+      {showDetail ? (
+        <div className="mt-14 grid gap-6 lg:grid-cols-2">
         <div className="rounded-lg border border-line bg-sunken/30 p-6">
           <h3 className="text-[13px] font-semibold uppercase tracking-wider text-fg">How billing works</h3>
           <ul className="mt-4 space-y-2.5">
@@ -182,6 +191,7 @@ export function PricingTable({ showHeading = true }: { showHeading?: boolean }) 
           </ul>
         </div>
       </div>
+      ) : null}
 
       <div className="mt-12 flex flex-col items-center gap-4 border-t border-line pt-12 text-center">
         <p className="max-w-xl text-[15px] leading-relaxed text-muted">
@@ -193,12 +203,14 @@ export function PricingTable({ showHeading = true }: { showHeading?: boolean }) 
             Get a free automation review
           </LinkButton>
         </Magnetic>
-        <Link
-          to="/pricing"
-          className="text-[13px] text-muted underline decoration-line-strong underline-offset-4 transition-colors hover:text-fg"
-        >
-          See full pricing detail
-        </Link>
+        {!showDetail ? (
+          <Link
+            to="/pricing#scope"
+            className="nf-focus text-[13px] text-muted underline decoration-line-strong underline-offset-4 transition-colors hover:text-fg"
+          >
+            See full pricing details — what each plan includes
+          </Link>
+        ) : null}
       </div>
     </section>
   );

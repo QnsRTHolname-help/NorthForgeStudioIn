@@ -27,17 +27,21 @@ interface Node {
 }
 
 const NODES: Node[] = [
-  { id: 'channel', label: 'Website / WhatsApp', x: 74, y: 62, kind: 'start' },
-  { id: 'enquiry', label: 'Enquiry', x: 300, y: 44, kind: 'start' },
-  { id: 'ai', label: 'AI qualifies', x: 526, y: 62, kind: 'ai' },
-  { id: 'crm', label: 'CRM updated', x: 546, y: 196, kind: 'ai' },
-  { id: 'followup', label: 'Follow-up', x: 526, y: 330, kind: 'end' },
-  { id: 'booking', label: 'Appointment', x: 300, y: 348, kind: 'end' },
-  { id: 'customer', label: 'Customer', x: 74, y: 330, kind: 'end' },
+  { id: 'channel', label: 'Website / WhatsApp', x: 40, y: 50, kind: 'start' },
+  { id: 'enquiry', label: 'Enquiry', x: 274, y: 32, kind: 'start' },
+  { id: 'ai', label: 'AI qualifies', x: 508, y: 50, kind: 'ai' },
+  { id: 'crm', label: 'CRM updated', x: 528, y: 187, kind: 'ai' },
+  { id: 'followup', label: 'Follow-up', x: 508, y: 324, kind: 'end' },
+  { id: 'booking', label: 'Appointment', x: 274, y: 342, kind: 'end' },
+  { id: 'customer', label: 'Customer', x: 40, y: 324, kind: 'end' },
 ];
 
 const NODE_W = 132;
 const NODE_H = 46;
+
+/** SVG canvas — sized so every node box, label and connector fits with margin. */
+const VIEW_W = 680;
+const VIEW_H = 420;
 
 /** Elbow connectors between consecutive nodes, drawn as rounded polylines. */
 function pathBetween(a: Node, b: Node) {
@@ -47,8 +51,17 @@ function pathBetween(a: Node, b: Node) {
   return `M ${from.x} ${from.y} L ${from.x} ${midY} L ${to.x} ${midY} L ${to.x} ${to.y}`;
 }
 
-/** Closing edge: customer loops back into the website. */
-const CLOSING_PATH = `M ${74 + NODE_W / 2} ${330 + NODE_H / 2} L ${74 + NODE_W / 2} 214 L 34 214 L 34 85 L ${74 + NODE_W / 2} 85 L ${74 + NODE_W / 2} ${62 + NODE_H / 2}`;
+/** Closing edge: customer loops back into the website (left return lane). */
+const CLOSING_PATH = (() => {
+  const customer = NODES[NODES.length - 1]!;
+  const channel = NODES[0]!;
+  const cx = customer.x + NODE_W / 2;
+  const fromY = customer.y + NODE_H / 2;
+  const toY = channel.y + NODE_H / 2;
+  const laneX = 16;
+  const midY = (fromY + toY) / 2;
+  return `M ${cx} ${fromY} L ${cx} ${midY} L ${laneX} ${midY} L ${laneX} ${toY} L ${cx} ${toY}`;
+})();
 
 const PATHS = [
   ...NODES.slice(0, -1).map((node, index) => pathBetween(node, NODES[index + 1]!)),
@@ -118,13 +131,13 @@ export function GrowthSystem({ className }: { className?: string }) {
   return (
     <svg
       ref={ref}
-      viewBox="0 0 620 400"
+      viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
       role="img"
       aria-label="The NorthForge automation loop: an enquiry arrives from your website or WhatsApp, AI qualifies it, the CRM is updated, follow-ups and appointment reminders run, and the customer is onboarded — connected in one continuous loop."
       className={cn('h-auto w-full', className)}
     >
       <defs>
-        <linearGradient id="nf-connector" x1="0" y1="0" x2="620" y2="400" gradientUnits="userSpaceOnUse">
+        <linearGradient id="nf-connector" x1="0" y1="0" x2={VIEW_W} y2={VIEW_H} gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="rgb(var(--nf-blue))" stopOpacity="0.65" />
           <stop offset="100%" stopColor="rgb(var(--nf-violet))" stopOpacity="0.65" />
         </linearGradient>
