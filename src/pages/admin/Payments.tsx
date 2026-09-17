@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { CreditCard, FilePlus2 } from 'lucide-react';
+import { CreditCard, FilePlus2, Trash2 } from 'lucide-react';
 import { Panel, KpiCard } from '@/components/ui/Card';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
 import { Badge } from '@/components/ui/Badge';
 import { AdminHeader, ListToolbar } from '@/components/admin/AdminHeader';
-import { Modal } from '@/components/ui/Modal';
-import { Input, Select } from '@/components/ui/Form';
+import { ConfirmDialog, Modal } from '@/components/ui/Modal';
+import { Checkbox, Input, Select } from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
 import { useAsync, useMutation } from '@/hooks/useAsync';
 import { usePageMeta } from '@/hooks/usePageMeta';
@@ -20,6 +20,8 @@ export default function Payments() {
   const toast = useToast();
   const [query, setQuery] = useState('');
   const [creating, setCreating] = useState(false);
+  const [settleInvoice, setSettleInvoice] = useState(true);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const state = useAsync(() => billingService.payments(), []);
   const clients = useAsync(() => clientsService.list({ pageSize: 200 }), []);
@@ -34,15 +36,30 @@ export default function Payments() {
         status: input.status as PaymentStatus,
         method: input.method,
         invoiceId: input.invoiceId || undefined,
+        markInvoicePaid: settleInvoice,
       }),
     {
-      onSuccess: async () => {
-        toast.success('Payment recorded');
+      onSuccess: async (result) => {
+        toast.success(
+          'Payment recorded',
+          result.invoiceSettled ? 'The linked invoice is now marked paid.' : undefined,
+        );
         setCreating(false);
-        await state.refetch().catch(() => undefined);
+        await Promise.all([
+          state.refetch().catch(() => undefined),
+          result.invoiceSettled ? invoices.refetch().catch(() => undefined) : Promise.resolve(),
+        ]);
       },
     },
   );
+
+  const remove = useMutation((id: string) => billingService.deletePayment(id), {
+    onSuccess: async () => {
+      toast.success('Payment deleted');
+      setConfirmDelete(null);
+      await state.refetch().catch(() => undefined);
+    },
+  });
 
   const items = (state.data?.items ?? []).filter((payment) =>
     !query ? true : clientName(payment.clientId).toLowerCase().includes(query.toLowerCase()),
@@ -106,6 +123,14 @@ export default function Payments() {
                   <span className="nf-num w-24 shrink-0 text-right text-[13px] font-semibold text-fg">
                     {formatMoney(payment.amount)}
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(payment.id)}
+                    className="shrink-0 rounded p-1.5 text-faint transition-colors hover:bg-sunken hover:text-danger"
+                    aria-label={`Delete payment for ${clientName(payment.clientId)}`}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 </li>
               ))}
             </ul>
@@ -190,6 +215,13 @@ export default function Payments() {
                 label: `${invoice.number} · ${titleCase(invoice.status)}`,
               })),
             ]}
+            hint="Linking a payment keeps the invoice and the ledger reconciled."
+          />
+          <Checkbox
+            checked={settleInvoice}
+            onChange={setSettleInvoice}
+            label="Mark the linked invoice as paid"
+            description="On by default: money received means the invoice is settled. Untick to record a part payment."
           />
           {record.error ? <p className="text-xs text-danger">{record.error}</p> : null}
           <div className="flex justify-end gap-2 border-t border-line pt-4">
@@ -202,6 +234,20 @@ export default function Payments() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={async () => {
+          if (!confirmDelete) return;
+          await remove.mutate(confirmDelete).catch(() => undefined);
+        }}
+        title="Delete this payment?"
+        description="Use this only for a payment recorded by mistake. The linked invoice stays as it is."
+        confirmLabel="Delete payment"
+        destructive
+        pending={remove.pending}
+      />
     </div>
   );
 }

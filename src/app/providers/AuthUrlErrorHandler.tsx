@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useToast } from '@/app/providers/ToastProvider';
+import { initialAuthUrl } from '@/lib/auth-url';
 
 /**
  * Global handler for authentication errors that arrive in the URL —
@@ -18,11 +19,14 @@ export function AuthUrlErrorHandler() {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const error = params.get('error');
+    // Read the values captured AT BOOT: Supabase sends failed confirmation
+    // links back with the error in the FRAGMENT (#error=…) as well as the
+    // query, and a lazy route may have mounted after this one already ran.
+    const error = initialAuthUrl.get('error');
     if (!error) return;
 
-    const code = params.get('error_code') ?? '';
-    const description = params.get('error_description') ?? '';
+    const code = initialAuthUrl.get('error_code') ?? '';
+    const description = initialAuthUrl.get('error_description') ?? '';
 
     let message: string;
     if (code === 'otp_expired' || description.toLowerCase().includes('invalid or has expired')) {
@@ -41,8 +45,11 @@ export function AuthUrlErrorHandler() {
     params.delete('error_code');
     params.delete('error_description');
     const remaining = params.toString();
-    navigate({ pathname: location.pathname, search: remaining ? `?${remaining}` : '' }, { replace: true });
-  }, [location.search, location.pathname, navigate, toast]);
+    navigate(
+      { pathname: location.pathname, search: remaining ? `?${remaining}` : '', hash: '' },
+      { replace: true },
+    );
+  }, [location.search, location.hash, location.pathname, navigate, toast]);
 
   return null;
 }

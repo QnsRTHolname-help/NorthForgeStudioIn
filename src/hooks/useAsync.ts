@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError } from '@/types';
+import { useToast } from '@/app/providers/ToastProvider';
 
 export interface AsyncState<T> {
   data: T | null;
@@ -103,11 +104,27 @@ export function useAsync<T>(
   return { ...state, refetch, setData };
 }
 
-/** Tracks a pending mutation with loading/error/success state (spec §84). */
+/**
+ * Tracks a pending mutation with loading/error/success state (spec §84).
+ *
+ * Failures are NEVER silent. A write that fails because of a policy, a
+ * missing permission or a duplicate row used to disappear into a
+ * `.catch(() => undefined)` and the screen simply did not change — which
+ * reads as "the button is broken". Now every failure raises a toast with the
+ * actual reason, unless the caller opts out with `silent` (inline forms that
+ * already render the field error) or the error is a validation error (those
+ * are highlighted on the field itself).
+ */
 export function useMutation<A extends unknown[], R>(
   fn: (...args: A) => Promise<R>,
-  options: { onSuccess?: (result: R, ...args: A) => void; onError?: (error: ApiError) => void } = {},
+  options: {
+    onSuccess?: (result: R, ...args: A) => void;
+    onError?: (error: ApiError) => void;
+    /** Skip the automatic failure toast (the caller shows its own). */
+    silent?: boolean;
+  } = {},
 ) {
+  const toast = useToast();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -135,6 +152,9 @@ export function useMutation<A extends unknown[], R>(
         const apiError = err as ApiError;
         if (!mounted.current) throw apiError;
         setError(apiError?.message ?? 'Something went wrong. Please try again.');
+        if (!options.silent && apiError?.code !== 'validation' && apiError?.code !== 'not_found') {
+          toast.error('That did not save', apiError?.message ?? 'Something went wrong. Please try again.');
+        }
         options.onError?.(apiError);
         throw apiError;
       } finally {
@@ -142,7 +162,7 @@ export function useMutation<A extends unknown[], R>(
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [fn],
+    [fn, options.silent],
   );
 
   return { mutate, pending, error, success, reset: () => { setError(null); setSuccess(false); } };

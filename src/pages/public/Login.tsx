@@ -10,6 +10,7 @@ import { useAuth } from '@/app/providers/AuthProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { authService } from '@/services';
 import { AuthError } from '@/lib/auth-errors';
+import { useCooldown } from '@/hooks/useCooldown';
 import { GrowthChain } from '@/components/marketing/GrowthSystem';
 
 interface LocationState {
@@ -36,6 +37,9 @@ export default function Login() {
   // Unverified address at sign-in → offer a fresh verification link.
   const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
   const resend = useMutation(async () => authService.resendConfirmation(unconfirmedEmail ?? ''));
+  // Paced resend: the provider rate-limits per address, so we keep the
+  // wait visible and countable rather than letting the button trip it.
+  const cooldown = useCooldown(45);
 
   const from = (location.state as LocationState | null)?.from;
 
@@ -198,11 +202,22 @@ export default function Login() {
                   size="sm"
                   className="mt-2"
                   loading={resend.pending}
-                  onClick={() => {
-                    void resend.mutate().catch(() => undefined);
+                  disabled={cooldown.active}
+                  onClick={async () => {
+                    cooldown.start(45);
+                    try {
+                      await resend.mutate();
+                    } catch (error) {
+                      const retry = (error as { retryAfterSeconds?: number }).retryAfterSeconds;
+                      if (retry) cooldown.start(retry);
+                    }
                   }}
                 >
-                  {resend.success ? 'Verification email sent again' : 'Resend verification email'}
+                  {cooldown.active
+                    ? `Resend available in ${cooldown.remaining}s`
+                    : resend.success
+                      ? 'Verification email sent again'
+                      : 'Resend verification email'}
                 </Button>
                 {resend.error ? <p className="mt-1 text-xs text-danger">{resend.error}</p> : null}
               </div>

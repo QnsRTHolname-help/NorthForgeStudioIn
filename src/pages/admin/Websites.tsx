@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ExternalLink, Plus } from 'lucide-react';
+import { ExternalLink, Plus, Trash2 } from 'lucide-react';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
 import { Badge, StatusIndicator } from '@/components/ui/Badge';
 import { AdminHeader, ListToolbar, ListShell } from '@/components/admin/AdminHeader';
 import { DataTable } from '@/components/ui/Table';
-import { Modal } from '@/components/ui/Modal';
+import { ConfirmDialog, Modal } from '@/components/ui/Modal';
 import { Input, Select } from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
 import { ClientSelect } from '@/components/admin/ClientSelect';
@@ -27,6 +27,8 @@ export default function Websites() {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('');
   const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<Website | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
 
   const state = useAsync(() => websitesService.list(), []);
   const clients = useAsync(() => clientsService.list({ pageSize: 1000 }), []);
@@ -38,6 +40,14 @@ export default function Websites() {
       site.name.toLowerCase().includes(query.toLowerCase()) ||
       (site.domain ?? '').toLowerCase().includes(query.toLowerCase());
     return matchesQuery && (!status || site.status === status);
+  });
+
+  const remove = useMutation((id: string) => websitesService.remove(id), {
+    onSuccess: async () => {
+      toast.success('Website deleted');
+      setConfirmDelete(null);
+      await state.refetch().catch(() => undefined);
+    },
   });
 
   return (
@@ -116,18 +126,42 @@ export default function Websites() {
                   header: '',
                   align: 'right',
                   hideBelow: 'sm',
-                  cell: (site) =>
-                    site.url ? (
-                      <a
-                        href={site.url}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        onClick={(event) => event.stopPropagation()}
-                        className="inline-flex items-center gap-1 text-2xs text-brand hover:underline"
+                  cell: (site) => (
+                    <span className="inline-flex items-center gap-2">
+                      {site.url ? (
+                        <a
+                          href={site.url}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          onClick={(event) => event.stopPropagation()}
+                          className="inline-flex items-center gap-1 text-2xs text-brand hover:underline"
+                        >
+                          Visit <ExternalLink className="h-3 w-3" aria-hidden />
+                        </a>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setEditing(site);
+                        }}
+                        className="rounded px-1.5 py-1 text-2xs text-faint transition-colors hover:bg-sunken hover:text-fg"
                       >
-                        Visit <ExternalLink className="h-3 w-3" aria-hidden />
-                      </a>
-                    ) : null,
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setConfirmDelete({ id: site.id, name: site.name });
+                        }}
+                        className="rounded p-1.5 text-faint transition-colors hover:bg-sunken hover:text-danger"
+                        aria-label={`Delete ${site.name}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </span>
+                  ),
                 },
               ]}
             />
@@ -154,6 +188,35 @@ export default function Websites() {
           }}
         />
       </Modal>
+
+      <WebsiteEditModal
+        website={editing}
+        onClose={() => setEditing(null)}
+        onDone={async () => {
+          setEditing(null);
+          toast.success('Website updated');
+          await state.refetch().catch(() => undefined);
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={async () => {
+          if (!confirmDelete) return;
+          await remove.mutate(confirmDelete.id).catch(() => undefined);
+        }}
+        title="Delete this website?"
+        description={
+          <>
+            <strong>{confirmDelete?.name}</strong> and its recorded analytics will be removed permanently. To stop
+            serving it, set the status to <strong>offline</strong> instead.
+          </>
+        }
+        confirmLabel="Delete website"
+        destructive
+        pending={remove.pending}
+      />
     </div>
   );
 }
@@ -244,5 +307,14 @@ export function WebsiteForm({
         </Button>
       </div>
     </form>
+  );
+}
+
+/** Edit the website the row action pointed at (reuses the create form). */
+function WebsiteEditModal({ website, onClose, onDone }: { website: Website | null; onClose: () => void; onDone: () => void }) {
+  return (
+    <Modal open={!!website} onClose={onClose} title="Edit website">
+      {website ? <WebsiteForm website={website} onDone={onDone} /> : null}
+    </Modal>
   );
 }

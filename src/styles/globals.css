@@ -40,17 +40,29 @@
   [data-theme='dark'] {
     color-scheme: dark;
 
-    --nf-canvas: 9 10 13;
-    --nf-surface: 14 16 20;
-    --nf-elevated: 19 22 28;
-    --nf-sunken: 23 26 33;
+    /* Depth ladder, darkest → lightest: canvas < surface < elevated.
+       The operator console lives in this scale, so each step is a real,
+       visible step (a flat near-black canvas made every panel read as
+       the same plane and the whole dashboard feel muddy). */
+    --nf-canvas: 8 9 12;
+    --nf-surface: 15 17 22;
+    --nf-elevated: 21 24 31;
+    /* Recessed/hover fill: a measured raise above the surface, not a
+       flood — 24 27 34 washed out hover and active states. */
+    --nf-sunken: 20 23 29;
 
-    --nf-line: 255 255 255;
-    --nf-line-strong: 255 255 255;
+    /* Hairlines, not white lines. `border-line` resolves this token at
+       FULL alpha, so the token itself must already be the faint stroke —
+       255 255 255 painted every card, table and divider pure white. These
+       are white at ~10% / ~20% composited over the canvas. */
+    --nf-line: 34 37 44;
+    --nf-line-strong: 54 59 70;
 
     --nf-fg: 245 245 242;
-    --nf-muted: 164 167 174;
-    --nf-faint: 112 116 125;
+    --nf-muted: 168 171 178;
+    /* 112 116 125 sat at ~4.2:1 on the dark canvas — under WCAG AA for
+       small text. This clears 4.5:1 while staying visually quiet. */
+    --nf-faint: 126 130 140;
 
     --nf-blue: 59 130 255;
     --nf-violet: 124 92 255;
@@ -62,9 +74,16 @@
     --nf-danger: 240 106 116;
     --nf-info: 59 130 255;
 
-    --nf-grid-line: rgb(255 255 255 / 0.09);
-    --nf-header: rgb(9 10 13 / 0.72);
-    --nf-scrim: rgb(4 5 9 / 0.72);
+    --nf-grid-line: rgb(255 255 255 / 0.07);
+    --nf-header: rgb(10 11 15 / 0.82);
+    --nf-scrim: rgb(4 5 9 / 0.74);
+
+    /* Over near-black a drop shadow is almost invisible, so elevation is
+       carried by a 1px rim light on the top edge as well as the shadow.
+       Panel-level surfaces sit on `shadow-lift`/`shadow-panel`. */
+    --nf-shadow-soft: 0 1px 2px rgb(0 0 0 / 0.55);
+    --nf-shadow-lift: 0 18px 44px -22px rgb(0 0 0 / 0.9), inset 0 1px 0 rgb(255 255 255 / 0.04);
+    --nf-shadow-panel: 0 44px 96px -36px rgb(0 0 0 / 0.94), inset 0 1px 0 rgb(255 255 255 / 0.05);
   }
 
   /* ── Light: cream ─────────────────────────────────────────
@@ -81,8 +100,10 @@
     --nf-elevated: 251 249 244; /* #FBF9F4 */
     --nf-sunken: 238 233 222; /* #EEE9DE */
 
-    --nf-line: 16 17 20; /* rgba(16,17,20,0.10) for border */
-    --nf-line-strong: 190 184 176; /* rgb(190,184,176) */
+    /* Ink at ~10% composited over the cream canvas — the same rule as the
+       dark block: the token IS the stroke, so it must be faint already. */
+    --nf-line: 222 218 210;
+    --nf-line-strong: 190 184 176;
 
     --nf-fg: 16 17 20; /* #101114 */
     --nf-muted: 138 135 127; /* #8A877F */
@@ -98,7 +119,9 @@
     --nf-danger: 203 58 74; /* Not in master prompt but keeping for compatibility */
     --nf-info: 59 130 255; /* Not in master prompt but keeping for compatibility */
 
-    --nf-grid-line: rgb(255 255 255 / 0.09);
+    /* Ink, not white: a white grid on cream is invisible — the texture
+       never rendered on the public site. */
+    --nf-grid-line: rgb(16 17 20 / 0.055);
     --nf-header: rgb(245 241 232 / 0.82);
     --nf-scrim: rgb(38 33 26 / 0.4);
     --nf-shadow-soft: 0 1px 2px rgb(60 48 32 / 0.06);
@@ -238,6 +261,13 @@
 
   .nf-panel {
     @apply rounded-lg border border-line bg-surface;
+  }
+
+  /* Rim light for raised dark surfaces: a 1px highlight on the top edge is
+     what actually separates a panel from its background on near-black.
+     Any explicit `shadow-*` utility still wins (utilities layer runs last). */
+  [data-theme='dark'] .bg-surface.border-line {
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
   }
 
   /* Tabular numbers for anything that changes value (counters, KPIs, tables). */

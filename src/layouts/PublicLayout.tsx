@@ -18,6 +18,25 @@ import { useTheme } from '@/app/providers/ThemeProvider';
  * get one premium, consistent brand experience here; the saved theme
  * preference still applies as soon as they reach the portal or admin.
  */
+/**
+ * Authentication screens own the whole viewport.
+ *
+ * They are not marketing pages: a sign-in form buried under the site navbar
+ * and footer (and offset by the fixed-header padding) looked broken and
+ * pushed the form below the fold on laptops. These routes render a bare
+ * shell instead.
+ */
+const FULL_SCREEN_ROUTES = new Set([
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/reset-password',
+  '/mfa',
+  '/auth/callback',
+  '/unauthorized',
+  '/error',
+]);
+
 export function PublicLayout() {
   const { pathname, hash } = useLocation();
   const { setOverride } = useTheme();
@@ -50,6 +69,18 @@ export function PublicLayout() {
     document.fonts?.ready.then(refresh).catch(() => undefined);
     return () => window.removeEventListener('load', refresh);
   }, []);
+
+  // Auth screens: no marketing chrome, no smooth-scroll choreography — just
+  // the page, centred, at native scroll behaviour.
+  if (FULL_SCREEN_ROUTES.has(pathname)) {
+    return (
+      <div className="flex min-h-screen flex-col bg-canvas">
+        <main id="main" className="flex-1">
+          <Outlet />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <SmoothScrollProvider>

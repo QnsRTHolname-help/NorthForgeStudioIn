@@ -243,7 +243,7 @@ export function PortalLayout() {
 
       {moreOpen ? (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-[rgb(6_8_12/0.5)]" onClick={() => setMoreOpen(false)} aria-hidden />
+          <div className="absolute inset-0 bg-[var(--nf-scrim)] backdrop-blur-[2px]" onClick={() => setMoreOpen(false)} aria-hidden />
           <div className="absolute inset-x-0 bottom-0 max-h-[80vh] animate-fade-up overflow-y-auto rounded-t-xl border-t border-line bg-surface p-4">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-semibold text-fg">All sections</p>

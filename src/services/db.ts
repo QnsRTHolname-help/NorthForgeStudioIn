@@ -49,10 +49,16 @@ export function mapDatabaseError(error: unknown, context: string): ApiError {
     );
   }
 
-  // RLS denial — the user is authenticated but not allowed. Say that plainly.
+  // RLS denial — the user is authenticated but not allowed. Say that plainly,
+  // and name the one cause a signed-in admin can actually fix: an admin write
+  // needs a verified second factor (AAL2, migration 0008/0010).
   if (code === '42501') {
     if (import.meta.env.DEV) console.warn(`[northforge:db] ${context} permission denied`, { code });
-    return new ApiError("You don't have permission to perform this action.", 403, 'permission_denied');
+    return new ApiError(
+      "You don't have permission to do that. If you are an admin, verify your two-factor code first (Settings → Two-factor authentication) and try again.",
+      403,
+      'permission_denied',
+    );
   }
 
   // Constraint violations.

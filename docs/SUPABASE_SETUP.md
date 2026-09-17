@@ -82,6 +82,18 @@ written to the activity trail (exception-guarded, never blocks a submission).
 backfill of existing enquiries), so submissions surface in the CRM pipeline
 instead of hiding in an admin-only table.
 
+0009 adds `app_delete_my_account()` — the security-definer RPC behind the
+client "Delete my account" action in the portal (cascades the client's
+business records, refuses privileged roles, removes the auth user).
+
+0010 makes two-factor **step-up** usable in practice: `app_aal2()` now
+returns true when the account has no verified MFA factor enrolled, so an
+admin who has not set up 2FA is not locked out of an empty dashboard by the
+0008 policies. The moment a factor IS enrolled, 0008 is hard again — AAL1
+sessions read nothing admin-only and write nothing at all. Prefer strict
+two-factor? Just enrol a factor on the admin account (Settings →
+Two-factor authentication); no further migration is needed.
+
 0007 adds a nullable `plan` column to `enquiries` so the public contact form
 can record which plan an enquirer is interested in (prefilled from
 `/pricing?plan=…`). Until it is applied, submissions still succeed — the
@@ -100,9 +112,37 @@ backfilled into leads (guarded by email so re-running never duplicates).
 | --- | --- |
 | Provider | Email (password) |
 | Confirm email | ON (recommended for production) |
-| Site URL | `https://your-production-domain.com` |
-| Redirect URLs | production domain, `https://*-your-team.vercel.app` (preview wildcard), `http://localhost:5173` |
+| Site URL | `https://your-production-domain.com` — **never localhost in production** |
+| Redirect URLs | `https://your-production-domain.com/**`, `https://your-production-domain.com/auth/callback`, `https://*-your-team.vercel.app/**`, `http://localhost:5173/**` |
 | Password min length | 8 |
+
+### Confirmation links must open on the customer's domain, not localhost
+
+If a new client receives a verification email whose link points at
+`http://localhost:5173`, the cause is ALWAYS one of these two:
+
+1. **Dashboard → Site URL is still `http://localhost:5173`.** Supabase uses
+   Site URL whenever it does not recognise the `emailRedirectTo` we send.
+   Set it to the production domain.
+2. **The redirect URL is not allow-listed.** Supabase silently discards an
+   unknown `redirect_to` and falls back to Site URL. Add
+   `https://your-domain.com/auth/callback` (and the preview wildcard) under
+   **Authentication → URL Configuration → Redirect URLs**.
+
+The app does its part (`src/lib/links.ts`): every emailed link is built from
+`VITE_SITE_URL` — never from `window.location.origin` — so signing up from a
+local dev machine can no longer email a localhost link to a real customer.
+Set `VITE_SITE_URL=https://your-domain.com` in Vercel → Settings →
+Environment Variables, then redeploy.
+
+Five-minute check: register a test account, open the email, and look at the
+link's host. If it is localhost, the two dashboard settings above are still
+wrong — nothing in the app can override them.
+
+Every confirmation, magic-link and recovery link now lands on
+`/auth/callback`, which exchanges the PKCE code, forwards recovery links to
+`/reset-password`, and gives expired or already-used links a plain-language
+screen with a route out (`src/pages/public/AuthCallback.tsx`).
 
 The reset flow uses **PKCE**: the recovery link signs the user into
 `/reset-password`, the client exchanges the code automatically
@@ -122,14 +162,45 @@ local testing, attach a transactional email provider:
 3. **Supabase dashboard → Project Settings → Authentication → SMTP Settings**:
    enable *Custom SMTP* and enter the provider's SMTP host/port/user/password.
    Sender: something like `NorthForge <no-reply@your-domain.com>`.
-4. **Authentication → Emails → Templates**: update the *Confirm signup*
-   template's link to `{{ .SiteURL }}/login?confirmed=true` (and *Reset
-   password* to `{{ .SiteURL }}/reset-password`) so links land on the app
-   instead of the bare site URL. Keep the `{{ .ConfirmationURL }}` token as
-   the actual href.
+4. **Authentication → Emails → Templates**: leave the templates as shipped.
+   The button href must stay `{{ .ConfirmationURL }}` — that token already
+   carries the `redirect_to` we pass from the app (`/auth/callback`), so
+   rewriting it by hand is what breaks links.
 5. While testing without custom SMTP: check **spam/junk** first, then
    Authentication → Users → your user → "Send confirmation email" to resend
-   manually. Rate-limit errors surface in the app as a cooldown message.
+   manually. Rate-limit and cooldown errors surface in the app as a
+   countable "Resend available in Ns" message.
+
+### Cooldowns and rate limits (making signup feel instant)
+
+Two separate limits decide how quickly a new client can register and
+re-request a link. Both are configurable; the defaults are why signup felt
+slow.
+
+| Limit | Default | Where to change | Recommended |
+| --- | --- | --- | --- |
+| Emails per hour (project) | **2** with the built-in mailer | Authentication → Rate Limits, or custom SMTP | 30+ once custom SMTP is on |
+| Same email, new link (per user) | **60 s** | Authentication → Rate Limits | 15 s |
+| Signups/sign-ins per IP | 30 per 5 min | Authentication → Rate Limits | leave as is |
+
+The table above is reproducible from the command line:
+
+```bash
+export SUPABASE_ACCESS_TOKEN=…   # dashboard → Account → Access Tokens
+export PROJECT_REF=…            # dashboard → Project Settings → General
+curl -X PATCH "https://api.supabase.com/v1/projects/$PROJECT_REF/config/auth" \
+  -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"rate_limit_email_sent": 30}'
+```
+
+The 2-emails-per-hour ceiling only lifts when **custom SMTP** is configured
+(step 3 above) — with the built-in mailer it cannot be raised at all, and a
+client who resends twice is locked out for the rest of the hour.
+
+The app paces resends itself (45 s countdown, then it adopts Supabase's own
+number when the provider answers "…only request this after N seconds"), so a
+client never silently trips the limit.
 
 ### Email confirmation is enforced in the app — keep the toggle ON
 

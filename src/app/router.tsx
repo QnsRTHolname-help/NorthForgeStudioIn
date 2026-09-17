@@ -27,6 +27,7 @@ const RegisterPage = lazyPage(() => import('@/pages/public/Register'));
 const ForgotPasswordPage = lazyPage(() => import('@/pages/public/ForgotPassword'));
 const ResetPasswordPage = lazyPage(() => import('@/pages/public/ResetPassword'));
 const MfaVerifyPage = lazyPage(() => import('@/pages/public/MfaVerify'));
+const AuthCallbackPage = lazyPage(() => import('@/pages/public/AuthCallback'));
 const PrivacyPage = lazyPage(() => import('@/pages/public/Legal'));
 const NotFoundPage = lazyPage(() => import('@/pages/errors/NotFound'));
 const UnauthorizedPage = lazyPage(() => import('@/pages/errors/Unauthorized'));
@@ -121,6 +122,9 @@ export const AppRoutes: RouteDefinition[] = [
           </RequireGuest>
         ),
       },
+      /* Where every emailed auth link lands (confirmation, magic link,
+         recovery) — never guarded, it must run while signed out. */
+      { path: 'auth/callback', element: <AuthCallbackPage /> },
       { path: 'forgot-password', element: <ForgotPasswordPage /> },
       { path: 'reset-password', element: <ResetPasswordPage /> },
       { path: 'mfa', element: <MfaVerifyPage /> },

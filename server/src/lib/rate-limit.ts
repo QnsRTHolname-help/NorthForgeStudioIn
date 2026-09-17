@@ -57,6 +57,13 @@ export interface RateLimitOptions {
   /** Hits allowed per window before rejecting. */
   max: number;
   /**
+   * Longest lockout this limiter may impose, in ms (default 10 minutes).
+   * Account-CREATION endpoints use a much shorter cap: a legitimate person
+   * fumbling their signup must not be locked out for ten minutes, while a
+   * credential-stuffing run still gets throttled.
+   */
+  maxLockMs?: number;
+  /**
    * Extra key material — e.g. the attempted email, so one source hammering
    * many accounts locks out per-account, and one account being sprayed is
    * protected regardless of source.
@@ -67,7 +74,12 @@ export interface RateLimitOptions {
 }
 
 export function rateLimit(options: RateLimitOptions): RequestHandler {
-  const { windowMs, max, message = 'Too many attempts. Please wait a little while and try again.' } = options;
+  const {
+    windowMs,
+    max,
+    maxLockMs = 600_000,
+    message = 'Too many attempts. Please wait a little while and try again.',
+  } = options;
 
   return (req: Request, res: Response, next: NextFunction) => {
     const now = Date.now();
@@ -92,9 +104,9 @@ export function rateLimit(options: RateLimitOptions): RequestHandler {
     bucket.hits.push(now);
 
     if (bucket.hits.length > max) {
-      // Escalating lockout: 30s, then 2m, then 10m.
+      // Escalating lockout: 30s, then 2m, then the cap (10m by default).
       bucket.strikes += 1;
-      const lockMs = Math.min(30_000 * 4 ** (bucket.strikes - 1), 600_000);
+      const lockMs = Math.min(30_000 * 4 ** (bucket.strikes - 1), maxLockMs);
       bucket.lockedUntil = now + lockMs;
       const retry = Math.ceil(lockMs / 1000);
       res.setHeader('Retry-After', String(retry));

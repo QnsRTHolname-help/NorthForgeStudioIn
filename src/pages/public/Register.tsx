@@ -10,6 +10,7 @@ import { useAuth } from '@/app/providers/AuthProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { authService } from '@/services';
 import { PasswordStrength } from '@/components/ui/PasswordStrength';
+import { useCooldown } from '@/hooks/useCooldown';
 import { PASSWORD_POLICY } from '@shared/password';
 
 export default function Register() {
@@ -53,6 +54,9 @@ export default function Register() {
   );
 
   const resend = useMutation((email: string) => authService.resendConfirmation(email));
+  // A short, visible wait: repeated resends burn the provider's per-address
+  // allowance and make the NEXT attempt slower, so we pace it ourselves.
+  const cooldown = useCooldown(45);
 
   const set = (key: keyof typeof values) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setValues((prev) => ({ ...prev, [key]: event.target.value }));
@@ -70,7 +74,9 @@ export default function Register() {
     }
     if (values.password !== values.confirm) next.confirm = 'Passwords do not match.';
     setErrors(next);
-    if (Object.keys(next).length) return;    try {
+    if (Object.keys(next).length) return;
+
+    try {
       await mutation.mutate();
     } catch (error) {
       // With email confirmation on, Supabase returns no session at signup.
@@ -108,11 +114,23 @@ export default function Register() {
               variant="secondary"
               size="sm"
               loading={resend.pending}
-              onClick={() => {
-                void resend.mutate(values.email).catch(() => undefined);
+              disabled={cooldown.active}
+              onClick={async () => {
+                cooldown.start(45);
+                try {
+                  await resend.mutate(values.email);
+                } catch (error) {
+                  // Supabase told us how long to wait — honour its number.
+                  const retry = (error as { retryAfterSeconds?: number }).retryAfterSeconds;
+                  if (retry) cooldown.start(retry);
+                }
               }}
             >
-              {resend.success ? 'Email sent again — check your inbox' : 'Resend verification email'}
+              {cooldown.active
+                ? `Resend available in ${cooldown.remaining}s`
+                : resend.success
+                  ? 'Email sent again — check your inbox'
+                  : 'Resend verification email'}
             </Button>
             {resend.error ? <p className="text-xs text-danger">{resend.error}</p> : null}
             <div>

@@ -1,5 +1,7 @@
 ﻿import { supabase, assertSupabaseConfigured } from '@/lib/supabase';
 import { AuthError, logAuthEvent, mapAuthError } from '@/lib/auth-errors';
+import { AUTH_CALLBACK_PATH, canonicalUrl } from '@/lib/links';
+import { billableLines, nextInvoiceNumber, totalize, type InvoiceLine } from '@/lib/billing';
 import { ApiError } from '@/types';
 import { authUserId, compact, run, mapDatabaseError } from '@/services/db';
 import {
@@ -167,7 +169,10 @@ export const authService = {
           phone: input.phone ?? null,
           business_type: input.businessType ?? null,
         },
-        emailRedirectTo: `${window.location.origin}/login`,
+        // Canonical, never `window.location.origin`: a signup triggered
+        // from a local dev machine must not email a localhost link to a
+        // real customer (src/lib/links.ts).
+        emailRedirectTo: canonicalUrl(AUTH_CALLBACK_PATH),
       },
     });
     if (error) {
@@ -207,7 +212,7 @@ export const authService = {
     const { error } = await supabase.auth.resend({
       type: 'signup',
       email,
-      options: { emailRedirectTo: `${window.location.origin}/login` },
+      options: { emailRedirectTo: canonicalUrl(AUTH_CALLBACK_PATH) },
     });
     if (error) {
       const mapped = mapAuthError(error);
@@ -303,7 +308,7 @@ export const authService = {
   forgotPassword: async (email: string): Promise<{ sent: boolean; message: string }> => {
     assertSupabaseConfigured();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: canonicalUrl('/reset-password'),
     });
     if (error) throw new AuthError(mapAuthError(error));
     return { sent: true, message: 'If that email is registered, a reset link is on its way.' };
@@ -761,6 +766,20 @@ export const clientsService = {
     return { client: mapClient(rows[0]) };
   },
 
+  /**
+   * Delete a client and everything attached to them — websites, projects,
+   * invoices, payments, requests, files. The database cascades these rows
+   * (`on delete cascade`), which is exactly why the UI asks for confirmation
+   * and names what disappears.
+   */
+  remove: async (id: string): Promise<{ deleted: boolean }> => {
+    const rows = await run<Record<string, unknown>[]>('clients.remove', () =>
+      supabase.from('clients').delete().eq('id', id).select(),
+    );
+    if (!rows?.length) throw new ApiError("We couldn't find that client.", 404, 'not_found');
+    return { deleted: true };
+  },
+
   onboarding: async (id: string): Promise<{ draft: OnboardingDraft }> => {
     const rows = await run<Record<string, unknown>[]>('clients.onboarding', () =>
       supabase.from('onboarding_drafts').select('*').eq('client_id', id).limit(1),
@@ -928,6 +947,14 @@ export const websitesService = {
     );
     return { website: mapWebsite(rows![0]) };
   },
+  /** Remove a website record (its analytics rows are keyed to it). */
+  remove: async (id: string): Promise<{ deleted: boolean }> => {
+    const rows = await run<Record<string, unknown>[]>('websites.remove', () =>
+      supabase.from('websites').delete().eq('id', id).select(),
+    );
+    if (!rows?.length) throw new ApiError("We couldn't find that website.", 404, 'not_found');
+    return { deleted: true };
+  },
   update: async (id: string, input: Partial<Website>): Promise<{ website: Website }> => {
     const rows = await run<Record<string, unknown>[]>('websites.update', () =>
       supabase
@@ -1056,21 +1083,59 @@ export const billingService = {
     );
     return { items: (rows ?? []).map(mapSubscription) };
   },
-  createSubscription: async (input: { clientId: string; planId: string; status?: string }): Promise<{ subscription: Subscription }> => {
+  /**
+   * Start a subscription. The renewal date follows the plan's own billing
+   * interval (30 days for every catalog plan) instead of a hard-coded 30 —
+   * a plan with a different cycle would otherwise renew on the wrong day.
+   */
+  createSubscription: async (input: {
+    clientId: string;
+    planId: string;
+    status?: string;
+    renewsAt?: string;
+    seats?: number;
+  }): Promise<{ subscription: Subscription }> => {
+    if (!input.clientId) throw new ApiError('Choose a client for this subscription.', 400, 'validation');
+    if (!input.planId) throw new ApiError('Choose a plan for this subscription.', 400, 'validation');
+    const plan = CATALOG.plans.find((candidate) => candidate.id === input.planId);
+    const intervalDays = plan?.intervalDays ?? 30;
     const rows = await run<Record<string, unknown>[]>('billing.createSubscription', () =>
       supabase
         .from('subscriptions')
-        .insert({ client_id: input.clientId, plan_id: input.planId, status: input.status ?? 'active', renews_at: new Date(Date.now() + 30 * 86400000).toISOString() })
+        .insert(
+          compact({
+            client_id: input.clientId,
+            plan_id: input.planId,
+            status: input.status ?? 'active',
+            seats: input.seats ?? 1,
+            renews_at: input.renewsAt ?? new Date(Date.now() + intervalDays * 86400000).toISOString(),
+          }),
+        )
         .select(),
     );
     return { subscription: mapSubscription(rows![0]) };
   },
-  updateSubscription: async (id: string, input: { planId?: string; status?: string }): Promise<{ subscription: Subscription }> => {
+  updateSubscription: async (
+    id: string,
+    input: { planId?: string; status?: string; renewsAt?: string; cancelAt?: string | null },
+  ): Promise<{ subscription: Subscription }> => {
     const rows = await run<Record<string, unknown>[]>('billing.updateSubscription', () =>
-      supabase.from('subscriptions').update(compact({ plan_id: input.planId, status: input.status })).eq('id', id).select(),
+      supabase
+        .from('subscriptions')
+        .update(compact({ plan_id: input.planId, status: input.status, renews_at: input.renewsAt, cancel_at: input.cancelAt }))
+        .eq('id', id)
+        .select(),
     );
     if (!rows?.[0]) throw new ApiError("We couldn't find that record.", 404, 'not_found');
     return { subscription: mapSubscription(rows[0]) };
+  },
+  /** Remove a subscription record that was created by mistake. */
+  deleteSubscription: async (id: string): Promise<{ deleted: boolean }> => {
+    const rows = await run<Record<string, unknown>[]>('billing.deleteSubscription', () =>
+      supabase.from('subscriptions').delete().eq('id', id).select(),
+    );
+    if (!rows?.length) throw new ApiError("We couldn't find that record.", 404, 'not_found');
+    return { deleted: true };
   },
   invoices: async (): Promise<{ items: Invoice[] }> => {
     const rows = await run<Record<string, unknown>[]>('billing.invoices', () =>
@@ -1086,85 +1151,125 @@ export const billingService = {
     if (!row) throw new ApiError("We couldn't find that record.", 404, 'not_found');
     return { invoice: mapInvoice(row), client: (row.client as Record<string, unknown>[] | null)?.[0] ?? null };
   },
-  generateInvoice: async (subscriptionId: string): Promise<{ invoice: Invoice }> => {
+  generateInvoice: async (
+    subscriptionId: string,
+    options: { includeSetup?: boolean; extraLines?: InvoiceLine[]; dueInDays?: number } = {},
+  ): Promise<{ invoice: Invoice }> => {
     const subs = await run<Record<string, unknown>[]>('billing.generateInvoice.sub', () =>
       supabase.from('subscriptions').select('*').eq('id', subscriptionId).limit(1),
     );
     const sub = subs?.[0];
     if (!sub) throw new ApiError("We couldn't find that subscription.", 404, 'not_found');
     const plan = CATALOG.plans.find((candidate) => candidate.id === sub.plan_id);
-    const amount = plan?.amount ?? 0;
-    const tax = Math.round(amount * 0.18);
-    const now = new Date();
-    const rows = await run<Record<string, unknown>[]>('billing.generateInvoice', () =>
-      supabase
-        .from('invoices')
-        .insert({
-          number: `NF-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${Date.now().toString(36).toUpperCase()}`,
-          client_id: sub.client_id,
-          subscription_id: subscriptionId,
-          amount,
-          tax,
-          total: amount + tax,
-          status: 'open',
-          due_at: new Date(now.getTime() + 14 * 86400000).toISOString(),
-          line_items: [{ label: plan?.name ?? 'Subscription', amount, description: '30-day management cycle' }],
-        })
-        .select(),
-    );
-    return { invoice: mapInvoice(rows![0]) };
+    if (!plan) {
+      throw new ApiError(
+        'That subscription points at a plan that is no longer in the catalog. Bill it manually or set a current plan.',
+        400,
+        'validation',
+      );
+    }
+    return billingService.createInvoice({
+      clientId: String(sub.client_id ?? ''),
+      planId: plan.id,
+      subscriptionId,
+      includeSetup: options.includeSetup,
+      extraLines: options.extraLines,
+      dueInDays: options.dueInDays,
+    });
   },
   /**
    * Create an invoice directly for a client + plan. This is the path that
    * works even when no subscription record exists yet — the common state for
    * a new client, where the subscription-based generator has nothing to list.
    */
+  /**
+   * Raise an invoice from the catalog — the path that always works, with or
+   * without a subscription record (a brand-new client usually has none).
+   *
+   * The money is computed by `src/lib/billing.ts`: line items first, then
+   * 18% GST on the subtotal, then total = subtotal + tax. The optional
+   * one-time setup fee is a separate line rather than a silent surcharge.
+   */
   createInvoice: async (input: {
     clientId: string;
     planId: string;
     subscriptionId?: string | null;
     dueInDays?: number;
+    /** First invoice for a client: add the plan's one-time build fee. */
+    includeSetup?: boolean;
+    extraLines?: InvoiceLine[];
   }): Promise<{ invoice: Invoice }> => {
     if (!input.clientId) throw new ApiError('Choose a client for this invoice.', 400, 'validation');
     if (!input.planId) throw new ApiError('Choose a plan for this invoice.', 400, 'validation');
     const plan = CATALOG.plans.find((candidate) => candidate.id === input.planId);
-    const amount = plan?.amount ?? 0;
-    const tax = Math.round(amount * 0.18);
+    if (!plan) throw new ApiError('That plan is not in the catalog.', 400, 'validation');
+    const lines = billableLines(plan, { includeSetup: input.includeSetup, extraLines: input.extraLines });
+    if (!lines.length) {
+      throw new ApiError(
+        'That plan has no price in the catalog — add a line item or use a priced plan.',
+        400,
+        'validation',
+      );
+    }
+    const { subtotal, tax, total } = totalize(lines);
     const now = new Date();
     const rows = await run<Record<string, unknown>[]>('billing.createInvoice', () =>
       supabase
         .from('invoices')
         .insert({
-          number: `NF-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${Date.now().toString(36).toUpperCase()}`,
+          number: nextInvoiceNumber(now),
           client_id: input.clientId,
           subscription_id: input.subscriptionId ?? null,
-          amount,
+          amount: subtotal,
           tax,
-          total: amount + tax,
+          total,
           status: 'open',
           due_at: new Date(now.getTime() + (input.dueInDays ?? 14) * 86400000).toISOString(),
-          line_items: [
-            {
-              label: plan?.name ?? 'Subscription',
-              amount,
-              description: `${input.dueInDays ?? 14}-day term · one-time setup + monthly management`,
-            },
-          ],
+          line_items: lines,
         })
         .select(),
     );
     return { invoice: mapInvoice(rows![0]) };
   },
-  updateInvoice: async (id: string, status: string): Promise<{ invoice: Invoice }> => {
+  /**
+   * Edit an invoice after it was raised: status, due date, line items and
+   * notes. Whenever line items change the subtotal, GST and total are
+   * recomputed together — three numbers that cannot drift apart.
+   */
+  updateInvoice: async (
+    id: string,
+    patch: { status?: string; dueAt?: string; lineItems?: InvoiceLine[] },
+  ): Promise<{ invoice: Invoice }> => {
+    const update: Record<string, unknown> = {};
+    if (patch.status) {
+      update.status = patch.status;
+      // Only stamp paid_at when the invoice actually becomes paid, and clear
+      // it again if it is re-opened (a void invoice is not a settled one).
+      update.paid_at = patch.status === 'paid' ? new Date().toISOString() : null;
+    }
+    if (patch.dueAt) update.due_at = patch.dueAt;
+    if (patch.lineItems) {
+      const lines = patch.lineItems.filter((line) => line.label.trim());
+      const { subtotal, tax, total } = totalize(lines);
+      update.line_items = lines;
+      update.amount = subtotal;
+      update.tax = tax;
+      update.total = total;
+    }
+    if (!Object.keys(update).length) throw new ApiError('Nothing changed.', 400, 'validation');
     const rows = await run<Record<string, unknown>[]>('billing.updateInvoice', () =>
-      supabase
-        .from('invoices')
-        .update({ status, ...(status === 'paid' ? { paid_at: new Date().toISOString() } : {}) })
-        .eq('id', id)
-        .select(),
+      supabase.from('invoices').update(update).eq('id', id).select(),
     );
     if (!rows?.[0]) throw new ApiError("We couldn't find that record.", 404, 'not_found');
     return { invoice: mapInvoice(rows[0]) };
+  },
+  /** Remove a draft or mistakenly raised invoice. */
+  deleteInvoice: async (id: string): Promise<{ deleted: boolean }> => {
+    const rows = await run<Record<string, unknown>[]>('billing.deleteInvoice', () =>
+      supabase.from('invoices').delete().eq('id', id).select(),
+    );
+    if (!rows?.length) throw new ApiError("We couldn't find that record.", 404, 'not_found');
+    return { deleted: true };
   },
   payments: async (): Promise<{ items: Payment[] }> => {
     const rows = await run<Record<string, unknown>[]>('billing.payments', () =>
@@ -1179,20 +1284,44 @@ export const billingService = {
     status?: PaymentStatus;
     method?: string;
     invoiceId?: string;
-  }): Promise<{ payment: Payment }> => {
+    /** Settle the linked invoice in the same action (default: yes). */
+    markInvoicePaid?: boolean;
+  }): Promise<{ payment: Payment; invoiceSettled: boolean }> => {
+    if (!input.clientId) throw new ApiError('Choose the client this payment belongs to.', 400, 'validation');
+    if (!Number.isFinite(input.amount) || input.amount <= 0) {
+      throw new ApiError('Enter an amount greater than zero.', 400, 'validation');
+    }
     const rows = await run<Record<string, unknown>[]>('billing.createPayment', () =>
       supabase
         .from('payments')
         .insert({
           client_id: input.clientId,
-          amount: input.amount,
+          amount: Math.round(input.amount),
           status: input.status ?? 'succeeded',
           method: input.method ?? 'manual',
           invoice_id: input.invoiceId ?? null,
         })
         .select(),
     );
-    return { payment: mapPayment(rows![0]) };
+
+    // Recording money and leaving the invoice "open" is how a ledger starts
+    // lying. When the payment is successful and linked, settle the invoice.
+    let invoiceSettled = false;
+    const shouldSettle = input.invoiceId && (input.markInvoicePaid ?? true) && (input.status ?? 'succeeded') === 'succeeded';
+    if (shouldSettle) {
+      await billingService.updateInvoice(input.invoiceId!, { status: 'paid' });
+      invoiceSettled = true;
+    }
+
+    return { payment: mapPayment(rows![0]), invoiceSettled };
+  },
+  /** Remove a payment recorded in error. */
+  deletePayment: async (id: string): Promise<{ deleted: boolean }> => {
+    const rows = await run<Record<string, unknown>[]>('billing.deletePayment', () =>
+      supabase.from('payments').delete().eq('id', id).select(),
+    );
+    if (!rows?.length) throw new ApiError("We couldn't find that record.", 404, 'not_found');
+    return { deleted: true };
   },
   plans: async (): Promise<{ plans: (Plan & { subscribers: number })[] }> => {
     const rows = await run<Record<string, unknown>[]>('billing.plans', () => supabase.from('subscriptions').select('plan_id'));

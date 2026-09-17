@@ -37,8 +37,25 @@ const emailBucket = (req: { body?: { email?: unknown } }) =>
   typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
 
 const loginLimiter = rateLimit({ windowMs: 15 * 60_000, max: 10, bucket: emailBucket });
-const registerLimiter = rateLimit({ windowMs: 60 * 60_000, max: 5, bucket: emailBucket });
-const forgotLimiter = rateLimit({ windowMs: 60 * 60_000, max: 5, bucket: emailBucket });
+/**
+ * Account CREATION is throttled generously: a new client who mistypes their
+ * email, resends the confirmation, and tries again must not meet a one-hour
+ * wall. 8 attempts per 15 minutes blocks scripted abuse without punishing a
+ * real person, and the lockout escalates to a maximum of 60 seconds here
+ * (instead of the default 10 minutes) for the same reason.
+ */
+const registerLimiter = rateLimit({
+  windowMs: 15 * 60_000,
+  max: 8,
+  maxLockMs: 60_000,
+  bucket: emailBucket,
+});
+const forgotLimiter = rateLimit({
+  windowMs: 15 * 60_000,
+  max: 6,
+  maxLockMs: 60_000,
+  bucket: emailBucket,
+});
 const resetLimiter = rateLimit({ windowMs: 15 * 60_000, max: 10, bucket: (req) => String(req.body?.token ?? '').slice(0, 12) });
 const totpLimiter = rateLimit({ windowMs: 15 * 60_000, max: 8, bucket: (req) => String(req.body?.pending ?? '').slice(-24) });
 

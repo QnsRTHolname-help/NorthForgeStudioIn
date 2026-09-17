@@ -15,7 +15,10 @@ export function Table({ children, className }: { children: ReactNode; className?
 }
 
 export function THead({ children }: { children: ReactNode }) {
-  return <thead className="border-b border-line bg-sunken/40">{children}</thead>;
+  // The header row needs to read as a distinct band in BOTH themes: on the
+  // dark canvas a 40% wash of the sunken fill was indistinguishable from the
+  // rows below it.
+  return <thead className="border-b border-line bg-sunken/60">{children}</thead>;
 }
 
 export function TBody({ children }: { children: ReactNode }) {
@@ -26,7 +29,7 @@ export function TR({ children, onClick, className }: { children: ReactNode; onCl
   return (
     <tr
       onClick={onClick}
-      className={cn('transition-colors duration-150', onClick && 'cursor-pointer hover:bg-sunken/60', className)}
+      className={cn('transition-colors duration-150', onClick && 'cursor-pointer hover:bg-sunken/70', className)}
     >
       {children}
     </tr>

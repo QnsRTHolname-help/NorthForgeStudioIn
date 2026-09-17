@@ -44,8 +44,9 @@ export function Modal({ open, onClose, title, description, children, footer, siz
 
   return createPortal(
     <div className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center">
+      {/* One scrim token for every theme and surface (globals.css). */}
       <div
-        className="absolute inset-0 animate-fade-in bg-[rgb(6_8_12/0.6)] backdrop-blur-[2px] dark:bg-[rgb(4_5_8/0.72)]"
+        className="absolute inset-0 animate-fade-in bg-[var(--nf-scrim)] backdrop-blur-[3px]"
         onClick={onClose}
         aria-hidden
       />
@@ -55,6 +56,8 @@ export function Modal({ open, onClose, title, description, children, footer, siz
         aria-modal="true"
         aria-label={typeof title === 'string' ? title : undefined}
         className={cn(
+          // `shadow-panel` already carries the dark rim light (see the token
+          // in globals.css), so no theme-specific class is needed here.
           'relative z-10 max-h-[92vh] w-full animate-scale-in overflow-y-auto rounded-t-xl border border-line bg-surface shadow-panel sm:rounded-xl',
           SIZES[size],
         )}
@@ -132,7 +135,7 @@ export function Drawer({
 
   return createPortal(
     <div className="fixed inset-0 z-[80]">
-      <div className="absolute inset-0 animate-fade-in bg-[rgb(6_8_12/0.5)]" onClick={onClose} aria-hidden />
+      <div className="absolute inset-0 animate-fade-in bg-[var(--nf-scrim)]" onClick={onClose} aria-hidden />
       <div
         ref={trapRef}
         role="dialog"

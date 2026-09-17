@@ -192,7 +192,7 @@ export function CommandPaletteProvider({ children }: { children: ReactNode }) {
       {open
         ? createPortal(
             <div className="fixed inset-0 z-[95] flex items-start justify-center px-4 pt-[12vh]">
-              <div className="absolute inset-0 animate-fade-in bg-[rgb(6_8_12/0.55)] backdrop-blur-[2px]" onClick={close} aria-hidden />
+              <div className="absolute inset-0 animate-fade-in bg-[var(--nf-scrim)] backdrop-blur-[3px]" onClick={close} aria-hidden />
               <div
                 role="dialog"
                 aria-modal="true"

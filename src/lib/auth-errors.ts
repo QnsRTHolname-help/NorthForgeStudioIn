@@ -30,6 +30,24 @@ export type AuthErrorCode =
 interface MappedAuthError {
   code: AuthErrorCode;
   message: string;
+  /**
+   * Seconds the caller must wait before retrying — parsed out of the
+   * provider's cooldown notice so the UI can run a countdown instead of
+   * leaving the person guessing (or hammering the button).
+   */
+  retryAfterSeconds?: number;
+}
+
+/**
+ * Supabase answers an over-eager resend with
+ * "For security purposes, you can only request this after 47 seconds".
+ * Pull the number out so we can show a live countdown.
+ */
+function parseRetrySeconds(message: string): number | undefined {
+  const match = /after (\d+)\s*second/i.exec(message);
+  if (!match) return undefined;
+  const seconds = Number(match[1]);
+  return Number.isFinite(seconds) && seconds > 0 ? seconds : undefined;
 }
 
 /** Supabase auth error codes we understand explicitly. */
@@ -81,7 +99,7 @@ export function mapAuthError(error: unknown): MappedAuthError {
         return {
           code: 'AUTH_RATE_LIMIT',
           message:
-            'Too many verification emails have been sent from this project just now. Wait about an hour and try again, or sign in if the account was already created.',
+            'Too many emails were requested just now. Wait a few minutes and try again — or sign in if your account was already created.',
         };
       case 'over_request_rate_limit':
         return {
@@ -101,6 +119,17 @@ export function mapAuthError(error: unknown): MappedAuthError {
 
   // Some providers return only a message without a code.
   const message = (err?.message ?? '').toLowerCase();
+
+  // Cooldown notice ("…only request this after N seconds"): keep the wait
+  // visible and countable rather than a flat error.
+  const retryAfterSeconds = parseRetrySeconds(err?.message ?? '');
+  if (retryAfterSeconds) {
+    return {
+      code: 'AUTH_RATE_LIMIT',
+      message: `Please wait ${retryAfterSeconds}s before requesting another email.`,
+      retryAfterSeconds,
+    };
+  }
   if (message.includes('invalid login credentials')) {
     return { code: 'AUTH_INVALID_CREDENTIALS', message: 'Email or password is incorrect.' };
   }
@@ -172,11 +201,14 @@ function toCode(raw: string): AuthErrorCode {
 /** Thrown by the auth service; safe to display directly in the UI. */
 export class AuthError extends Error {
   code: AuthErrorCode;
+  /** Seconds to wait before retrying (provider cooldowns only). */
+  retryAfterSeconds?: number;
 
   constructor(mapped: MappedAuthError) {
     super(mapped.message);
     this.name = 'AuthError';
     this.code = mapped.code;
+    this.retryAfterSeconds = mapped.retryAfterSeconds;
   }
 }
 

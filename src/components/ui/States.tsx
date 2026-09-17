@@ -26,12 +26,14 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center rounded-lg border border-dashed border-line text-center',
+        // `line-strong`, not `line`: a 1px dashed hairline disappears entirely
+        // on the dark canvas, so empty screens looked like broken screens.
+        'flex flex-col items-center justify-center rounded-lg border border-dashed border-line-strong text-center',
         compact ? 'px-5 py-8' : 'px-6 py-14',
         className,
       )}
     >
-      <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full border border-line bg-sunken text-faint">
+      <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full border border-line-strong bg-sunken text-muted">
         {icon ?? <Inbox className="h-4.5 w-4.5" />}
       </div>
       <h3 className="text-sm font-semibold uppercase tracking-wide text-fg">{title}</h3>

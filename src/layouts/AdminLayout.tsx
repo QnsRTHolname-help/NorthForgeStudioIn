@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Activity,
+  AlertTriangle,
   BarChart3,
   Bell,
   Building2,
@@ -13,6 +14,7 @@ import {
   Globe,
   Inbox,
   KanbanSquare,
+  KeyRound,
   LayoutDashboard,
   LifeBuoy,
   LogOut,
@@ -24,6 +26,7 @@ import {
   Search,
   Send,
   Settings,
+  ShieldAlert,
   ShieldCheck,
   Target,
   Users,
@@ -43,7 +46,8 @@ import { useAuth } from '@/app/providers/AuthProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { titleForPath } from '@/app/config/titles';
-import { insightsService, announcementsService, requestsService } from '@/services';
+import { insightsService, announcementsService, requestsService, mfaService } from '@/services';
+import { supabase } from '@/lib/supabase';
 import { useAsync } from '@/hooks/useAsync';
 
 interface AdminNavItem {
@@ -145,6 +149,25 @@ export function AdminLayout() {
   const announcements = useAsync(() => announcementsService.list(), [location.pathname]);
   const requests = useAsync(() => requestsService.list(), [location.pathname]);
 
+  /**
+   * Second-factor state (migration 0008/0010). Client business data is
+   * protected by two-factor, so the operator must be able to see WHY a
+   * screen is empty and fix it in one click — never a silent lockout.
+   */
+  const mfa = useAsync(async () => {
+    const [status, assurance] = await Promise.all([
+      mfaService.status(),
+      supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
+    ]);
+    return {
+      enrolled: Boolean(status?.enabled),
+      verified: assurance.data?.currentLevel === 'aal2',
+    };
+  }, []);
+  const [mfaNoticeDismissed, setMfaNoticeDismissed] = useState(false);
+  const needsStepUp = Boolean(mfa.data?.enrolled) && mfa.data?.verified === false;
+  const suggestEnrol = mfa.data != null && !mfa.data.enrolled;
+
   const unread = notifications.data?.unread ?? 0;
   const unreadLeads = (notifications.data?.items ?? []).some(
     (item) => !item.read && item.kind === 'lead',
@@ -185,9 +208,14 @@ export function AdminLayout() {
                   title={collapsed ? item.label : undefined}
                   className={({ isActive }) =>
                     cn(
-                      'group flex items-center gap-2.5 rounded px-2.5 py-[7px] text-[13px] font-medium transition-colors duration-150',
+                      'group relative flex items-center gap-2.5 rounded px-2.5 py-[7px] text-[13px] font-medium transition-colors duration-150',
                       collapsed && 'justify-center px-0',
-                      isActive ? 'bg-sunken text-fg' : 'text-muted hover:bg-sunken/60 hover:text-fg',
+                      // Active state carries the brand signal (tint + rail
+                      // marker): in dark mode a plain fill change was too
+                      // quiet to read as "you are here".
+                      isActive
+                        ? 'bg-brand/[0.12] text-fg'
+                        : 'text-muted hover:bg-sunken/70 hover:text-fg',
                     )
                   }
                 >
@@ -195,6 +223,12 @@ export function AdminLayout() {
                     const dot = hasDot(item.to);
                     return (
                       <>
+                        {isActive && !collapsed ? (
+                          <span
+                            className="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-brand"
+                            aria-hidden
+                          />
+                        ) : null}
                         <span className="relative shrink-0">
                           <item.icon className={cn('h-4 w-4', isActive ? 'text-brand' : 'text-faint')} aria-hidden />
                           {dot ? (
@@ -259,7 +293,7 @@ export function AdminLayout() {
       {/* Mobile drawer */}
       {mobileOpen ? (
         <div className="fixed inset-0 z-[70] lg:hidden">
-          <div className="absolute inset-0 bg-[rgb(6_8_12/0.55)]" onClick={() => setMobileOpen(false)} aria-hidden />
+          <div className="absolute inset-0 bg-[var(--nf-scrim)] backdrop-blur-[2px]" onClick={() => setMobileOpen(false)} aria-hidden />
           <aside className="absolute inset-y-0 left-0 flex w-[272px] animate-[fade-in_0.2s_ease] flex-col border-r border-line bg-surface">
             <div className="flex h-14 items-center justify-between border-b border-line px-4">
               <Logo />
@@ -276,7 +310,7 @@ export function AdminLayout() {
 
       {/* Main column */}
       <div className={cn('transition-[padding] duration-300 ease-forge', collapsed ? 'lg:pl-[68px]' : 'lg:pl-[252px]')}>
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-line bg-[rgb(var(--nf-canvas)/0.88)] px-4 backdrop-blur-xl lg:px-6">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-line bg-[var(--nf-header)] px-4 backdrop-blur-xl lg:px-6">
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
@@ -367,6 +401,59 @@ export function AdminLayout() {
         </header>
 
         <main id="main" className="mx-auto w-full max-w-[1560px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          {needsStepUp ? (
+            <div
+              role="status"
+              className="mb-5 flex flex-wrap items-center gap-3 rounded-lg border border-warning/40 bg-warning/[0.08] px-4 py-3 text-[13px] text-fg"
+            >
+              <ShieldAlert className="h-4 w-4 shrink-0 text-warning" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="font-medium">Client data is locked at first-factor strength.</span>{' '}
+                <span className="text-muted">
+                  Enter your 6-digit authenticator code to read and edit client records.
+                </span>
+              </span>
+              <Button
+                size="sm"
+                onClick={() => navigate('/mfa', { state: { from: location.pathname } })}
+                iconLeft={<KeyRound className="h-3.5 w-3.5" />}
+              >
+                Verify now
+              </Button>
+            </div>
+          ) : null}
+
+          {suggestEnrol && !mfaNoticeDismissed ? (
+            <div
+              role="status"
+              className="mb-5 flex flex-wrap items-center gap-3 rounded-lg border border-line bg-surface px-4 py-3 text-[13px] text-fg"
+            >
+              <AlertTriangle className="h-4 w-4 shrink-0 text-muted" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="font-medium">Two-factor is off for this admin account.</span>{' '}
+                <span className="text-muted">
+                  Client records are protected by a second factor — turn it on so only your authenticator app
+                  can open them.
+                </span>
+              </span>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => navigate('/app/settings')}
+                iconLeft={<KeyRound className="h-3.5 w-3.5" />}
+              >
+                Set up
+              </Button>
+              <button
+                type="button"
+                onClick={() => setMfaNoticeDismissed(true)}
+                className="text-xs text-faint underline underline-offset-2 hover:text-muted"
+              >
+                Later
+              </button>
+            </div>
+          ) : null}
+
           <Outlet />
         </main>
       </div>

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
 import { Badge } from '@/components/ui/Badge';
 import { AdminHeader, ListToolbar, ListShell } from '@/components/admin/AdminHeader';
 import { DataTable } from '@/components/ui/Table';
-import { Modal } from '@/components/ui/Modal';
+import { ConfirmDialog, Modal } from '@/components/ui/Modal';
 import { Input, Select, Textarea } from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
 import { Pagination } from '@/components/ui/Data';
@@ -28,11 +28,20 @@ export default function Clients() {
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
   const [creating, setCreating] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
 
   const state = useAsync(
     () => clientsService.list({ q: query || undefined, status: status || undefined, page, pageSize: 25 }),
     [query, status, page],
   );
+
+  const remove = useMutation((id: string) => clientsService.remove(id), {
+    onSuccess: async () => {
+      toast.success('Client deleted');
+      setConfirmDelete(null);
+      await state.refetch().catch(() => undefined);
+    },
+  });
 
   const rows = state.data?.items ?? [];
 
@@ -114,6 +123,25 @@ export default function Clients() {
                   hideBelow: 'md',
                 },
                 { key: 'createdAt', header: 'Since', cell: (client) => formatDate(client.createdAt), hideBelow: 'lg' },
+                {
+                  key: 'actions',
+                  header: '',
+                  align: 'right',
+                  hideBelow: 'sm',
+                  cell: (client) => (
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setConfirmDelete({ id: client.id, name: client.businessName || client.contactName });
+                      }}
+                      className="inline-flex items-center gap-1 rounded p-1.5 text-faint transition-colors hover:bg-sunken hover:text-danger"
+                      aria-label={`Delete ${client.businessName || client.contactName}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  ),
+                },
               ]}
             />
             <div className="border-t border-line px-4 py-3">
@@ -132,6 +160,26 @@ export default function Clients() {
           />
         )}
       </AsyncBoundary>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={async () => {
+          if (!confirmDelete) return;
+          await remove.mutate(confirmDelete.id).catch(() => undefined);
+        }}
+        title="Delete this client?"
+        description={
+          <>
+            <strong>{confirmDelete?.name}</strong> and everything attached — websites, projects, invoices, payments,
+            requests and files — will be removed permanently. Set their status to <strong>churned</strong> instead to
+            keep the history.
+          </>
+        }
+        confirmLabel="Delete client"
+        destructive
+        pending={remove.pending}
+      />
 
       <Modal open={creating} onClose={() => setCreating(false)} title="New client">
         <ClientForm
