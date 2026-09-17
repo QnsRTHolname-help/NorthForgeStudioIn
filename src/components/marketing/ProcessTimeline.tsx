@@ -97,7 +97,7 @@ export function ProcessTimeline() {
   }, [reduced]);
 
   return (
-    <section id="process" className="scroll-mt-24 border-y border-line bg-sunken/20" aria-labelledby="process-heading">
+    <section id="process" className="scroll-mt-28 border-y border-line bg-sunken/20" aria-labelledby="process-heading">
       <div className="nf-shell py-16 lg:py-20">
         <div className="max-w-2xl">
           <span className="nf-eyebrow">How it works</span>

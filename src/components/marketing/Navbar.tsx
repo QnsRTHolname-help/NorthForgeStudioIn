@@ -190,7 +190,8 @@ export function Navbar() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="lg:hidden"
+                // 44px minimum touch target on phones (was 40x32).
+                className="min-h-11 min-w-11 lg:hidden"
                 aria-label={menuOpen ? 'Close menu' : 'Open menu'}
                 aria-expanded={menuOpen}
                 onClick={() => setMenuOpen((open) => !open)}

@@ -22,10 +22,16 @@ export function Footer() {
           {FOOTER_NAV.map((group) => (
             <nav key={group.title} aria-label={group.title}>
               <h2 className="nf-eyebrow">{group.title}</h2>
-              <ul className="mt-4 space-y-2.5">
+              {/* Tap targets: a 16px-tall text link is hard to hit on a phone —
+                  and many of our clients are not 25. Full-height rows on
+                  touch, tight rows once there is a mouse (sm+). */}
+              <ul className="mt-3 space-y-0.5 sm:mt-4 sm:space-y-2.5">
                 {group.links.map((link) => (
                   <li key={link.label}>
-                    <Link to={link.to} className="text-[13px] text-muted transition-colors hover:text-fg">
+                    <Link
+                      to={link.to}
+                      className="nf-focus flex min-h-11 items-center text-[13px] text-muted transition-colors hover:text-fg sm:min-h-0"
+                    >
                       {link.label}
                     </Link>
                   </li>
@@ -36,31 +42,37 @@ export function Footer() {
 
           <div>
             <h2 className="nf-eyebrow">Get in touch</h2>
-            <ul className="mt-4 space-y-3">
+            <ul className="mt-3 space-y-0.5 sm:mt-4 sm:space-y-3">
               <li>
                 <a
                   href={whatsappLink('Hi NorthForge — I would like to know more.')}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="flex items-center gap-2.5 text-[13px] text-muted transition-colors hover:text-fg"
+                  className="nf-focus flex min-h-11 items-center gap-2.5 text-[13px] text-muted transition-colors hover:text-fg sm:min-h-0"
                 >
                   <MessageCircle className="h-3.5 w-3.5 shrink-0 text-brand" aria-hidden />
                   {CONTACT.whatsappDisplay}
                 </a>
               </li>
               <li>
-                <a href={emailLink()} className="flex items-center gap-2.5 text-[13px] text-muted transition-colors hover:text-fg">
+                <a
+                  href={emailLink()}
+                  className="nf-focus flex min-h-11 items-center gap-2.5 break-all text-[13px] text-muted transition-colors hover:text-fg sm:min-h-0"
+                >
                   <Mail className="h-3.5 w-3.5 shrink-0 text-brand" aria-hidden />
                   {CONTACT.email}
                 </a>
               </li>
               <li>
-                <a href={`tel:${CONTACT.phone.replace(/\s/g, '')}`} className="flex items-center gap-2.5 text-[13px] text-muted transition-colors hover:text-fg">
+                <a
+                  href={`tel:${CONTACT.phone.replace(/\s/g, '')}`}
+                  className="nf-focus flex min-h-11 items-center gap-2.5 text-[13px] text-muted transition-colors hover:text-fg sm:min-h-0"
+                >
                   <Phone className="h-3.5 w-3.5 shrink-0 text-brand" aria-hidden />
                   {CONTACT.phone}
                 </a>
               </li>
-              <li className="flex items-center gap-2.5 text-[13px] text-muted">
+              <li className="flex min-h-11 items-center gap-2.5 text-[13px] text-muted sm:min-h-0">
                 <MapPin className="h-3.5 w-3.5 shrink-0 text-brand" aria-hidden />
                 {CONTACT.addressLine1}, {CONTACT.addressLine2}
               </li>

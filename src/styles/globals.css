@@ -281,6 +281,18 @@
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
   }
+
+  /* Explicit focus ring for custom controls (pill links, logo, icon buttons).
+     The global `:focus-visible` rule above already covers every element; this
+     class exists so those controls opt into a ring that matches their rounded
+     shape instead of the browser default, and never show one on mouse click. */
+  .nf-focus {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+  }
+  .nf-focus:focus-visible {
+    outline-color: var(--nf-focus-ring);
+  }
 }
 
 @layer utilities {

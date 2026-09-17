@@ -54,8 +54,15 @@ export function Hero() {
       {/* Quiet architectural grid — present only as a texture, never a crate. */}
       <div className="nf-grid-bg pointer-events-none absolute inset-0 opacity-[0.35]" aria-hidden />
 
-      <div className="nf-shell relative pb-20 pt-24 sm:pt-28 lg:pb-32 lg:pt-40">
-        <div className="grid items-center gap-14 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-20">
+      {/* Soft light behind the system panel — depth without decoration. */}
+      <div
+        className="pointer-events-none absolute right-0 top-24 h-[520px] w-[620px] translate-x-1/4 rounded-full opacity-[0.10] blur-[130px]"
+        style={{ background: 'radial-gradient(circle, rgb(var(--nf-blue)), transparent 70%)' }}
+        aria-hidden
+      />
+
+      <div className="nf-shell relative pb-16 pt-24 sm:pt-28 lg:pb-24 lg:pt-32">
+        <div className="grid items-center gap-14 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:gap-16">
           {/* ── Statement ─────────────────────────────────────── */}
           <div>
             <div data-hero-eyebrow className="flex items-center gap-2">
@@ -66,10 +73,16 @@ export function Hero() {
               </span>
             </div>
 
+            {/* Type scaled to its COLUMN, not the viewport.
+                `text-hero` (up to 7.25rem) is sized for a full-bleed statement;
+                inside a two-column hero it forced "WE BUILD DIGITAL SYSTEMS"
+                into a ragged word-per-line stack and pushed the hero to almost
+                two screens — the CTA fell below the fold. Same words, same
+                editorial weight, fitted to the space it actually has. */}
             <h1
               data-hero-copy
-              className="mt-9 text-hero font-semibold text-fg"
-              style={{ maxWidth: '16ch' }}
+              className="mt-8 text-[clamp(2.35rem,4.7vw,4.35rem)] font-semibold leading-[0.98] tracking-[-0.035em] text-fg"
+              style={{ maxWidth: '20ch' }}
             >
               <SplitText
                 text={'WE BUILD DIGITAL SYSTEMS\nTHAT MOVE YOUR BUSINESS FORWARD.'}
@@ -79,13 +92,13 @@ export function Hero() {
               />
             </h1>
 
-            <p data-hero-copy className="mt-8 max-w-xl text-[16px] leading-relaxed text-muted">
+            <p data-hero-copy className="mt-7 max-w-xl text-[16px] leading-relaxed text-muted">
               NorthForge designs premium websites and connects them to AI, lead capture, WhatsApp,
               automation and analytics — turning your digital presence into a system that helps your
               business grow.
             </p>
 
-            <div data-hero-actions className="mt-10 flex flex-wrap items-center gap-3">
+            <div data-hero-actions className="mt-9 flex flex-wrap items-center gap-3">
               <Magnetic>
                 <LinkButton to="/contact" size="lg" arrow>
                   Start a project
@@ -139,10 +152,10 @@ export function Hero() {
 
         <dl
           data-hero-meta
-          className="mt-16 grid max-w-2xl grid-cols-3 gap-6 border-t border-line pt-8 sm:gap-10"
+          className="mt-14 grid max-w-2xl grid-cols-3 gap-6 border-t border-line pt-8 sm:gap-10"
         >
           {PROOF.map((item) => (
-            <div key={item.label}>
+            <div key={item.label} className="sm:border-l sm:border-line sm:pl-6 sm:first:border-l-0 sm:first:pl-0">
               <dd className="nf-num text-2xl font-semibold tracking-tight text-fg sm:text-3xl">
                 <CountUp value={item.value} format={(value) => `${Math.round(value)}${item.suffix}`} />
               </dd>
@@ -151,12 +164,14 @@ export function Hero() {
           ))}
         </dl>
 
+        {/* Scroll cue: the same prompt, given a real tap target (was a 20px
+            tall text link) and a downward motion hint. */}
         <Link
           to="/#services"
-          className="nf-focus mt-12 inline-flex items-center gap-2 text-[13px] text-muted transition-colors hover:text-fg"
+          className="nf-focus mt-12 inline-flex min-h-11 items-center gap-2 rounded-full border border-line bg-surface/60 px-4 text-[13px] text-muted transition-colors hover:border-line-strong hover:text-fg"
         >
           See what we build
-          <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+          <ArrowRight className="h-3.5 w-3.5 rotate-90 text-brand" aria-hidden />
         </Link>
       </div>
     </section>
