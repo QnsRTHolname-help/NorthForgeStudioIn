@@ -14,6 +14,9 @@ import { useAsync, useMutation } from '@/hooks/useAsync';
 import { authService, rolesService, systemService, type ProfileRole } from '@/services';
 import { formatRelative } from '@/lib/format';
 import { cn } from '@/lib/cn';
+import { PasswordStrength } from '@/components/ui/PasswordStrength';
+import { TwoFactorPanel } from '@/pages/portal/Settings';
+import { PASSWORD_POLICY, scorePassword } from '@shared/password';
 import type { Role } from '@/types';
 
 /** Admin settings (spec §113): appearance, security, session. */
@@ -35,7 +38,11 @@ export default function Settings() {
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (passwords.next.length < 8) return setError('Use at least 8 characters.');
+    if (passwords.next.length < PASSWORD_POLICY.minLength) {
+      return setError(`Use at least ${PASSWORD_POLICY.minLength} characters.`);
+    }
+    const problem = scorePassword(passwords.next).issues[0]?.message;
+    if (problem) return setError(problem);
     if (passwords.next !== passwords.confirm) return setError('New passwords do not match.');
     setError(null);
     await change.mutate().catch(() => undefined);
@@ -96,6 +103,8 @@ export default function Settings() {
         </Panel>
       </div>
 
+      <TwoFactorPanel />
+
       <Panel title="Change password">
         <form onSubmit={submit} className="grid max-w-md gap-4">
           <PasswordInput
@@ -109,8 +118,9 @@ export default function Settings() {
             autoComplete="new-password"
             value={passwords.next}
             onChange={(event) => setPasswords({ ...passwords, next: event.target.value })}
-            hint="At least 8 characters."
+            hint={`At least ${PASSWORD_POLICY.minLength} characters.`}
           />
+          <PasswordStrength password={passwords.next} />
           <PasswordInput
             label="Confirm new password"
             autoComplete="new-password"

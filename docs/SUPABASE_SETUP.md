@@ -18,8 +18,28 @@ supabase/migrations/0004_announcements_prefs_files_milestones_event_engine.sql
 supabase/migrations/0005_fix_enquiries_public_insert.sql
 supabase/migrations/0006_enquiries_become_leads.sql
 supabase/migrations/0007_enquiries_plan.sql
-supabase/migrations/0006_enquiries_become_leads.sql
+supabase/migrations/0008_aal2_admin_enforcement.sql
 ```
+
+## Security hardening (this release)
+
+- **0008** enforces a **server-verified second factor** for admin access:
+  admin SELECT/ALL policies require `app_aal2()` (a session verified with a
+  TOTP code), and `guard_profile_update` requires it for role changes. Admins
+  enrol via Settings → **Two-factor authentication**. Until an admin enrols,
+  admin surfaces return permission errors — that is the enforcement working.
+- **Sessions no longer live in localStorage.** The browser keeps access
+  tokens in memory only and refresh tokens in tab-scoped sessionStorage
+  (`src/lib/supabase.ts`), so a script injection cannot quietly lift a
+  usable token. Pair with the dashboard setting below.
+- **Dashboard recommendations** (Authentication → Settings): lower the
+  access-token TTL to **10 minutes**; leave Supabase's built-in auth rate
+  limits enabled (the UI also maps `AUTH_RATE_LIMIT` errors onto a friendly
+  cooldown message).
+- **Password policy**: 12+ characters with mixed case, a number and a symbol,
+  enforced identically client-side (live strength meter) and by Supabase
+  via the same shared module; leak-pattern checks reject `word+year` and
+  breached classics.
 
 They are **non-destructive**: only `CREATE` / `CREATE OR REPLACE` /
 `drop policy if exists` statements. Safe to re-run; no tables are dropped.
@@ -88,6 +108,55 @@ The reset flow uses **PKCE**: the recovery link signs the user into
 `/reset-password`, the client exchanges the code automatically
 (`detectSessionInUrl`), the page verifies a recovery session exists, then
 updates the password. No `?token=` parameter is involved.
+
+### Email deliverability — "I'm not receiving the verification email"
+
+Supabase's built-in mailer has a **hard rate limit of ~2 emails/hour** and
+sends from a shared sender that frequently lands in spam. For anything past
+local testing, attach a transactional email provider:
+
+1. **Create a provider account** (Resend, Postmark or Mailgun all work —
+   Resend has a generous free tier and a 5-minute setup).
+2. **Verify your domain** with them (add the DKIM/SPF DNS records they give
+   you) — this is what keeps mail out of spam.
+3. **Supabase dashboard → Project Settings → Authentication → SMTP Settings**:
+   enable *Custom SMTP* and enter the provider's SMTP host/port/user/password.
+   Sender: something like `NorthForge <no-reply@your-domain.com>`.
+4. **Authentication → Emails → Templates**: update the *Confirm signup*
+   template's link to `{{ .SiteURL }}/login?confirmed=true` (and *Reset
+   password* to `{{ .SiteURL }}/reset-password`) so links land on the app
+   instead of the bare site URL. Keep the `{{ .ConfirmationURL }}` token as
+   the actual href.
+5. While testing without custom SMTP: check **spam/junk** first, then
+   Authentication → Users → your user → "Send confirmation email" to resend
+   manually. Rate-limit errors surface in the app as a cooldown message.
+
+### Email confirmation is enforced in the app — keep the toggle ON
+
+Supabase's **"Confirm email"** toggle (Authentication → Providers → Email)
+should stay **ON**. The app enforces confirmation on top of it, so even if
+the toggle is accidentally switched off, unverified users still cannot use
+the product:
+
+- `signUp` throws away any session Supabase issues for an unconfirmed
+  address and shows the "check your inbox" screen instead.
+- `signInWithPassword` signs out and rejects unconfirmed self-service
+  accounts with `AUTH_EMAIL_NOT_CONFIRMED`; the login screen then offers a
+  "Resend verification email" button.
+- `authService.me()` (bootstrap) refuses to restore a session for an
+  unconfirmed address.
+
+Admin-provisioned users (invited via the admin dashboard) are exempt — they
+are created with a confirmed address by design. Leaving the toggle ON is
+still recommended: it makes Supabase itself refuse the login, so the
+protection does not depend on client-side code paths.
+
+For the **self-hosted Express stack**, the same is done with env vars —
+set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` and
+`APP_URL` in `.env`; signup/reset mail is then delivered through
+`nodemailer` (`server/src/services/mailer.ts`) and every send is recorded
+in the `email_outbox` table for auditing. Without SMTP configured, mail is
+queued there (status `queued`) instead of being silently dropped.
 
 ## 3. Environment variables (spec §26, §61)
 

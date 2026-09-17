@@ -88,6 +88,17 @@ export const authService = {
       return null;
     }
     if (!data.session) return null;
+    // Hard gate: a session for an unconfirmed self-service address must
+    // never resolve — covers sessions minted while the project's confirm
+    // toggle was off. Admin-provisioned users carry an invite marker.
+    if (!data.session.user.email_confirmed_at && !data.session.user.user_metadata?.invited_by_admin) {
+      await supabase.auth.signOut();
+      logAuthEvent('session_blocked_unconfirmed');
+      throw new AuthError({
+        code: 'AUTH_EMAIL_NOT_CONFIRMED',
+        message: 'Please verify your email before signing in. Check your inbox for the verification link.',
+      });
+    }
     return loadProfile();
   },
 
@@ -96,12 +107,35 @@ export const authService = {
     // "invalid credentials" when the deployment env is incomplete (spec §27).
     assertSupabaseConfigured();
     logAuthEvent('auth_request_started', { flow: 'password' });
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       const mapped = mapAuthError(error);
       logAuthEvent('auth_request_failed', { code: mapped.code });
       throw new AuthError(mapped);
     }
+
+    // Email confirmation is REQUIRED for self-service accounts — even when
+    // the project's "Confirm email" toggle is off. Supabase then happily
+    // issues a session for an unverified address, so we enforce it here.
+    // Admin-provisioned logins (invited/seeded users) skip this gate.
+    if (data.user && !data.user.email_confirmed_at && !data.user.user_metadata?.invited_by_admin) {
+      await supabase.auth.signOut();
+      logAuthEvent('auth_request_failed', { code: 'email_not_confirmed' });
+      throw new AuthError({
+        code: 'AUTH_EMAIL_NOT_CONFIRMED',
+        message: 'Please verify your email before signing in. Check your inbox for the verification link.',
+      });
+    }
+
+    // Second factor enrolled: the password alone only buys an AAL1 session.
+    // Signal the login screen to route into the verification challenge
+    // BEFORE any protected data loads — never browse at first-factor only.
+    const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (assurance.data && assurance.data.nextLevel === 'aal2' && assurance.data.currentLevel !== 'aal2') {
+      logAuthEvent('mfa_challenge_required');
+      throw new AuthError({ code: 'AUTH_MFA_REQUIRED', message: 'Enter your two-factor code to continue.' });
+    }
+
     logAuthEvent('session_established');
     const session = await loadProfile();
     logAuthEvent('redirect_ready', { role: session.user.role });
@@ -141,8 +175,14 @@ export const authService = {
       logAuthEvent('signup_request_failed', { code: mapped.code });
       throw new AuthError(mapped);
     }
-    // Email confirmation enabled: no session until the user confirms.
-    if (!data.session) {
+    // Email confirmation is REQUIRED — regardless of the project's
+    // "Confirm email" toggle. When the toggle is off Supabase returns a
+    // live session for an unverified address; we throw it away and treat
+    // signup as "check your inbox" either way.
+    const confirmed = Boolean(data.user?.email_confirmed_at);
+    if (!data.session || !confirmed) {
+      if (data.session) await supabase.auth.signOut();
+      logAuthEvent('signup_awaiting_confirmation', { confirmed });
       throw new AuthError({
         code: 'AUTH_EMAIL_NOT_CONFIRMED',
         message: 'Account created. Check your inbox to confirm your email, then sign in.',
@@ -277,6 +317,81 @@ export const authService = {
     const { error } = await supabase.auth.updateUser({ password });
     if (error) throw new AuthError(mapAuthError(error));
     return { reset: true };
+  },
+};
+
+/* ── Two-factor auth (Supabase MFA — TOTP, spec §05) ──
+ *
+ * Supabase MFA is enforced SERVER-side: the admin session cannot call
+ * admin-surface data unless it carries a verified second factor (AAL2).
+ * These helpers drive the browser side of that flow — enrolment in
+ * Settings, and the verification challenge the login screen shows after a
+ * correct password when a factor is active.
+ */
+
+export const mfaService = {
+  /** Whether the signed-in user has a verified TOTP factor. */
+  status: async (): Promise<{ enabled: boolean }> => {
+    assertSupabaseConfigured();
+    const { data, error } = await supabase.auth.mfa.listFactors();
+    if (error) throw new AuthError(mapAuthError(error));
+    const enabled = (data?.totp ?? []).some((factor) => factor.status === 'verified');
+    return { enabled };
+  },
+
+  /** Begins enrolment: returns the shared secret + otpauth URI for the QR. */
+  enroll: async (): Promise<{ factorId: string; secret: string; uri: string }> => {
+    assertSupabaseConfigured();
+    const { data, error } = await supabase.auth.mfa.enroll({
+      factorType: 'totp',
+      friendlyName: 'NorthForge authenticator',
+    });
+    if (error || !data) throw new AuthError(mapAuthError(error));
+    return { factorId: data.id, secret: data.totp.secret, uri: data.totp.uri };
+  },
+
+  /** Confirms enrolment with the first code from the authenticator app. */
+  confirmEnroll: async (factorId: string, code: string): Promise<void> => {
+    assertSupabaseConfigured();
+    const challenge = await supabase.auth.mfa.challenge({ factorId });
+    if (challenge.error) throw new AuthError(mapAuthError(challenge.error));
+    const verify = await supabase.auth.mfa.verify({
+      factorId,
+      challengeId: challenge.data!.id,
+      code,
+    });
+    if (verify.error) throw new AuthError(mapAuthError(verify.error));
+  },
+
+  /**
+   * Completes an AAL1 login by verifying the TOTP code, escalating the
+   * session to AAL2. Throws a precise AuthError on a wrong/expired code.
+   */
+  verifyChallenge: async (factorId: string, code: string): Promise<void> => {
+    assertSupabaseConfigured();
+    const challenge = await supabase.auth.mfa.challenge({ factorId });
+    if (challenge.error) throw new AuthError(mapAuthError(challenge.error));
+    const verify = await supabase.auth.mfa.verify({
+      factorId,
+      challengeId: challenge.data!.id,
+      code,
+    });
+    if (verify.error) throw new AuthError(mapAuthError(verify.error));
+  },
+
+  /** Lists verified factor IDs (the login screen needs one to challenge). */
+  verifiedFactorIds: async (): Promise<string[]> => {
+    assertSupabaseConfigured();
+    const { data, error } = await supabase.auth.mfa.listFactors();
+    if (error) throw new AuthError(mapAuthError(error));
+    return (data?.totp ?? []).filter((f) => f.status === 'verified').map((f) => f.id);
+  },
+
+  /** Un-enrolls a factor (Settings → security). Requires a fresh AAL2 auth. */
+  unenroll: async (factorId: string): Promise<void> => {
+    assertSupabaseConfigured();
+    const { error } = await supabase.auth.mfa.unenroll({ factorId });
+    if (error) throw new AuthError(mapAuthError(error));
   },
 };
 

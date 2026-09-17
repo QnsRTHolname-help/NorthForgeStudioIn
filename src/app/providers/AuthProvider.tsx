@@ -29,7 +29,7 @@ interface AuthContextValue {
     businessType?: string;
   }) => Promise<AuthSession>;
   logout: () => Promise<void>;
-  refresh: () => Promise<void>;
+  refresh: () => Promise<AuthSession | null>;
   patchClient: (client: Client) => void;
 }
 
@@ -51,23 +51,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * Full session verification: Supabase session → application profile.
    * `silent` swallows the harmless "no session" case at bootstrap.
    */
-  const refresh = useCallback(async (options: { silent?: boolean } = {}) => {
+  const refresh = useCallback(async (options: { silent?: boolean } = {}): Promise<AuthSession | null> => {
     try {
       const data = await authService.me();
       if (!data) {
         setSession(null);
         setStatus('unauthenticated');
-        return;
+        return null;
       }
       setSession(data);
       setStatus('authenticated');
       logAuthEvent('profile_loaded', { role: data.user.role });
+      return data;
     } catch (error) {
       if (error instanceof ApiError && error.status === 0 && options.silent) {
         // Transport blip during bootstrap — do NOT sign the user out on
         // a network failure; keep waiting state resolved but neutral.
         setStatus((current) => (current === 'authenticated' ? current : 'unauthenticated'));
-        return;
+        return null;
       }
       if (!options.silent) {
         logAuthEvent('session_refresh_failed', {
@@ -76,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setSession(null);
       setStatus('unauthenticated');
+      return null;
     }
   }, []);
 
@@ -169,7 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       register,
       logout,
-      refresh: () => refresh({ silent: false }),
+      refresh: () => refresh({ silent: false }), // returns the session for MFA routing
       patchClient,
     };
   }, [session, status, login, register, logout, refresh, patchClient]);

@@ -35,6 +35,11 @@ export async function verifyPassword(plain: string, hash: string) {
   return bcrypt.compare(plain, hash);
 }
 
+/**
+ * Sign a session JWT. The role claim exists only so the JWT is not fully
+ * opaque to debugging — `attachSession` re-reads the authoritative role
+ * from the database on every request, so the claim is never trusted.
+ */
 export function signToken(session: Session, remember = true) {
   return jwt.sign(
     { sub: session.userId, email: session.email, role: session.role, clientId: session.clientId, name: session.name },
@@ -59,6 +64,34 @@ export function verifyToken(token: string): Session | null {
   }
 }
 
+/**
+ * Pre-auth token for the second-factor challenge.
+ *
+ * After a correct password, an account with 2FA enabled does NOT get a
+ * session. It gets this short-lived token instead, which authorises one
+ * thing only: submitting a TOTP code. It carries no role and cannot be
+ * used as a session credential — `verifyToken` rejects it.
+ */
+export function signPending2fa(userId: string) {
+  return jwt.sign({ pending2fa: userId }, env.jwtSecret, {
+    expiresIn: '5m',
+    issuer: 'northforge',
+    audience: 'nf-2fa',
+  });
+}
+
+export function verifyPending2fa(token: string): string | null {
+  try {
+    const payload = jwt.verify(token, env.jwtSecret, {
+      issuer: 'northforge',
+      audience: 'nf-2fa',
+    }) as jwt.JwtPayload;
+    return payload.pending2fa ? String(payload.pending2fa) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function setSessionCookie(res: Response, token: string, remember: boolean) {
   const maxAge = remember ? 7 * 24 * 60 * 60 * 1000 : 12 * 60 * 60 * 1000;
   res.cookie(TOKEN_COOKIE, token, {
@@ -74,9 +107,15 @@ export function clearSessionCookie(res: Response) {
   res.clearCookie(TOKEN_COOKIE, { httpOnly: true, sameSite: 'lax', secure: env.isProd, path: '/' });
 }
 
+/**
+ * Sessions travel in the httpOnly cookie ONLY.
+ *
+ * Bearer tokens were removed deliberately: a token readable by page
+ * JavaScript is exactly the XSS-stealable session this header existed to
+ * serve. The httpOnly cookie cannot be read by any script, stolen or
+ * otherwise, and every same-origin fetch sends it automatically.
+ */
 function readToken(req: Request): string | null {
-  const header = req.headers.authorization;
-  if (header?.startsWith('Bearer ')) return header.slice(7).trim();
   const cookieToken = req.cookies?.[TOKEN_COOKIE];
   return typeof cookieToken === 'string' ? cookieToken : null;
 }
@@ -126,13 +165,12 @@ export function requireRole(...roles: Role[]): RequestHandler {
 /**
  * CSRF protection for cookie-authenticated state changes.
  *
- * Bearer tokens are immune (a cross-site request cannot read them).
- * Cookie requests must carry the custom `x-nf-client` header, which a
- * cross-origin form or fetch cannot set without a CORS preflight that
- * our allowlist rejects.
+ * Every mutation must carry the custom `x-nf-client` header, which a
+ * cross-site form or simple fetch cannot set without a CORS preflight
+ * that our origin allowlist rejects. (There is no Bearer bypass: tokens
+ * no longer exist — sessions are cookie-only.)
  */
 export const requireCsrf: RequestHandler = (req, _res, next) => {
-  if (req.headers.authorization?.startsWith('Bearer ')) return next();
   if (req.headers[CSRF_HEADER]) return next();
   return next(forbidden('This request could not be verified. Please reload and try again.'));
 };

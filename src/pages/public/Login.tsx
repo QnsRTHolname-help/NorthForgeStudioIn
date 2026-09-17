@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ShieldCheck } from 'lucide-react';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { ShieldCheck, MailCheck, AlertTriangle } from 'lucide-react';
 import { Input, PasswordInput, Checkbox, FormError } from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
 import { Logo } from '@/components/brand/Logo';
@@ -8,6 +8,8 @@ import { usePageMeta } from '@/hooks/usePageMeta';
 import { useMutation } from '@/hooks/useAsync';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useToast } from '@/app/providers/ToastProvider';
+import { authService } from '@/services';
+import { AuthError } from '@/lib/auth-errors';
 import { GrowthChain } from '@/components/marketing/GrowthSystem';
 
 interface LocationState {
@@ -26,6 +28,14 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Status banner after following the email-confirmation link.
+  const [searchParams] = useSearchParams();
+  const confirmStatus = searchParams.get('confirm');
+
+  // Unverified address at sign-in → offer a fresh verification link.
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
+  const resend = useMutation(async () => authService.resendConfirmation(unconfirmedEmail ?? ''));
 
   const from = (location.state as LocationState | null)?.from;
 
@@ -59,8 +69,17 @@ export default function Login() {
     try {
       await mutation.mutate();
     } catch (error) {
+      // Second factor enrolled: hand the (AAL1) session to the challenge
+      // screen. The user never browses at first-factor strength.
+      if ((error as { code?: string }).code === 'AUTH_MFA_REQUIRED') {
+        navigate('/mfa', { replace: true });
+        return;
+      }
       const fields = (error as { fields?: Record<string, string> }).fields;
       if (fields) setErrors(fields);
+      if (error instanceof AuthError && error.code === 'AUTH_EMAIL_NOT_CONFIRMED') {
+        setUnconfirmedEmail(email.trim());
+      }
     }
   };
 
@@ -114,6 +133,23 @@ export default function Login() {
           <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-fg">Welcome back.</h1>
           <p className="mt-2 text-[13px] text-muted">Sign in to your NorthForge workspace.</p>
 
+          {confirmStatus === 'ok' ? (
+            <p className="mt-4 flex items-start gap-2 rounded-lg border border-success/30 bg-success/10 px-3 py-2.5 text-[13px] text-fg">
+              <MailCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden />
+              Email confirmed — sign in to continue.
+            </p>
+          ) : confirmStatus === 'expired' ? (
+            <p className="mt-4 flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2.5 text-[13px] text-fg">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden />
+              That confirmation link expired. Sign in and we'll send a fresh one.
+            </p>
+          ) : confirmStatus === 'invalid' ? (
+            <p className="mt-4 flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2.5 text-[13px] text-fg">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden />
+              That confirmation link isn't valid. Try opening it again, or sign in to resend.
+            </p>
+          ) : null}
+
           <form onSubmit={onSubmit} noValidate className="mt-8 space-y-4">
             <Input
               label="Email"
@@ -150,6 +186,27 @@ export default function Login() {
             </div>
 
             <FormError message={mutation.error} />
+
+            {unconfirmedEmail ? (
+              <div className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2.5 text-[13px] text-fg">
+                <p className="font-medium">Email not verified yet.</p>
+                <p className="mt-1 text-muted">
+                  Open the verification link we sent you, or get a fresh one:
+                </p>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="mt-2"
+                  loading={resend.pending}
+                  onClick={() => {
+                    void resend.mutate().catch(() => undefined);
+                  }}
+                >
+                  {resend.success ? 'Verification email sent again' : 'Resend verification email'}
+                </Button>
+                {resend.error ? <p className="mt-1 text-xs text-danger">{resend.error}</p> : null}
+              </div>
+            ) : null}
 
             <Button type="submit" fullWidth size="lg" loading={mutation.pending} disabled={mutation.pending} arrow>
               {mutation.pending ? 'Signing in…' : 'Sign in'}

@@ -26,6 +26,7 @@ const LoginPage = lazyPage(() => import('@/pages/public/Login'));
 const RegisterPage = lazyPage(() => import('@/pages/public/Register'));
 const ForgotPasswordPage = lazyPage(() => import('@/pages/public/ForgotPassword'));
 const ResetPasswordPage = lazyPage(() => import('@/pages/public/ResetPassword'));
+const MfaVerifyPage = lazyPage(() => import('@/pages/public/MfaVerify'));
 const PrivacyPage = lazyPage(() => import('@/pages/public/Legal'));
 const NotFoundPage = lazyPage(() => import('@/pages/errors/NotFound'));
 const UnauthorizedPage = lazyPage(() => import('@/pages/errors/Unauthorized'));
@@ -122,6 +123,7 @@ export const AppRoutes: RouteDefinition[] = [
       },
       { path: 'forgot-password', element: <ForgotPasswordPage /> },
       { path: 'reset-password', element: <ResetPasswordPage /> },
+      { path: 'mfa', element: <MfaVerifyPage /> },
       { path: 'unauthorized', element: <UnauthorizedPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],

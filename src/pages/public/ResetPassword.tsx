@@ -8,6 +8,8 @@ import { useAsync, useMutation } from '@/hooks/useAsync';
 import { authService } from '@/services';
 import { useToast } from '@/app/providers/ToastProvider';
 import { Loader } from '@/components/ui/Loader';
+import { PasswordStrength } from '@/components/ui/PasswordStrength';
+import { PASSWORD_POLICY } from '@shared/password';
 
 /**
  * Password reset (spec §09).
@@ -47,8 +49,8 @@ export default function ResetPassword() {
 
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (password.length < 8) {
-      setError('Use at least 8 characters.');
+    if (password.length < PASSWORD_POLICY.minLength) {
+      setError(`Use at least ${PASSWORD_POLICY.minLength} characters.`);
       return;
     }
     setError(null);
@@ -95,8 +97,9 @@ export default function ResetPassword() {
                   setError(null);
                 }}
                 error={error ?? undefined}
-                hint="At least 8 characters."
+                hint={`At least ${PASSWORD_POLICY.minLength} characters with a mix of cases, a number and a symbol.`}
               />
+              <PasswordStrength password={password} />
               <FormError message={mutation.error} />
               <Button type="submit" fullWidth size="lg" loading={mutation.pending}>
                 Update password

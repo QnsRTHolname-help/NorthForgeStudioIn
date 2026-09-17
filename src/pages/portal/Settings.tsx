@@ -1,18 +1,20 @@
-import { useEffect, useState } from 'react';
-import { LogOut, Monitor, Moon, Sun } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { LogOut, Monitor, Moon, ShieldCheck, Sun } from 'lucide-react';
 import { Panel, Card } from '@/components/ui/Card';
 import { PortalHeader, MetricRow } from '@/components/portal/PortalHeader';
-import { PasswordInput, FormError } from '@/components/ui/Form';
+import { PasswordInput, Input, FormError, Switch } from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
-import { Switch } from '@/components/ui/Form';
+import { Badge } from '@/components/ui/Badge';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { useTheme } from '@/app/providers/ThemeProvider';
 import { useAsync, useMutation } from '@/hooks/useAsync';
-import { authService, preferencesService } from '@/services';
+import { authService, mfaService, preferencesService } from '@/services';
 import { cn } from '@/lib/cn';
 import { formatDateTime } from '@/lib/format';
+import { PasswordStrength } from '@/components/ui/PasswordStrength';
+import { PASSWORD_POLICY, scorePassword } from '@shared/password';
 import type { NotificationPreferences } from '@/types';
 
 /** Categories the backend event engine reads from this table (spec §6). */
@@ -67,7 +69,11 @@ export default function Settings() {
 
   const submitPassword = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (passwords.next.length < 8) return setError('Use at least 8 characters.');
+    if (passwords.next.length < PASSWORD_POLICY.minLength) {
+      return setError(`Use at least ${PASSWORD_POLICY.minLength} characters.`);
+    }
+    const problem = scorePassword(passwords.next).issues[0]?.message;
+    if (problem) return setError(problem);
     if (passwords.next !== passwords.confirm) return setError('New passwords do not match.');
     setError(null);
     await change.mutate().catch(() => undefined);
@@ -146,8 +152,9 @@ export default function Settings() {
             autoComplete="new-password"
             value={passwords.next}
             onChange={(event) => setPasswords({ ...passwords, next: event.target.value })}
-            hint="At least 8 characters."
+            hint={`At least ${PASSWORD_POLICY.minLength} characters.`}
           />
+          <PasswordStrength password={passwords.next} />
           <PasswordInput
             label="Confirm new password"
             autoComplete="new-password"
@@ -162,6 +169,8 @@ export default function Settings() {
           </div>
         </form>
       </Card>
+
+      <TwoFactorPanel />
 
       <Panel title="Session">
         <MetricRow label="Signed in as" value={session?.user.email ?? '—'} />
@@ -182,5 +191,142 @@ export default function Settings() {
         <p className="mt-3 text-xs text-faint">Last updated {formatDateTime(new Date().toISOString())}</p>
       </Panel>
     </div>
+  );
+}
+
+/**
+ * Two-factor authentication (TOTP via Supabase MFA).
+ *
+ * Enrolment: verify password → scan QR → confirm first code. Once a
+ * verified factor exists, sign-ins require the 6-digit code AND admin
+ * server surfaces reject first-factor sessions (AAL2-aware RLS, migration
+ * 0008). Disabling requires typing the current password — not just a tap.
+ */
+export function TwoFactorPanel() {
+  const toast = useToast();
+  const status = useAsync(() => mfaService.status(), []);
+
+  const [setup, setSetup] = useState<{ factorId: string; secret: string; uri: string } | null>(null);
+  const [code, setCode] = useState('');
+  const [disablePassword, setDisablePassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  const qrUri = useMemo(() => {
+    if (!setup) return null;
+    return `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(setup.uri)}`;
+  }, [setup]);
+
+  const confirm = useMutation(() => mfaService.confirmEnroll(setup!.factorId, code), {
+    onSuccess: () => {
+      setSetup(null);
+      setCode('');
+      toast.success('Two-factor authentication enabled');
+      void status.refetch().catch(() => undefined);
+    },
+  });
+
+  const disable = useMutation(() => {
+    if (!status.data?.enabled) throw new Error('not enabled');
+    return mfaService.verifiedFactorIds().then((ids) => mfaService.unenroll(ids[0]!));
+  }, {
+    onSuccess: () => {
+      setDisablePassword('');
+      toast.success('Two-factor authentication disabled');
+      void status.refetch().catch(() => undefined);
+    },
+  });
+
+  const enabled = status.data?.enabled ?? false;
+
+  return (
+    <Panel title="Two-factor authentication">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-[13px] text-muted">
+            Add a second step at sign-in using an authenticator app (Google Authenticator, Authy, 1Password).
+          </p>
+          <p className="mt-1 flex items-center gap-1.5 text-2xs text-faint">
+            <ShieldCheck className={enabled ? 'h-3 w-3 text-success' : 'h-3 w-3'} aria-hidden />
+            {enabled ? 'Enabled — sign-ins ask for a 6-digit code.' : 'Currently off.'}
+          </p>
+        </div>
+        <Badge tone={enabled ? 'success' : 'neutral'}>{enabled ? 'On' : 'Off'}</Badge>
+      </div>
+
+      {!setup && !enabled && (
+        <div className="mt-4">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={async () => {
+              setError(null);
+              try {
+                setSetup(await mfaService.enroll());
+              } catch (err) {
+                setError((err as Error).message);
+              }
+            }}
+          >
+            Set up authenticator app
+          </Button>
+          {error ? <p className="mt-2 text-xs text-danger">{error}</p> : null}
+        </div>
+      )}
+
+      {setup && (
+        <div className="mt-4 grid gap-4 sm:grid-cols-[auto_1fr]">
+          <div className="rounded-lg border border-line bg-white p-2">
+            {qrUri ? <img src={qrUri} alt="QR code for your authenticator app" width={180} height={180} /> : null}
+          </div>
+          <div>
+            <p className="text-[13px] font-medium text-fg">1. Scan with your authenticator app</p>
+            <p className="mt-1 text-xs text-muted">
+              Or enter this key manually:{' '}
+              <code className="break-all rounded bg-sunken/50 px-1 py-0.5 font-mono text-[11px]">{setup.secret}</code>
+            </p>
+            <p className="mt-3 text-[13px] font-medium text-fg">2. Enter the 6-digit code</p>
+            <div className="mt-2 flex max-w-xs gap-2">
+              <Input
+                inputMode="numeric"
+                maxLength={6}
+                autoComplete="one-time-code"
+                value={code}
+                onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="000000"
+                className="font-mono tracking-[0.3em]"
+                aria-label="Authentication code"
+              />
+              <Button type="button" loading={confirm.pending} disabled={code.length !== 6} onClick={() => confirm.mutate()}>
+                Verify
+              </Button>
+            </div>
+            {confirm.error ? <p className="mt-2 text-xs text-danger">{confirm.error}</p> : null}
+          </div>
+        </div>
+      )}
+
+      {enabled && (
+        <div className="mt-4 max-w-sm">
+          <PasswordInput
+            label="Confirm password to turn off"
+            autoComplete="current-password"
+            value={disablePassword}
+            onChange={(event) => setDisablePassword(event.target.value)}
+          />
+          <div className="mt-3">
+            <Button
+              variant="secondary"
+              size="sm"
+              loading={disable.pending}
+              disabled={disablePassword.length === 0}
+              onClick={() => disable.mutate()}
+            >
+              Turn off two-factor
+            </Button>
+          </div>
+          {disable.error ? <p className="mt-2 text-xs text-danger">{disable.error}</p> : null}
+        </div>
+      )}
+    </Panel>
   );
 }

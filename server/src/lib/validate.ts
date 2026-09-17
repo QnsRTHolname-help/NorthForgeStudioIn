@@ -1,17 +1,32 @@
 import { z } from 'zod';
 import { fieldErrors, badRequest } from './http';
+import { passwordProblem } from '@shared/password';
 
-/** Parses a body and converts failures into a 400 with per-field messages. */
+/** Parses a body and converts failures into a 400 with the most useful message. */
 export function parseBody<T extends z.ZodTypeAny>(schema: T, body: unknown): z.infer<T> {
   const result = schema.safeParse(body ?? {});
   if (!result.success) {
-    throw badRequest('Please check the highlighted fields.', fieldErrors(result.error));
+    // The first issue is almost always the one the user needs to hear about
+    // (e.g. a weak-password reason), so lead with it; the full per-field map
+    // still rides along for inline form errors.
+    const first = result.error.issues[0]?.message ?? 'Please check the highlighted fields.';
+    throw badRequest(first, fieldErrors(result.error));
   }
   return result.data;
 }
 
 export const email = z.string().trim().toLowerCase().email('Enter a valid email address.');
-export const password = z.string().min(8, 'Use at least 8 characters.');
+
+/**
+ * Structural minimums only — the full strength policy runs in
+ * `passwordProblem` so the first error message is the most useful one.
+ */
+export const password = z
+  .string()
+  .min(12, 'Use at least 12 characters.')
+  .refine((value) => !passwordProblem(value), {
+    message: 'Too weak — use a mix of cases, a number, a symbol, and avoid predictable words or patterns.',
+  });
 export const optionalText = z.string().trim().max(2000).optional().nullable();
 export const idParam = z.object({ id: z.string().min(1) });
 

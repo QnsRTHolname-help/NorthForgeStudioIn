@@ -24,6 +24,9 @@ db.exec(SCHEMA_SQL);
 const COLUMN_MIGRATIONS: { table: string; column: string; definition: string }[] = [
   { table: 'users', column: 'is_demo', definition: 'INTEGER NOT NULL DEFAULT 0' },
   { table: 'clients', column: 'is_demo', definition: 'INTEGER NOT NULL DEFAULT 0' },
+  { table: 'users', column: 'totp_secret', definition: 'TEXT' },
+  { table: 'users', column: 'totp_enabled', definition: 'INTEGER NOT NULL DEFAULT 0' },
+  { table: 'users', column: 'email_confirmed_at', definition: 'TEXT' },
 ];
 
 for (const migration of COLUMN_MIGRATIONS) {

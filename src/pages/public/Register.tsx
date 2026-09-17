@@ -9,6 +9,8 @@ import { useMutation } from '@/hooks/useAsync';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { authService } from '@/services';
+import { PasswordStrength } from '@/components/ui/PasswordStrength';
+import { PASSWORD_POLICY } from '@shared/password';
 
 export default function Register() {
   usePageMeta({ title: 'Create your account', description: 'Create a NorthForge client account.', noIndex: true });
@@ -63,7 +65,9 @@ export default function Register() {
     if (values.name.trim().length < 2) next.name = 'Enter your full name.';
     if (values.businessName.trim().length < 2) next.businessName = 'Enter your business name.';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(values.email.trim())) next.email = 'Enter a valid email address.';
-    if (values.password.length < 8) next.password = 'Use at least 8 characters.';
+    if (values.password.length < PASSWORD_POLICY.minLength) {
+      next.password = `Use at least ${PASSWORD_POLICY.minLength} characters.`;
+    }
     if (values.password !== values.confirm) next.confirm = 'Passwords do not match.';
     setErrors(next);
     if (Object.keys(next).length) return;    try {
@@ -164,8 +168,9 @@ export default function Register() {
             value={values.password}
             onChange={set('password')}
             error={errors.password}
-            hint="At least 8 characters."
+            hint={`At least ${PASSWORD_POLICY.minLength} characters with a mix of cases, a number and a symbol.`}
           />
+          <PasswordStrength password={values.password} />
           <PasswordInput
             label="Confirm password"
             required

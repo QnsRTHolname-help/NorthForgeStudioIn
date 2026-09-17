@@ -75,8 +75,8 @@ function resetBusinessData() {
 
 function seedAccounts() {
   const accounts = [
-    { email: 'admin@northforge.studio', name: 'NorthForge Admin', role: 'admin', password: 'NorthForge@2026' },
-    { email: 'owner@northforge.studio', name: 'NorthForge Owner', role: 'super_admin', password: 'NorthForge@2026' },
+    { email: 'admin@northforge.studio', name: 'NorthForge Admin', role: 'admin', password: 'NorthForge#Admin-2026' },
+    { email: 'owner@northforge.studio', name: 'NorthForge Owner', role: 'super_admin', password: 'NorthForge#Owner-2026' },
   ];
 
   for (const account of accounts) {
@@ -86,9 +86,9 @@ function seedAccounts() {
       continue;
     }
     db.prepare(
-      `INSERT INTO users (id, email, name, password_hash, role, created_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-    ).run(newId('us'), account.email, account.name, bcrypt.hashSync(account.password, 10), account.role, nowIso());
+      `INSERT INTO users (id, email, name, password_hash, role, email_confirmed_at, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    ).run(newId('us'), account.email, account.name, bcrypt.hashSync(account.password, 10), account.role, nowIso(), nowIso());
   }
 }
 
@@ -146,9 +146,9 @@ function seedDemo() {
     db.prepare('UPDATE users SET client_id = ?, role = ? WHERE id = ?').run(dental!.id, 'client', existingClientUser.id);
   } else {
     db.prepare(
-      `INSERT INTO users (id, email, name, password_hash, role, client_id, phone, created_at, is_demo)
-       VALUES (?, ?, ?, ?, 'client', ?, ?, ?, 1)`,
-    ).run(newId('us'), 'client@northforge.studio', 'Demo Client', bcrypt.hashSync('NorthForge@2026', 10), dental!.id, '0000000000', day(-120));
+      `INSERT INTO users (id, email, name, password_hash, role, client_id, phone, created_at, is_demo, email_confirmed_at)
+       VALUES (?, ?, ?, ?, 'client', ?, ?, ?, 1, ?)`,
+    ).run(newId('us'), 'client@northforge.studio', 'Demo Client', bcrypt.hashSync('NorthForge#Demo-2026', 10), dental!.id, '0000000000', day(-120), nowIso());
   }
 
   /* ── Websites ─────────────────────────────────────────────── */
@@ -595,8 +595,7 @@ const counts = ['clients', 'leads', 'projects', 'tasks', 'websites', 'workflows'
   .map((t) => `${t}: ${(db.prepare(`SELECT COUNT(*) as c FROM ${t}`).get() as { c: number }).c}`)
   .join(' · ');
 console.log(`[northforge] ${counts}`);
-console.log('[northforge] accounts:');
-console.log('  admin@northforge.studio  / NorthForge@2026  (admin)');
-console.log('  owner@northforge.studio  / NorthForge@2026  (super admin)');
-if (DEMO) console.log('  client@northforge.studio / NorthForge@2026  (demo client — invented business)');
+console.log('[northforge] accounts:');console.log('  admin@northforge.studio  / NorthForge#Admin-2026  (admin)');
+  console.log('  owner@northforge.studio  / NorthForge#Owner-2026  (super admin)');
+  if (DEMO) console.log('  client@northforge.studio / NorthForge#Demo-2026  (demo client — invented business)');
 else console.log('  (no demo client login in a clean seed — register a real account at /register)');

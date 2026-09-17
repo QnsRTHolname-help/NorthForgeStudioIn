@@ -39,7 +39,12 @@ CREATE TABLE IF NOT EXISTS users (
   last_login_at TEXT,
   created_at    TEXT NOT NULL,
   /** 1 for accounts that only exist to demonstrate the product. */
-  is_demo       INTEGER NOT NULL DEFAULT 0
+  is_demo       INTEGER NOT NULL DEFAULT 0,
+  /** TOTP second factor. Secret exists but enabled=0 → enrolment in progress. */
+  totp_secret   TEXT,
+  totp_enabled  INTEGER NOT NULL DEFAULT 0,
+  /** Set once the signup email address is confirmed. */
+  email_confirmed_at TEXT
 );
 
 
