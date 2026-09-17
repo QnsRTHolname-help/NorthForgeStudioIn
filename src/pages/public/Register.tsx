@@ -99,6 +99,10 @@ export default function Register() {
             We sent a verification link to <span className="font-medium text-fg">{values.email}</span>. Confirm it to
             activate your workspace, then sign in.
           </p>
+          <p className="mt-2 text-xs leading-relaxed text-faint">
+            Not seeing it? Check your <span className="font-medium">spam/junk folder</span> and mark the sender as
+            trusted — new senders are often filtered. It can take a couple of minutes to arrive.
+          </p>
           <div className="mt-8 space-y-3">
             <Button
               variant="secondary"

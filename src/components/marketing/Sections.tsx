@@ -1,4 +1,4 @@
-﻿import { Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ArrowRight, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { Marquee, Reveal, Stagger, StaggerItem, FadeUp } from '@/components/motion';
@@ -9,9 +9,9 @@ import { SectionHeader } from '@/components/ui/Card';
 import { PROOF_ITEMS, PROBLEMS, PRINCIPLES, WHY_POINTS } from '@/data/content';
 import { whatsappLink } from '@/data/site';
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   PROOF STRIP (spec Â§17)
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════════════════════════════
+   PROOF STRIP (spec §17)
+   ═══════════════════════════════════════════════════════════════ */
 
 export function ProofStrip() {
   return (
@@ -28,9 +28,9 @@ export function ProofStrip() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   PROBLEM (spec Â§18)
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════════════════════════════
+   PROBLEM (spec §18)
+   ═══════════════════════════════════════════════════════════════ */
 
 export function ProblemSection() {
   return (
@@ -60,9 +60,9 @@ export function ProblemSection() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   PROMISE (spec Â§19)
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════════════════════════════
+   PROMISE (spec §19)
+   ═══════════════════════════════════════════════════════════════ */
 
 export function PromiseSection() {
   return (
@@ -97,9 +97,9 @@ export function PromiseSection() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   WHY NORTHFORGE (spec Â§25)
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════════════════════════════
+   WHY NORTHFORGE (spec §25)
+   ═══════════════════════════════════════════════════════════════ */
 
 export function WhyNorthForge() {
   return (
@@ -118,7 +118,7 @@ export function WhyNorthForge() {
               </span>
             </h2>
             <p className="mt-6 max-w-md text-[15px] leading-relaxed text-muted">
-              Anyone can buy software. The value is in what happens after a customer shows interest â€” and
+              Anyone can buy software. The value is in what happens after a customer shows interest — and
               whether that interest is captured, answered, followed up and measured without anyone chasing it.
             </p>
             <AnimatedRule className="mt-8" />
@@ -145,14 +145,14 @@ export function WhyNorthForge() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   FINAL CTA (spec Â§28)
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════════════════════════════
+   FINAL CTA (spec §28)
+   ═══════════════════════════════════════════════════════════════ */
 
 export function FinalCta({
   eyebrow = 'Next step',
   title = 'Your business should not be losing enquiries to a slow reply.',
-  description = 'Tell us where the work piles up and we will point out exactly what to automate first â€” including if the honest answer is that you do not need us yet.',
+  description = 'Tell us where the work piles up and we will point out exactly what to automate first — including if the honest answer is that you do not need us yet.',
   marquee = "LET'S TALK",
 }: {
   eyebrow?: string;
@@ -168,7 +168,7 @@ export function FinalCta({
         aria-hidden
       />
 
-      {/* Slow marquee band â€” the only decorative motion in the section. */}
+      {/* Slow marquee band — the only decorative motion in the section. */}
       <div className="relative mb-14 flex select-none overflow-hidden border-y border-line py-4" aria-hidden>
         <Marquee speed={60}>
           {Array.from({ length: 6 }).map((_, index) => (
@@ -177,7 +177,7 @@ export function FinalCta({
               className="flex items-center gap-6 px-6 text-[clamp(1.5rem,4vw,2.75rem)] font-semibold tracking-[-0.03em] text-fg/70"
             >
               {marquee}
-              <span className="text-brand">Â·</span>
+              <span className="text-brand">·</span>
             </span>
           ))}
         </Marquee>
@@ -201,7 +201,7 @@ export function FinalCta({
               variant="secondary"
               size="lg"
               iconLeft={<MessageCircle className="h-4 w-4" />}
-              onClick={() => window.open(whatsappLink('Hi NorthForge â€” I would like to know more.'), '_blank', 'noopener')}
+              onClick={() => window.open(whatsappLink('Hi NorthForge — I would like to know more.'), '_blank', 'noopener')}
             >
               Talk on WhatsApp
             </Button>
@@ -214,7 +214,7 @@ export function FinalCta({
   );
 }
 
-/* â”€â”€ Shared internal link row used at the end of pages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Shared internal link row used at the end of pages ─────────── */
 
 export function NextSteps({ items }: { items: { label: string; to: string; description: string }[] }) {
   return (
@@ -262,11 +262,11 @@ export function SectionShell({
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   INTRO / VALUE STATEMENT (spec Â§12) â€” typography-led.
+/* ═══════════════════════════════════════════════════════════════
+   INTRO / VALUE STATEMENT (spec §12) — typography-led.
    Huge type, generous space, one idea: the website is the front door,
    the system behind it is what makes it work.
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════════════════════════ */
 
 const SYSTEM_PIECES = [
   'Website',
@@ -291,7 +291,7 @@ export function IntroStatement() {
           The system behind it is what makes it work.
         </p>
         <p className="mt-10 max-w-2xl text-[15px] leading-relaxed text-muted">
-          NorthForge connects the pieces businesses normally manage separately â€” so a customer journey
+          NorthForge connects the pieces businesses normally manage separately — so a customer journey
           stops depending on anyone remembering to check a spreadsheet.
         </p>
 

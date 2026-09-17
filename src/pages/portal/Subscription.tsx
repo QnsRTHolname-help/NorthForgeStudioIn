@@ -55,6 +55,7 @@ export default function Subscription() {
         loading={subs.loading}
         error={subs.error}
         data={subs.data}
+        isEmpty={(payload) => !payload.items?.length}
         onRetry={() => subs.refetch().catch(() => undefined)}
         empty={
           <EmptyState

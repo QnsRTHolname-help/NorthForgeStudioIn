@@ -473,22 +473,21 @@ export function RevealPanel({
   useLayoutEffect(() => {
     const node = ref.current;
     if (!node) return;
-    if (reduced) {
-      gsap.set(node, { clipPath: 'none', opacity: 1 });
-      return;
-    }
+    // Reduced motion: soft fade instead of the clip wipe (no layout motion).
     const ctx = gsap.context(() => {
       gsap.fromTo(
         node,
-        { clipPath: 'inset(0% 0% 100% 0%)', opacity: 0.4 },
-        {
-          clipPath: 'inset(0% 0% 0% 0%)',
-          opacity: 1,
-          duration: 1.1,
-          delay,
-          ease: 'expo.out',
-          scrollTrigger: { trigger: node, start, once: true },
-        },
+        reduced ? { opacity: 0 } : { clipPath: 'inset(0% 0% 100% 0%)', opacity: 0.4 },
+        reduced
+          ? { opacity: 1, duration: 0.4, delay, ease: 'power2.out', scrollTrigger: { trigger: node, start, once: true } }
+          : {
+              clipPath: 'inset(0% 0% 0% 0%)',
+              opacity: 1,
+              duration: 1.1,
+              delay,
+              ease: 'expo.out',
+              scrollTrigger: { trigger: node, start, once: true },
+            },
       );
     }, node);
     return () => ctx.revert();
@@ -584,11 +583,17 @@ export function AnimatedRule({ className }: { className?: string }) {
   useLayoutEffect(() => {
     const node = ref.current;
     if (!node) return;
-    if (reduced) {
-      gsap.set(node, { scaleX: 1 });
-      return;
-    }
+    // Reduced motion: rule simply appears (scale is technically motion;
+    // a 0.3s opacity fade keeps the section rhythm without movement).
     const ctx = gsap.context(() => {
+      if (reduced) {
+        gsap.fromTo(
+          node,
+          { opacity: 0 },
+          { opacity: 1, duration: 0.3, scrollTrigger: { trigger: node, start: 'top 92%', once: true } },
+        );
+        return;
+      }
       gsap.fromTo(
         node,
         { scaleX: 0 },

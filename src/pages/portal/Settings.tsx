@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { LogOut, Monitor, Moon, ShieldCheck, Sun } from 'lucide-react';
+import { AlertTriangle, LogOut, Monitor, Moon, ShieldCheck, Sun } from 'lucide-react';
 import { Panel, Card } from '@/components/ui/Card';
 import { PortalHeader, MetricRow } from '@/components/portal/PortalHeader';
 import { PasswordInput, Input, FormError, Switch } from '@/components/ui/Form';
@@ -31,7 +31,7 @@ const CATEGORIES: { key: keyof NotificationPreferences; label: string; descripti
 /** Settings (spec §112): theme, notifications, security. */
 export default function Settings() {
   usePageMeta({ title: 'Settings', noIndex: true });
-  const { session, logout } = useAuth();
+  const { session, logout, isClient } = useAuth();
   const { preference, setPreference } = useTheme();
   const toast = useToast();
 
@@ -190,7 +190,107 @@ export default function Settings() {
         </div>
         <p className="mt-3 text-xs text-faint">Last updated {formatDateTime(new Date().toISOString())}</p>
       </Panel>
+
+      {isClient ? <DangerZone /> : null}
     </div>
+  );
+}
+
+/**
+ * Self-service account deletion (spec §47 erasure right).
+ *
+ * Placed last on Settings, visually distinct, and gated by typing the
+ * business name — an irreversible action never sits behind a single tap.
+ * The deletion itself is enforced server-side by the 0009 RPC: the client
+ * row (and every business record that cascades from it) and the auth user
+ * are removed in one transaction. Admins never see this panel — privileged
+ * accounts are off-boarded by a super admin.
+ */
+function DangerZone() {
+  const toast = useToast();
+  const { session, deleteAccount } = useAuth();
+  const businessName = session?.client?.businessName ?? '';
+  const [confirmText, setConfirmText] = useState('');
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const del = useMutation(() => deleteAccount(), {
+    onSuccess: () => {
+      toast.info('Account deleted', 'All of your data has been removed. We are sorry to see you go.');
+      // AuthProvider has already reset state; the router lands on the
+      // public site via the unauthenticated redirect.
+    },
+  });
+
+  return (
+    <Panel title="Danger zone" className="border-danger/30">
+      <div className="flex items-start gap-3">
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-danger" aria-hidden />
+        <div className="min-w-0">
+          <p className="text-[13px] font-medium text-fg">Delete this account permanently</p>
+          <p className="mt-1 text-[13px] leading-relaxed text-muted">
+            Removes your login, your business workspace and every record connected to it — leads,
+            projects, invoices, files and messages. This cannot be undone and no backup is kept for
+            recovery by you. Active subscriptions should be cancelled first.
+          </p>
+        </div>
+      </div>
+
+      {!confirming ? (
+        <div className="mt-4">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="border-danger/40 text-danger hover:border-danger hover:text-danger"
+            onClick={() => setConfirming(true)}
+          >
+            Delete my account…
+          </Button>
+        </div>
+      ) : (
+        <div className="mt-4 max-w-md rounded-lg border border-danger/30 bg-danger/[0.04] p-4">
+          <p className="text-[13px] text-fg">
+            Type <span className="font-mono font-semibold">{businessName || 'DELETE'}</span> to confirm.
+          </p>
+          <Input
+            className="mt-2"
+            value={confirmText}
+            onChange={(event) => setConfirmText(event.target.value)}
+            placeholder={businessName || 'DELETE'}
+            autoComplete="off"
+            aria-label="Confirmation phrase"
+          />
+          {error ?? del.error ? (
+            <p className="mt-2 text-xs text-danger">{error ?? del.error}</p>
+          ) : null}
+          <div className="mt-3 flex gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setConfirming(false);
+                setConfirmText('');
+                setError(null);
+              }}
+            >
+              Keep my account
+            </Button>
+            <Button
+              size="sm"
+              className="bg-danger text-white hover:bg-danger/90"
+              loading={del.pending}
+              disabled={confirmText.trim().toLowerCase() !== (businessName || 'DELETE').toLowerCase()}
+              onClick={() => {
+                setError(null);
+                del.mutate().catch(() => undefined);
+              }}
+            >
+              Delete forever
+            </Button>
+          </div>
+        </div>
+      )}
+    </Panel>
   );
 }
 

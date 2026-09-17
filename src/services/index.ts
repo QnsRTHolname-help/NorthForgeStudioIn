@@ -248,6 +248,42 @@ export const authService = {
     return { client: row ? mapClient(row) : null };
   },
 
+  /**
+   * Delete the signed-in client's account and all of their business data
+   * (spec §47 erasure right).
+   *
+   * Runs the 0009 security-definer RPC: the DATABASE resolves the caller
+   * from auth.uid(), refuses privileged roles, cascades the client's
+   * business rows and removes the auth user — all in one transaction.
+   * After a successful call the local session is signed out and cleared;
+   * the local sign-out is fire-and-forget since the auth user no longer
+   * exists.
+   */
+  deleteAccount: async (): Promise<{ deleted: boolean }> => {
+    assertSupabaseConfigured();
+    logAuthEvent('account_deletion_started');
+    const { error } = await supabase.rpc('app_delete_own_account');
+    if (error) {
+      // Surface the RPC's specific refusals; everything else maps safely.
+      const hint = (error as { hint?: string }).hint ?? '';
+      if (error.code === 'P0001' && hint.includes('Sign in')) {
+        throw new ApiError('Your session expired. Sign in again to continue.', 401, 'session_expired');
+      }
+      if (error.code === 'P0001' && hint.includes('super admin')) {
+        throw new ApiError(
+          'Admin accounts cannot be deleted from the portal. Ask a super admin to remove this account.',
+          403,
+          'forbidden',
+        );
+      }
+      throw new ApiError('We could not delete the account right now. Please try again or contact support.', 400, 'delete_failed');
+    }
+    logAuthEvent('account_deleted');
+    // The auth user is gone — clear whatever the client still holds.
+    await supabase.auth.signOut().catch(() => undefined);
+    return { deleted: true };
+  },
+
   changePassword: async (currentPassword: string, newPassword: string): Promise<{ changed: boolean }> => {
     assertSupabaseConfigured();
     const { data } = await supabase.auth.getUser();

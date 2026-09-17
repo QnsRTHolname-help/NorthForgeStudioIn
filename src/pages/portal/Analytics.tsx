@@ -30,6 +30,7 @@ export default function Analytics() {
         loading={analytics.loading}
         error={analytics.error}
         data={analytics.data}
+        isEmpty={(payload) => !payload.analytics}
         onRetry={() => analytics.refetch().catch(() => undefined)}
         empty={
           <EmptyState

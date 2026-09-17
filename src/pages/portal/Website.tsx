@@ -43,6 +43,7 @@ export default function Website() {
         loading={sites.loading}
         error={sites.error}
         data={sites.data}
+        isEmpty={(payload) => !payload.items?.length}
         onRetry={() => sites.refetch().catch(() => undefined)}
         empty={
           <EmptyState

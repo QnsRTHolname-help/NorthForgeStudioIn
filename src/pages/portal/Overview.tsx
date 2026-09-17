@@ -55,6 +55,7 @@ export default function Overview() {
         error={state.error}
         errorCode={state.errorCode}
         data={state.data}
+        isEmpty={(payload) => !payload.dashboard}
         onRetry={state.refetch}
         empty={
           <EmptyState

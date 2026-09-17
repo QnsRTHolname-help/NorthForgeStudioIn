@@ -43,16 +43,18 @@ export function FadeUp({
 
   useIsomorphicLayoutEffect(() => {
     const node = ref.current;
-    if (!node || reduced) return;
+    if (!node) return;
 
     const ctx = gsap.context(() => {
+      // Reduced motion: opacity-only fade (no translation) — still gives
+      // scroll feedback without moving anything (WCAG-safe degradation).
       gsap.fromTo(
         node,
-        { opacity: 0, y },
+        reduced ? { opacity: 0 } : { opacity: 0, y },
         {
           opacity: 1,
-          y: 0,
-          duration,
+          ...(reduced ? {} : { y: 0 }),
+          duration: reduced ? Math.min(duration, 0.4) : duration,
           delay,
           ease: 'power3.out',
           scrollTrigger: { trigger: node, start: 'top 88%', once },
@@ -90,14 +92,22 @@ export function Stagger({
 
   useIsomorphicLayoutEffect(() => {
     const node = ref.current;
-    if (!node || reduced) return;
+    if (!node) return;
 
     const ctx = gsap.context(() => {
       const items = gsap.utils.toArray<HTMLElement>(node.children);
+      // Reduced motion: opacity-only stagger, no vertical shift.
       gsap.fromTo(
         items,
-        { opacity: 0, y },
-        { opacity: 1, y: 0, duration: 0.65, stagger, ease: 'power3.out', scrollTrigger: { trigger: node, start, once: true } },
+        reduced ? { opacity: 0 } : { opacity: 0, y },
+        {
+          opacity: 1,
+          ...(reduced ? {} : { y: 0 }),
+          duration: reduced ? 0.35 : 0.65,
+          stagger,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: node, start, once: true },
+        },
       );
     }, node);
 
@@ -466,15 +476,16 @@ export function Reveal({
 
   useIsomorphicLayoutEffect(() => {
     const node = ref.current;
-    if (!node || reduced) return;
+    if (!node) return;
     const ctx = gsap.context(() => {
+      // Reduced motion: gentle fade only — no y movement.
       gsap.fromTo(
         node,
-        { opacity: 0, y },
+        reduced ? { opacity: 0 } : { opacity: 0, y },
         {
           opacity: 1,
-          y: 0,
-          duration: 0.8,
+          ...(reduced ? {} : { y: 0 }),
+          duration: reduced ? 0.4 : 0.8,
           delay,
           ease: 'power3.out',
           scrollTrigger: { trigger: node, start, once: true },

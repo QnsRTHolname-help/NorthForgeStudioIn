@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Navbar } from '@/components/marketing/Navbar';
 import { Footer } from '@/components/marketing/Footer';
-import { ScrollProgress } from '@/components/motion';
+import { ScrollProgress, ScrollTrigger } from '@/components/motion';
 import { SmoothScrollProvider } from '@/components/motion/SmoothScroll';
 import { PageTransition } from '@/components/motion';
 import { useTheme } from '@/app/providers/ThemeProvider';
@@ -40,6 +40,16 @@ export function PublicLayout() {
     }
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }, [pathname, hash]);
+
+  // ScrollTrigger measurements taken at mount can go stale once the webfont
+  // swap and late images change section heights — re-measure when they land,
+  // otherwise triggers near the fold can hold wrong start/end positions.
+  useEffect(() => {
+    const refresh = () => ScrollTrigger.refresh();
+    window.addEventListener('load', refresh);
+    document.fonts?.ready.then(refresh).catch(() => undefined);
+    return () => window.removeEventListener('load', refresh);
+  }, []);
 
   return (
     <SmoothScrollProvider>

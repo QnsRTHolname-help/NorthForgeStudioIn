@@ -29,6 +29,7 @@ interface AuthContextValue {
     businessType?: string;
   }) => Promise<AuthSession>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   refresh: () => Promise<AuthSession | null>;
   patchClient: (client: Client) => void;
 }
@@ -152,6 +153,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  /**
+   * Self-service account deletion (spec §47). The DATABASE deletes the
+   * auth user; the SIGNED_OUT event + the local reset below clear every
+   * piece of application state so nothing of the account remains visible.
+   */
+  const deleteAccount = useCallback(async () => {
+    try {
+      await authService.deleteAccount();
+    } finally {
+      setSession(null);
+      setStatus('unauthenticated');
+    }
+  }, []);
+
   const patchClient = useCallback((client: Client) => {
     setSession((prev) => (prev ? { ...prev, client } : prev));
   }, []);
@@ -171,10 +186,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       register,
       logout,
+      deleteAccount,
       refresh: () => refresh({ silent: false }), // returns the session for MFA routing
       patchClient,
     };
-  }, [session, status, login, register, logout, refresh, patchClient]);
+  }, [session, status, login, register, logout, deleteAccount, refresh, patchClient]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

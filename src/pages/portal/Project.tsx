@@ -64,6 +64,7 @@ export default function Project() {
         loading={state.loading}
         error={state.error}
         data={state.data}
+        isEmpty={(payload) => !payload.items?.length}
         onRetry={() => state.refetch().catch(() => undefined)}
         empty={
           <EmptyState
