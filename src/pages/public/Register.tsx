@@ -174,7 +174,15 @@ export default function Register() {
 
           <Input label="Email" type="email" required autoComplete="email" value={values.email} onChange={set('email')} error={errors.email} />
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input label="WhatsApp / phone" autoComplete="tel" value={values.phone} onChange={set('phone')} error={errors.phone} />
+            <Input
+              label="WhatsApp / phone"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              value={values.phone}
+              onChange={set('phone')}
+              error={errors.phone}
+            />
             <Input
               label="Business type"
               value={values.businessType}

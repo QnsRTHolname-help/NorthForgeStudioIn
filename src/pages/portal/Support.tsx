@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { ArrowUpRight, Mail, MessageCircle, Phone, Plus } from 'lucide-react';
 import { Panel } from '@/components/ui/Card';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
 import { Badge } from '@/components/ui/Badge';
@@ -13,12 +13,95 @@ import { useToast } from '@/app/providers/ToastProvider';
 import { ticketsService } from '@/services';
 import { formatDateTime, titleCase } from '@/lib/format';
 import { cn } from '@/lib/cn';
+import { useAuth } from '@/app/providers/AuthProvider';
+import { CONTACT, whatsappLink, emailLink } from '@/data/site';
 import type { Ticket } from '@/types';
+
+/**
+ * Direct-contact strip.
+ *
+ * A ticket is the right tool for something that needs tracking, but it is the
+ * wrong tool for "my website is down" — that client wants a person, now, and
+ * an older or less technical owner will not go hunting through a menu for one.
+ * The three ways to actually reach the studio sit at the top of the page, and
+ * the WhatsApp message arrives pre-filled with who is writing so we already
+ * have the context to answer.
+ */
+function DirectContact({ businessName }: { businessName?: string }) {
+  const intro = businessName
+    ? `Hi NorthForge — ${businessName} here. I need help with `
+    : 'Hi NorthForge — I need help with ';
+
+  const options = [
+    {
+      label: 'WhatsApp',
+      detail: 'Fastest reply',
+      icon: MessageCircle,
+      href: whatsappLink(intro),
+      accent: true,
+      external: true,
+    },
+    {
+      label: 'Call us',
+      detail: CONTACT.hours.split('·')[0].trim(),
+      icon: Phone,
+      href: `tel:${CONTACT.phone.replace(/\s/g, '')}`,
+      accent: false,
+      external: false,
+    },
+    {
+      label: 'Email',
+      detail: CONTACT.email.split('@')[0],
+      icon: Mail,
+      href: emailLink('Support request'),
+      accent: false,
+      external: false,
+    },
+  ] as const;
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-3">
+      {options.map((option) => (
+        <a
+          key={option.label}
+          href={option.href}
+          {...(option.external ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
+          className={cn(
+            'nf-focus group flex items-center gap-3 rounded-lg border p-3.5 transition-colors',
+            option.accent
+              ? 'border-brand/35 bg-brand/5 hover:border-brand/60'
+              : 'border-line bg-surface hover:border-line-strong',
+          )}
+        >
+          <span
+            className={cn(
+              'grid h-9 w-9 shrink-0 place-items-center rounded-full',
+              option.accent ? 'bg-brand/12 text-brand' : 'bg-elevated text-muted',
+            )}
+          >
+            <option.icon className="h-4 w-4" aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-1 text-[13px] font-medium text-fg">
+              {option.label}
+              <ArrowUpRight
+                className="h-3 w-3 text-faint transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                aria-hidden
+              />
+            </span>
+            <span className="mt-0.5 block truncate text-xs text-faint">{option.detail}</span>
+          </span>
+        </a>
+      ))}
+    </div>
+  );
+}
 
 /** Support (spec §112): threaded conversations with the team. */
 export default function Support() {
   usePageMeta({ title: 'Support', noIndex: true });
   const toast = useToast();
+  const { client } = useAuth();
   const [creating, setCreating] = useState(false);
   const [detail, setDetail] = useState<Ticket | null>(null);
 
@@ -48,6 +131,10 @@ export default function Support() {
           </Button>
         }
       />
+
+      <div className="mb-6 mt-6">
+        <DirectContact businessName={client?.businessName} />
+      </div>
 
       <AsyncBoundary
         loading={state.loading}

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Navbar } from '@/components/marketing/Navbar';
 import { Footer } from '@/components/marketing/Footer';
+import { MobileActionBar } from '@/components/marketing/MobileActionBar';
 import { ScrollProgress, ScrollTrigger } from '@/components/motion';
 import { SmoothScrollProvider } from '@/components/motion/SmoothScroll';
 import { PageTransition } from '@/components/motion';
@@ -84,7 +85,9 @@ export function PublicLayout() {
 
   return (
     <SmoothScrollProvider>
-      <div className="flex min-h-screen flex-col bg-canvas">
+      {/* The bottom padding reserves the space the mobile action bar floats
+          over, so the footer's last row is never hidden behind it. */}
+      <div className="flex min-h-screen flex-col bg-canvas pb-20 lg:pb-0">
         <ScrollProgress />
         <Navbar />
         <main id="main" className="flex-1 pt-16 lg:pt-[72px]">
@@ -94,6 +97,7 @@ export function PublicLayout() {
         </main>
         <Footer />
       </div>
+      <MobileActionBar />
     </SmoothScrollProvider>
   );
 }

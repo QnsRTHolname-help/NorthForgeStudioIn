@@ -239,6 +239,11 @@ export default function Contact() {
                 <Input
                   label="WhatsApp / phone"
                   required
+                  // `type=tel` + numeric keypad: on a phone this is a dialpad
+                  // instead of a full keyboard, which is the difference between
+                  // a form people finish and one they abandon.
+                  type="tel"
+                  inputMode="tel"
                   value={values.phone}
                   onChange={set('phone')}
                   error={errors.phone}
