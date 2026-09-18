@@ -47,7 +47,28 @@ create extension if not exists "pgcrypto";
 -- 'cancellation_pending' = stops renewing, access remains until cancel_at.
 -- 'expired'              = the paid period ran out without a renewal.
 -- 'cancelled'            = the subscription is ended.
-alter table subscriptions drop constraint if exists subscriptions_status_check;
+-- Replace the existing status constraint WITHOUT assuming its name.
+-- Dropping by name (`drop constraint if exists subscriptions_status_check`)
+-- silently does nothing if the constraint was ever renamed — and the OLD
+-- constraint would still be enforced alongside the new one, so
+-- 'cancellation_pending' would be rejected with a confusing error. Find and
+-- drop whatever is actually there first; safe to re-run because it also
+-- drops the constraint this migration adds.
+do $$
+declare
+  c record;
+begin
+  for c in
+    select conname
+      from pg_constraint
+     where conrelid = 'subscriptions'::regclass
+       and contype = 'c'
+       and pg_get_constraintdef(oid) ~* '^check \(\(?status'
+  loop
+    execute format('alter table subscriptions drop constraint %I', c.conname);
+  end loop;
+end $$;
+
 alter table subscriptions add constraint subscriptions_status_check
   check (status in ('trialing','active','past_due','paused','cancellation_pending','cancelled','expired'));
 

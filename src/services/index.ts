@@ -12,6 +12,7 @@ import {
 } from '@/services/mappers';
 import { CATALOG } from '@/services/catalog';
 import { normalizeWhatsAppNumber, waLink } from '@/lib/whatsapp';
+import { isHoneypotFilled, mapEnquiryPayload } from '@/lib/enquiry';
 import { CONTACT } from '@/data/site';
 import type {
   ActivityRecord, AdminDashboard, Announcement, Booking, Client, ClientDashboard, ClientRequest,
@@ -485,18 +486,18 @@ export const contactService = {
     crypto.getRandomValues(bytes);
     const reference = 'eq_' + Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 
-    const base = {
-      id: reference,
-      name: String(input.name ?? ''),
-      business_name: (input.businessName as string) ?? null,
-      email: String(input.email ?? ''),
-      whatsapp: (input.whatsapp as string) ?? null,
-      business_type: (input.businessType as string) ?? null,
-      current_tools: (input.currentTools as string) ?? null,
-      bottleneck: (input.bottleneck as string) ?? null,
-      monthly_enquiries: (input.monthlyEnquiries as string) ?? null,
-      message: (input.message as string) ?? null,
-    };
+    // Anti-spam: the form's hidden field was submitted and then ignored, so
+    // it caught nothing. Answered with the normal success shape on purpose —
+    // telling a bot it was detected just invites a retry.
+    if (isHoneypotFilled(input)) {
+      logAuthEvent('enquiry_honeypot_blocked');
+      return { received: true, reference: null };
+    }
+
+    // Field-name mapping lives in one tested place (src/lib/enquiry.ts): the
+    // form sends `phone` and `slowestProcess`, the table has `whatsapp` and
+    // `bottleneck`, and reading the wrong key dropped both silently.
+    const base = mapEnquiryPayload(input, reference);
     const plan = (input.plan as string) ?? null;
 
     // Primary attempt: the dedicated plan column (migration 0006).
