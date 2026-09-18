@@ -18,7 +18,18 @@ import { planPriceSummary } from '@/lib/billing';
 import { formatDate, formatDaysUntil, formatMoney, titleCase } from '@/lib/format';
 import type { Subscription } from '@/types';
 
-const STATUSES = ['trialing', 'active', 'past_due', 'paused', 'cancelled'];
+const STATUSES = ['trialing', 'active', 'past_due', 'paused', 'cancellation_pending', 'cancelled', 'expired'];
+
+/** Human labels for the states a client can put a subscription into. */
+const STATUS_LABELS: Record<string, string> = {
+  trialing: 'Trialing',
+  active: 'Active',
+  past_due: 'Past due',
+  paused: 'Paused',
+  cancellation_pending: 'Cancellation pending',
+  cancelled: 'Cancelled',
+  expired: 'Expired',
+};
 
 /** Subscriptions (spec §123): every client's plan, price and renewal state. */
 export default function Subscriptions() {
@@ -48,6 +59,7 @@ export default function Subscriptions() {
   // Recurring revenue counts ACTIVE subscriptions only, priced from the
   // catalog's monthly amount (setup fees are one-time and never in MRR).
   const active = items.filter((subscription) => subscription.status === 'active');
+  const cancelling = items.filter((subscription) => subscription.status === 'cancellation_pending');
   const mrr = active.reduce((sum, subscription) => sum + (getPlanById(subscription.planId)?.amount ?? 0), 0);
 
   const create = useMutation(
@@ -111,6 +123,15 @@ export default function Subscriptions() {
         <KpiCard label="Past due" value={items.filter((subscription) => subscription.status === 'past_due').length} />
       </div>
 
+      {/* Client-initiated cancellations are the one state the team must not
+          miss — they need a follow-up before the period ends (spec §49). */}
+      {cancelling.length ? (
+        <p className="mb-4 rounded border border-warning/30 bg-warning/[0.06] px-3 py-2 text-[13px] text-fg">
+          {cancelling.length} subscription{cancelling.length === 1 ? '' : 's'} will not renew — cancelled from the
+          client portal. Follow up before the period ends.
+        </p>
+      ) : null}
+
       <ListToolbar
         search={query}
         onSearch={setQuery}
@@ -120,7 +141,10 @@ export default function Subscriptions() {
             label: 'Status',
             value: status,
             onChange: setStatus,
-            options: [{ value: '', label: 'All statuses' }, ...STATUSES.map((value) => ({ value, label: titleCase(value) }))],
+            options: [
+              { value: '', label: 'All statuses' },
+              ...STATUSES.map((value) => ({ value, label: STATUS_LABELS[value] ?? titleCase(value) })),
+            ],
           },
         ]}
       />
@@ -164,12 +188,25 @@ export default function Subscriptions() {
                       </span>
                     </span>
                     <span className="shrink-0 text-2xs text-faint">
-                      Renews {formatDate(subscription.renewsAt)}
-                      {formatDaysUntil(subscription.renewsAt) ? ` (${formatDaysUntil(subscription.renewsAt)})` : ''}
+                      {subscription.status === 'cancellation_pending' || subscription.status === 'cancelled'
+                        ? `Ends ${formatDate(subscription.cancelAt)}`
+                        : `Renews ${formatDate(subscription.renewsAt)}`}
+                      {formatDaysUntil(subscription.renewsAt) && subscription.status !== 'cancelled'
+                        ? ` (${formatDaysUntil(subscription.renewsAt)})`
+                        : ''}
+                      {subscription.cancellationReason ? ` · “${subscription.cancellationReason}”` : ''}
                     </span>
                     <StatusIndicator
-                      status={subscription.status}
-                      tone={subscription.status === 'active' ? 'success' : subscription.status === 'past_due' ? 'danger' : 'warning'}
+                      status={STATUS_LABELS[subscription.status] ?? subscription.status}
+                      tone={
+                        subscription.status === 'active'
+                          ? 'success'
+                          : subscription.status === 'past_due'
+                            ? 'danger'
+                            : subscription.status === 'cancelled' || subscription.status === 'expired'
+                              ? 'neutral'
+                              : 'warning'
+                      }
                     />
                     <Button variant="ghost" size="sm" onClick={() => openEdit(subscription)}>
                       Change
@@ -211,7 +248,7 @@ export default function Subscriptions() {
             label="Starting status"
             value={newStatus}
             onChange={(event) => setNewStatus(event.target.value)}
-            options={STATUSES.map((value) => ({ value, label: titleCase(value) }))}
+            options={STATUSES.map((value) => ({ value, label: STATUS_LABELS[value] ?? titleCase(value) }))}
             hint="The renewal date is set from the plan's own billing interval."
           />
           {selectedNewPlan ? (
@@ -262,8 +299,16 @@ export default function Subscriptions() {
             label="Status"
             value={nextStatus}
             onChange={(event) => setNextStatus(event.target.value)}
-            options={STATUSES.map((value) => ({ value, label: titleCase(value) }))}
+            options={STATUSES.map((value) => ({ value, label: STATUS_LABELS[value] ?? titleCase(value) }))}
           />
+          {editing && (editing.cancelledAt || editing.cancellationReason) ? (
+            <p className="rounded border border-warning/30 bg-warning/[0.06] px-3 py-2 text-xs leading-relaxed text-fg">
+              Cancelled by {editing.cancelledBy ?? 'unknown'}
+              {editing.cancelledAt ? ` on ${formatDate(editing.cancelledAt)}` : ''}
+              {editing.cancellationReason ? ` — “${editing.cancellationReason}”` : ''}. Ends{' '}
+              {formatDate(editing.cancelAt)}. Invoices already issued are unchanged.
+            </p>
+          ) : null}
           <Input
             label="Next renewal date"
             type="date"

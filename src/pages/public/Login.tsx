@@ -235,7 +235,17 @@ export default function Login() {
             </Link>
           </p>
 
-          <p className="mt-8 text-center text-2xs text-faint">
+          <p className="mt-6 flex items-center justify-center gap-3 text-2xs text-faint">
+            <Link to="/privacy" className="hover:text-muted">
+              Privacy
+            </Link>
+            <span aria-hidden>·</span>
+            <Link to="/terms" className="hover:text-muted">
+              Terms
+            </Link>
+          </p>
+
+          <p className="mt-4 text-center text-2xs text-faint">
             <Link to="/" className="hover:text-muted">
               ← Back to northforge
             </Link>

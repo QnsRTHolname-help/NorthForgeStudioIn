@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Sparkles } from 'lucide-react';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
 import { Badge } from '@/components/ui/Badge';
@@ -29,16 +29,45 @@ export default function Leads() {
   const navigate = useNavigate();
   const toast = useToast();
 
-  const [query, setQuery] = useState('');
-  const [status, setStatus] = useState('');
-  const [source, setSource] = useState('');
+  /**
+   * Filters are seeded from the URL, so a link from the dashboard
+   * (`/app/leads?status=proposal`) actually arrives filtered. Previously the
+   * query string was ignored entirely and every deep link landed on the
+   * unfiltered list.
+   */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [query, setQuery] = useState(() => searchParams.get('q') ?? '');
+  const [status, setStatus] = useState(() => searchParams.get('status') ?? '');
+  const [source, setSource] = useState(() => searchParams.get('source') ?? '');
+  const [sort, setSort] = useState(() => searchParams.get('sort') ?? 'created_desc');
   const [page, setPage] = useState(1);
   const [creating, setCreating] = useState(false);
   const [qualifying, setQualifying] = useState<string | null>(null);
 
+  /** Keep the address bar in step with the filters (refresh-safe, shareable). */
+  const syncUrl = useCallback(
+    (next: { q?: string; status?: string; source?: string; sort?: string }) => {
+      const params = new URLSearchParams(searchParams);
+      for (const [key, value] of Object.entries(next)) {
+        if (value) params.set(key, value);
+        else params.delete(key);
+      }
+      setSearchParams(params, { replace: true });
+    },
+    [searchParams, setSearchParams],
+  );
+
   const state = useAsync(
-    () => leadsService.list({ q: query || undefined, status: status || undefined, source: source || undefined, page, pageSize: 25 }),
-    [query, status, source, page],
+    () =>
+      leadsService.list({
+        q: query || undefined,
+        status: status || undefined,
+        source: source || undefined,
+        sort,
+        page,
+        pageSize: 25,
+      }),
+    [query, status, source, sort, page],
   );
 
   const clients = useAsync(() => clientsService.list({ pageSize: 200 }), []);
@@ -79,6 +108,7 @@ export default function Leads() {
         onSearch={(value) => {
           setQuery(value);
           setPage(1);
+          syncUrl({ q: value });
         }}
         searchPlaceholder="Search name, business, email, phone…"
         filters={[
@@ -88,6 +118,7 @@ export default function Leads() {
             onChange: (value) => {
               setStatus(value);
               setPage(1);
+              syncUrl({ status: value });
             },
             options: [{ value: '', label: 'All statuses' }, ...STATUSES.map((value) => ({ value, label: titleCase(value) }))],
           },
@@ -97,8 +128,24 @@ export default function Leads() {
             onChange: (value) => {
               setSource(value);
               setPage(1);
+              syncUrl({ source: value });
             },
             options: [{ value: '', label: 'All sources' }, ...SOURCES.map((value) => ({ value, label: titleCase(value) }))],
+          },
+          {
+            // Server-side ordering over the whole result set — a client-side
+            // sort would only ever order the 25 rows currently on screen.
+            label: 'Sort',
+            value: sort,
+            onChange: (value) => {
+              setSort(value);
+              setPage(1);
+              syncUrl({ sort: value === 'created_desc' ? '' : value });
+            },
+            options: [
+              { value: 'created_desc', label: 'Newest first' },
+              { value: 'created_asc', label: 'Oldest first' },
+            ],
           },
         ]}
       />
@@ -136,7 +183,6 @@ export default function Leads() {
                       {lead.businessName ? <p className="truncate text-xs text-muted">{lead.businessName}</p> : null}
                     </div>
                   ),
-                  sortValue: (lead) => lead.contactName,
                 },
                 { key: 'source', header: 'Source', cell: (lead) => titleCase(lead.source), hideBelow: 'md' },
                 {
@@ -148,7 +194,7 @@ export default function Leads() {
                     </Badge>
                   ),
                 },
-                { key: 'score', header: 'Score', cell: (lead) => <span className="nf-num">{lead.score}</span>, align: 'right', sortValue: (lead) => lead.score, hideBelow: 'sm' },
+                { key: 'score', header: 'Score', cell: (lead) => <span className="nf-num">{lead.score}</span>, align: 'right', hideBelow: 'sm' },
                 { key: 'intent', header: 'Intent', cell: (lead) => <span className="text-muted">{lead.intent ?? '—'}</span>, hideBelow: 'lg' },
                 { key: 'value', header: 'Value', cell: (lead) => (lead.value ? formatMoney(lead.value) : '—'), align: 'right', hideBelow: 'lg' },
                 { key: 'clientId', header: 'Client', cell: (lead) => <span className="text-muted">{lead.clientId ? 'Assigned' : 'Unassigned'}</span>, hideBelow: 'lg' },

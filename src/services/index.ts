@@ -11,6 +11,7 @@ import {
   mapWhatsAppTemplate, mapWorkflow,
 } from '@/services/mappers';
 import { CATALOG } from '@/services/catalog';
+import { normalizeWhatsAppNumber, waLink } from '@/lib/whatsapp';
 import { CONTACT } from '@/data/site';
 import type {
   ActivityRecord, AdminDashboard, Announcement, Booking, Client, ClientDashboard, ClientRequest,
@@ -156,8 +157,22 @@ export const authService = {
     businessName: string;
     phone?: string;
     businessType?: string;
+    /**
+     * Age eligibility attestation (spec §10–§11). The RESULT is all that is
+     * stored: profiles.age_verified / age_verified_at, written by the signup
+     * trigger from this flag. No date of birth and no identity document are
+     * collected for a basic eligibility check.
+     */
+    ageConfirmed: boolean;
   }): Promise<AuthSession> => {
     assertSupabaseConfigured();
+    // Enforced again here so the rule does not live only in the form markup.
+    if (!input.ageConfirmed) {
+      throw new AuthError({
+        code: 'AUTH_AGE_REQUIRED',
+        message: 'Please confirm that you meet the minimum age requirement to create an account.',
+      });
+    }
     logAuthEvent('signup_request_started');
     const { data, error } = await supabase.auth.signUp({
       email: input.email,
@@ -168,6 +183,9 @@ export const authService = {
           business_name: input.businessName,
           phone: input.phone ?? null,
           business_type: input.businessType ?? null,
+          // Read by handle_new_user() (migration 0012) to set
+          // age_verified + age_verified_at on the new profile.
+          age_confirmed: input.ageConfirmed,
         },
         // Canonical, never `window.location.origin`: a signup triggered
         // from a local dev machine must not email a localhost link to a
@@ -1137,6 +1155,43 @@ export const billingService = {
     if (!rows?.length) throw new ApiError("We couldn't find that record.", 404, 'not_found');
     return { deleted: true };
   },
+  /**
+   * Cancel the signed-in client's own subscription (spec §2–§4).
+   *
+   * Clients hold SELECT on their own subscription and nothing more, so the
+   * write goes through the 0012 security-definer RPC, which resolves the
+   * caller from auth.uid() and takes only the subscription id — a client can
+   * never name another client's plan. The RPC stops FUTURE renewal and
+   * records the cancellation; it deliberately does not touch an invoice that
+   * has already been issued.
+   */
+  cancelSubscription: async (
+    id: string,
+    reason?: string,
+  ): Promise<{ status: Subscription['status']; effectiveAt: string | null }> => {
+    const { data, error } = await supabase.rpc('app_cancel_own_subscription', {
+      p_subscription_id: id,
+      p_reason: reason?.trim() ? reason.trim() : null,
+    });
+    if (error) {
+      const hint = (error as { hint?: string }).hint ?? '';
+      if (error.code === 'P0001' && hint.includes('not on your account')) {
+        throw new ApiError("We couldn't find that subscription on your account.", 404, 'not_found');
+      }
+      if (error.code === 'P0001' && hint.includes('already ended')) {
+        throw new ApiError('This subscription has already been cancelled.', 409, 'already_cancelled');
+      }
+      if (error.code === 'P0001' && hint.includes('Sign in')) {
+        throw new ApiError('Your session expired. Sign in again to continue.', 401, 'session_expired');
+      }
+      throw mapDatabaseError(error, 'billing.cancelSubscription');
+    }
+    const payload = (data ?? {}) as { status?: Subscription['status']; effective_at?: string };
+    return {
+      status: payload.status ?? 'cancellation_pending',
+      effectiveAt: payload.effective_at ?? null,
+    };
+  },
   invoices: async (): Promise<{ items: Invoice[] }> => {
     const rows = await run<Record<string, unknown>[]>('billing.invoices', () =>
       supabase.from('invoices').select('*').order('issued_at', { ascending: false }),
@@ -1402,10 +1457,13 @@ export const automationService = {
 /**
  * WhatsApp operations.
  *
- * The connection payload mirrors the delivery facts the platform can truly
- * assert: Cloud API sending is only "connected" when server-side provider
- * credentials exist (they live in the env, never in the database or
- * browser). Everything else is recorded business history (spec §40, §57).
+ * Sending goes through the `whatsapp-send` Edge Function, which holds the
+ * Cloud API credentials server-side and posts to Meta's Graph API — what
+ * the admin types on the website is delivered by the business number. When
+ * the function is not deployed or not configured, the message is recorded
+ * queued and a wa.me deep link hands the exact text to the operator's own
+ * WhatsApp in one click: the product never pretends a send happened
+ * (spec §40, §57).
  */
 export interface WhatsAppStatus {
   connected: boolean;
@@ -1414,15 +1472,40 @@ export interface WhatsAppStatus {
   stats: { sent: number; inbound: number; automated: number; templates: number };
 }
 
+export interface WhatsAppSendResult {
+  /** True when the Cloud API accepted the message — real delivery underway. */
+  sent: boolean;
+  /** One-click open in the business WhatsApp with the text pre-typed. */
+  fallbackUrl: string | null;
+  /** Why the Cloud API path did not deliver (null when sent). */
+  reason: string | null;
+}
+
+/** Ask the Edge Function whether Cloud API credentials exist server-side. */
+async function probeWhatsAppConfigured(): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.functions.invoke('whatsapp-send', { body: { probe: true } });
+    if (error) return false;
+    return Boolean((data as { configured?: boolean } | null)?.configured);
+  } catch {
+    // Function missing / network — treat as not configured (fallback applies).
+    return false;
+  }
+}
+
 export const whatsappService = {
   status: async (): Promise<WhatsAppStatus> => {
-    const [messages, templates] = await Promise.all([whatsappService.messages(), whatsappService.templates()]);
+    const [messages, templates, configured] = await Promise.all([
+      whatsappService.messages(),
+      whatsappService.templates(),
+      probeWhatsAppConfigured(),
+    ]);
     const items = messages.items;
     return {
-      // Cloud API credentials are server-only env; the browser can only see
-      // their EFFECT (recorded automated sends), never the credentials.
-      connected: items.some((message) => message.automated && message.status !== 'failed'),
-      mode: items.some((message) => message.automated) ? 'cloud_api' : 'click_to_chat',
+      // "Connected" now means the truth: the Edge Function reported real
+      // Cloud API credentials. Message history can never fake this again.
+      connected: configured,
+      mode: configured ? 'cloud_api' : 'click_to_chat',
       businessNumber: CONTACT.whatsappDisplay,
       stats: {
         sent: items.filter((message) => message.direction === 'outbound').length,
@@ -1440,24 +1523,63 @@ export const whatsappService = {
   },
   messages: async (): Promise<{ items: WhatsAppMessage[] }> => {
     const rows = await run<Record<string, unknown>[]>('whatsapp.messages', () =>
-      supabase.from('whatsapp_messages').select('*').order('created_at', { ascending: false }).limit(200),
+      supabase.from('whatsapp_messages').select('*').order('created_at', { ascending: false }).limit(500),
     );
     return { items: (rows ?? []).map(mapWhatsAppMessage) };
   },
-  /** Record an outbound message. Cloud API delivery requires server credentials; here the send is recorded. */
-  send: async (input: { to: string; body: string; clientId?: string }): Promise<{ sent: boolean }> => {
-    await run('whatsapp.send', () =>
-      supabase.from('whatsapp_messages').insert(
-        compact({
-          client_id: input.clientId,
-          direction: 'outbound',
-          to_number: input.to,
-          body: input.body,
-          status: 'queued',
-        }),
-      ),
-    );
-    return { sent: true };
+  /**
+   * Send a message: Cloud API first (real delivery), wa.me fallback always
+   * available. The message is only marked sent when Meta accepted it.
+   */
+  send: async (input: { to: string; body: string; clientId?: string }): Promise<WhatsAppSendResult> => {
+    const digits = normalizeWhatsAppNumber(input.to);
+    if (!digits) {
+      throw new ApiError('Enter a valid WhatsApp number — country code first, e.g. 919845012345.', 400, 'validation');
+    }
+    const text = input.body.trim();
+    if (!text) throw new ApiError('Write the message to send.', 400, 'validation');
+
+    let sent = false;
+    let reason: string | null = null;
+    try {
+      const { data, error } = await supabase.functions.invoke('whatsapp-send', {
+        body: { to: digits, body: text, clientId: input.clientId ?? null },
+      });
+      if (error) throw error;
+      sent = Boolean((data as { sent?: boolean } | null)?.sent);
+      if (!sent) reason = 'The message could not be delivered — it is recorded below.';
+    } catch (fnError) {
+      // FunctionsHttpError carries the Response; read the human reason out of
+      // it (token expired, outside the 24-hour window, not configured…).
+      const httpError = fnError as { context?: { json?: () => Promise<{ message?: string }> }; message?: string };
+      reason = httpError?.message ?? null;
+      try {
+        const body = await httpError?.context?.json?.();
+        if (body?.message) reason = String(body.message);
+      } catch {
+        /* body was not JSON — keep the generic reason */
+      }
+      if (!reason) reason = 'WhatsApp delivery is not connected yet on this project.';
+      sent = false;
+    }
+
+    // The Edge Function records the row itself when it delivers; on any
+    // fallback path the message is recorded queued so the inbox stays true.
+    if (!sent) {
+      await run('whatsapp.send', () =>
+        supabase.from('whatsapp_messages').insert(
+          compact({
+            client_id: input.clientId,
+            direction: 'outbound',
+            to_number: digits,
+            body: text,
+            status: 'queued',
+          }),
+        ),
+      );
+    }
+
+    return { sent, fallbackUrl: waLink(digits, text), reason };
   },
   /** Create a template record pending provider approval. */
   createTemplate: async (input: { name: string; body: string; category: 'utility' | 'marketing' | 'authentication' }): Promise<{ created: boolean }> => {
@@ -1592,14 +1714,19 @@ export const requestsService = {
 };
 
 export const ticketsService = {
+  /**
+   * Tickets, with internal notes REMOVED IN THE DATABASE for non-admins
+   * (migration 0013, `app_ticket_threads`). Reading the table directly would
+   * hand a client the very notes the admin marked "not visible to the
+   * client", so the mask is applied server-side — filtering it in the
+   * browser would be a promise, not a boundary.
+   */
   list: async (): Promise<{ items: Ticket[] }> => {
-    const rows = await run<Record<string, unknown>[]>('tickets.list', () =>
-      supabase.from('tickets').select('*').order('created_at', { ascending: false }),
-    );
+    const rows = await readTicketThreads('tickets.list');
     return { items: (rows ?? []).map(mapTicket) };
   },
   get: async (id: string): Promise<{ ticket: Ticket }> => {
-    const rows = await run<Record<string, unknown>[]>('tickets.get', () => supabase.from('tickets').select('*').eq('id', id).limit(1));
+    const rows = await readTicketThreads('tickets.get', id);
     if (!rows?.[0]) throw new ApiError("We couldn't find that ticket.", 404, 'not_found');
     return { ticket: mapTicket(rows[0]) };
   },
@@ -1620,23 +1747,66 @@ export const ticketsService = {
     );
     return { ticket: mapTicket(rows![0]) };
   },
-  message: async (id: string, input: { body: string; internal?: boolean; status?: string }): Promise<{ ticket: Ticket }> => {
-    const current = (await ticketsService.get(id)).ticket;
-    const session = await loadProfile();
-    const messages = [
-      ...current.messages,
-      { id: `msg-${Date.now()}`, author: session.user.name, authorRole: session.user.role, body: input.body, createdAt: new Date().toISOString() },
-    ];
-    const rows = await run<Record<string, unknown>[]>('tickets.message', () =>
-      supabase
-        .from('tickets')
-        .update({ messages, ...(input.status ? { status: input.status } : {}) })
-        .eq('id', id)
-        .select(),
-    );
-    return { ticket: mapTicket(rows![0]) };
+  /**
+   * Append a message to a ticket (migration 0013, `app_add_ticket_message`).
+   *
+   * The database, not the browser, decides whether a message is an internal
+   * note: a client's message is always `internal = false` and only staff can
+   * set a status. It also fixes the client reply path, which previously
+   * needed a table UPDATE no policy granted — so a client replying to their
+   * own ticket silently failed.
+   */
+  message: async (
+    id: string,
+    input: { body: string; internal?: boolean; status?: string },
+  ): Promise<{ ticket: Ticket }> => {
+    const { data, error } = await supabase.rpc('app_add_ticket_message', {
+      p_ticket_id: id,
+      p_body: input.body,
+      p_internal: Boolean(input.internal),
+      p_status: input.status ?? null,
+    });
+    if (error) throw mapDatabaseError(error, 'tickets.message');
+    if (!data) throw new ApiError("We couldn't update that ticket.", 400, 'update_failed');
+    return { ticket: mapTicket(data as Record<string, unknown>) };
   },
 };
+
+/**
+ * Ticket threads via the masking RPC (migration 0013).
+ *
+ * Falls back to a direct read ONLY when the function is not deployed yet, and
+ * in that fallback an internal note is stripped for non-admins before it can
+ * reach a client-facing screen. The RPC is the enforced path; the fallback
+ * exists so an un-migrated environment degrades rather than showing a blank
+ * page.
+ */
+async function readTicketThreads(
+  context: string,
+  ticketId?: string,
+): Promise<Record<string, unknown>[]> {
+  const call = await supabase.rpc('app_ticket_threads', { p_ticket_id: ticketId ?? null });
+  if (!call.error) return (call.data as Record<string, unknown>[]) ?? [];
+
+  // PGRST202 = no such function in the schema cache; 42883 = undefined_function.
+  const missing =
+    call.error.code === 'PGRST202' || call.error.code === '42883' || /function .* does not exist/i.test(call.error.message ?? '');
+  if (!missing) throw mapDatabaseError(call.error, context);
+
+  const session = await loadProfile();
+  const isClient = session.user.role === 'client';
+  let query = supabase.from('tickets').select('*').order('created_at', { ascending: false });
+  if (ticketId) query = query.eq('id', ticketId);
+  const rows = await run<Record<string, unknown>[]>(`${context}.fallback`, () => query);
+  if (!isClient) return rows ?? [];
+
+  return (rows ?? []).map((row) => ({
+    ...row,
+    messages: (Array.isArray(row.messages) ? (row.messages as Record<string, unknown>[]) : []).filter(
+      (message) => message.internal !== true,
+    ),
+  }));
+}
 
 /* ── Announcements, preferences, milestones & files ─────────── */
 
@@ -2243,6 +2413,102 @@ export const rolesService = {
    */
   setRole: async (userId: string, role: Role): Promise<void> => {
     await run('roles.setRole', () => supabase.from('profiles').update({ role }).eq('id', userId));
+  },
+};
+
+/* ── Data export — "Download my data" (spec §54) ── */
+
+export interface DataExport {
+  filename: string;
+  generatedAt: string;
+  /** Table name → the rows the caller is entitled to read. */
+  data: Record<string, unknown>;
+  /** Tables that could not be read — reported, never silently swallowed. */
+  warnings: string[];
+}
+
+/**
+ * The signed-in user's own data export (spec §54).
+ *
+ * Every read below runs as the CALLER, under the same RLS policies as the
+ * rest of the app, so an export can only ever contain rows this account is
+ * already allowed to see: its own profile, its own client workspace and the
+ * records attached to it. Another client's rows, internal admin notes on
+ * other accounts, secrets and system configuration are not reachable from
+ * here — not filtered out after the fact, but never returned in the first
+ * place.
+ *
+ * A table that is missing or unreadable is reported in `warnings` rather
+ * than failing the whole export; a partial, honest export beats none.
+ */
+export const dataExportService = {
+  collect: async (): Promise<DataExport> => {
+    assertSupabaseConfigured();
+    const userId = await authUserId();
+    if (!userId) throw sessionError();
+
+    const warnings: string[] = [];
+    const data: Record<string, unknown> = {};
+
+    /** Read one table; a failure is recorded, never thrown away. */
+    const grab = async (
+      name: string,
+      query: () => PromiseLike<{ data: unknown; error: { message?: string; code?: string } | null }>,
+    ) => {
+      try {
+        const { data: rows, error } = await query();
+        if (error) {
+          warnings.push(`${name} could not be read (${error.code ?? 'error'}).`);
+          return;
+        }
+        data[name] = rows ?? [];
+      } catch {
+        warnings.push(`${name} could not be read.`);
+      }
+    };
+
+    const clientId = (await run<{ client_id: string | null }[]>('export.profile', () =>
+      supabase.from('profiles').select('client_id').eq('id', userId).limit(1),
+    ))?.[0]?.client_id ?? null;
+
+    await grab('profile', () =>
+      supabase.from('profiles').select('id, email, name, role, phone, age_verified, age_verified_at, created_at').eq('id', userId),
+    );
+    await grab('notification_preferences', () =>
+      supabase.from('notification_preferences').select('*').eq('user_id', userId),
+    );
+    await grab('notifications', () => supabase.from('notifications').select('*').eq('user_id', userId));
+    await grab('client', () => supabase.from('clients').select('*'));
+    await grab('leads', () => supabase.from('leads').select('*'));
+    await grab('projects', () => supabase.from('projects').select('*'));
+    await grab('milestones', () => supabase.from('milestones').select('*'));
+    await grab('websites', () => supabase.from('websites').select('*'));
+    await grab('bookings', () => supabase.from('bookings').select('*'));
+    await grab('client_requests', () => supabase.from('client_requests').select('*'));
+    await grab('tickets', () => supabase.from('tickets').select('*'));
+    await grab('files', () => supabase.from('files').select('*'));
+    await grab('subscriptions', () => supabase.from('subscriptions').select('*'));
+    await grab('invoices', () => supabase.from('invoices').select('*'));
+    await grab('payments', () => supabase.from('payments').select('*'));
+    await grab('whatsapp_messages', () => supabase.from('whatsapp_messages').select('*'));
+    await grab('activity', () => supabase.from('activity').select('*'));
+
+    const generatedAt = new Date().toISOString();
+    const stamp = generatedAt.slice(0, 10);
+    // The client id is not personal data on its own, but the filename is
+    // visible to whoever handles the file — keep it impersonal.
+    const filename = `northforge-export-${stamp}.json`;
+
+    return {
+      filename,
+      generatedAt,
+      data: {
+        exported_at: generatedAt,
+        export_scope: clientId ? 'client_account' : 'account',
+        tables: data,
+      },
+      warnings,
+    };
   },
 };
 

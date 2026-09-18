@@ -17,12 +17,15 @@ import { FaqSection } from '@/components/marketing/FaqSection';
 import { SectionHeader } from '@/components/ui/Card';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { organizationSchema } from '@/data/site';
-import { SITE } from '@/data/site';
 
 export default function Home() {
   usePageMeta({
-    title: SITE.tagline,
-    description: SITE.description,
+    // Descriptive rather than a slogan: a search result should say what the
+    // business does, and the location belongs in the copy, not repeated
+    // through every paragraph (spec §29–§30).
+    title: 'Websites, automation and AI systems that grow your business',
+    description:
+      'NorthForge is a digital systems studio in Mangaluru, Karnataka. We build premium websites and connect them to lead capture, WhatsApp, AI, automation and analytics.',
     canonicalPath: '/',
   });
 

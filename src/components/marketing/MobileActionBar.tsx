@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, MessageCircle, Phone } from 'lucide-react';
 import { CONTACT, whatsappLink } from '@/data/site';
+import { trackEvent } from '@/lib/analytics';
 
 /**
  * Mobile action bar (public site only).
@@ -29,6 +30,7 @@ export function MobileActionBar() {
             href={whatsappLink('Hi NorthForge — I would like to know more.')}
             target="_blank"
             rel="noreferrer noopener"
+            onClick={() => trackEvent('whatsapp_click', { context: 'general', location: 'mobile_action_bar' })}
             className="nf-focus inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full bg-brand text-[12px] font-medium text-white transition-colors hover:bg-brand-deep"
           >
             <MessageCircle className="h-4 w-4" aria-hidden />

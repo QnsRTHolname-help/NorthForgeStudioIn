@@ -182,6 +182,9 @@ export function mapSubscription(row: Record<string, unknown>): Subscription {
     cancelAt: (row.cancel_at as string) ?? null,
     seats: Number(row.seats ?? 1),
     isDemo: Boolean(row.is_demo ?? false),
+    cancelledAt: (row.cancelled_at as string) ?? null,
+    cancellationReason: (row.cancellation_reason as string) ?? null,
+    cancelledBy: (row.cancelled_by as Subscription['cancelledBy']) ?? null,
   };
 }
 
@@ -201,6 +204,7 @@ export function mapInvoice(row: Record<string, unknown>): Invoice {
     paidAt: (row.paid_at as string) ?? null,
     lineItems: Array.isArray(row.line_items) ? (row.line_items as Invoice['lineItems']) : [],
     isDemo: Boolean(row.is_demo ?? false),
+    billedTo: (row.billed_to as string) ?? null,
   };
 }
 
@@ -215,6 +219,7 @@ export function mapPayment(row: Record<string, unknown>): Payment {
     method: (row.method as string) ?? null,
     paidAt: String(row.paid_at ?? ''),
     isDemo: Boolean(row.is_demo ?? false),
+    billedTo: (row.billed_to as string) ?? null,
   };
 }
 

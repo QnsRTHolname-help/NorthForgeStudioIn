@@ -1,19 +1,20 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, MessageCircle } from 'lucide-react';
 import { Panel, KpiCard } from '@/components/ui/Card';
 import { AsyncBoundary, EmptyState, NotFoundState } from '@/components/ui/States';
 import { Badge, StatusIndicator } from '@/components/ui/Badge';
 import { AdminHeader } from '@/components/admin/AdminHeader';
 import { Tabs } from '@/components/ui/Tabs';
 import { Modal } from '@/components/ui/Modal';
-import { Button } from '@/components/ui/Button';
+import { Button, LinkButton } from '@/components/ui/Button';
 import { Timeline } from '@/components/ui/Data';
 import { Progress } from '@/components/ui/Loader';
 import { useAsync } from '@/hooks/useAsync';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { clientsService } from '@/services';
 import { formatDate, formatDateTime, formatMoney, formatRelative, titleCase } from '@/lib/format';
+import { normalizeWhatsAppNumber } from '@/lib/whatsapp';
 import { ClientForm } from './Clients';
 
 /**
@@ -48,6 +49,16 @@ export default function ClientDetail() {
                   <Button variant="secondary" size="md" onClick={() => setEditing(true)}>
                     Edit client
                   </Button>
+                  {detail.client.phone && normalizeWhatsAppNumber(detail.client.phone) ? (
+                    <LinkButton
+                      to={`/app/whatsapp?to=${normalizeWhatsAppNumber(detail.client.phone)}`}
+                      variant="secondary"
+                      size="md"
+                      iconLeft={<MessageCircle className="h-3.5 w-3.5" />}
+                    >
+                      WhatsApp
+                    </LinkButton>
+                  ) : null}
                   {detail.website?.url ? (
                     <a
                       href={detail.website.url}

@@ -1,18 +1,19 @@
 import { useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Trash2 } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Sparkles, Trash2 } from 'lucide-react';
 import { Panel } from '@/components/ui/Card';
 import { AsyncBoundary, EmptyState, NotFoundState } from '@/components/ui/States';
 import { Badge } from '@/components/ui/Badge';
 import { AdminHeader } from '@/components/admin/AdminHeader';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
 import { Input, Select, Textarea } from '@/components/ui/Form';
-import { Button } from '@/components/ui/Button';
+import { Button, LinkButton } from '@/components/ui/Button';
 import { useAsync, useMutation } from '@/hooks/useAsync';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useToast } from '@/app/providers/ToastProvider';
 import { leadsService } from '@/services';
 import { formatDateTime, formatMoney, titleCase } from '@/lib/format';
+import { normalizeWhatsAppNumber } from '@/lib/whatsapp';
 
 /** Lead detail (spec §113): the full record plus AI qualification and follow-ups. */
 export default function LeadDetail() {
@@ -60,6 +61,16 @@ export default function LeadDetail() {
                   <Button variant="secondary" size="md" onClick={() => setEditing(true)}>
                     Edit
                   </Button>
+                  {lead.phone && normalizeWhatsAppNumber(lead.phone) ? (
+                    <LinkButton
+                      to={`/app/whatsapp?to=${normalizeWhatsAppNumber(lead.phone)}`}
+                      variant="secondary"
+                      size="md"
+                      iconLeft={<MessageCircle className="h-3.5 w-3.5" />}
+                    >
+                      WhatsApp
+                    </LinkButton>
+                  ) : null}
                   <Button
                     variant="secondary"
                     size="md"

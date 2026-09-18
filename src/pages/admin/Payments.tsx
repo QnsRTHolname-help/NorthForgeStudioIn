@@ -26,7 +26,11 @@ export default function Payments() {
   const state = useAsync(() => billingService.payments(), []);
   const clients = useAsync(() => clientsService.list({ pageSize: 200 }), []);
   const invoices = useAsync(() => billingService.invoices(), []);
-  const clientName = (id: string) => clients.data?.items.find((client) => client.id === id)?.businessName ?? 'Unknown';
+  /** See Invoices: a retained payment keeps its snapshotted business name. */
+  const clientName = (id: string, billedTo?: string | null) =>
+    clients.data?.items.find((client) => client.id === id)?.businessName ??
+    billedTo ??
+    (id ? 'Unknown' : 'Closed account — retained');
 
   const record = useMutation(
     (input: { clientId: string; amount: number; status: string; method: string; invoiceId: string }) =>
@@ -62,7 +66,7 @@ export default function Payments() {
   });
 
   const items = (state.data?.items ?? []).filter((payment) =>
-    !query ? true : clientName(payment.clientId).toLowerCase().includes(query.toLowerCase()),
+    !query ? true : clientName(payment.clientId, payment.billedTo).toLowerCase().includes(query.toLowerCase()),
   );
 
   const succeeded = items.filter((payment) => payment.status === 'succeeded');
@@ -102,7 +106,9 @@ export default function Payments() {
               {items.map((payment) => (
                 <li key={payment.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-medium text-fg">{clientName(payment.clientId)}</span>
+                    <span className="block truncate text-[13px] font-medium text-fg">
+                      {clientName(payment.clientId, payment.billedTo)}
+                    </span>
                     <span className="block text-2xs text-muted">
                       {payment.method ? titleCase(payment.method) : 'Payment'} · {formatDate(payment.paidAt)}
                     </span>
@@ -127,7 +133,7 @@ export default function Payments() {
                     type="button"
                     onClick={() => setConfirmDelete(payment.id)}
                     className="shrink-0 rounded p-1.5 text-faint transition-colors hover:bg-sunken hover:text-danger"
-                    aria-label={`Delete payment for ${clientName(payment.clientId)}`}
+                    aria-label={`Delete payment for ${clientName(payment.clientId, payment.billedTo)}`}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>

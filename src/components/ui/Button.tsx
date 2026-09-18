@@ -74,13 +74,22 @@ export function LinkButton({
   className,
   children,
   external,
+  onClick,
   ...props
-}: CommonProps & { to: string; external?: boolean }) {
+}: CommonProps & {
+  to: string;
+  external?: boolean;
+  /**
+   * Fired on activation. Used for analytics on navigation links — a link
+   * that leaves the page cannot be measured afterwards.
+   */
+  onClick?: () => void;
+}) {
   const classes = cn(BASE, VARIANTS[variant], SIZES[size], className);
 
   if (external) {
     return (
-      <a href={to} target="_blank" rel="noreferrer noopener" className={classes}>
+      <a href={to} target="_blank" rel="noreferrer noopener" onClick={onClick} className={classes}>
         {iconLeft}
         <span>{children}</span>
         {arrow ? <ArrowRight className="h-4 w-4 transition-transform duration-200 ease-forge" aria-hidden /> : null}
@@ -89,7 +98,7 @@ export function LinkButton({
   }
 
   return (
-    <Link to={to} className={classes} {...props}>
+    <Link to={to} className={classes} onClick={onClick} {...props}>
       {iconLeft}
       <span>{children}</span>
       {arrow ? <ArrowRight className="h-4 w-4 transition-transform duration-200 ease-forge" aria-hidden /> : null}

@@ -1,8 +1,10 @@
+import { useEffect } from 'react';
 import { PricingTable } from '@/components/marketing/PricingTable';
 import { FinalCta, NextSteps } from '@/components/marketing/Sections';
 import { SectionHeader } from '@/components/ui/Card';
 import { FaqSection } from '@/components/marketing/FaqSection';
 import { usePageMeta } from '@/hooks/usePageMeta';
+import { trackEvent } from '@/lib/analytics';
 
 export default function Pricing() {
   usePageMeta({
@@ -11,6 +13,12 @@ export default function Pricing() {
       'NorthForge pricing: LEAD ₹7,500/month + ₹15,000 setup, CONVERT ₹15,000/month + ₹30,000 setup, AUTOPILOT ₹30,000/month + ₹60,000 setup, plus custom-quoted work.',
     canonicalPath: '/pricing',
   });
+
+  // Which plan a visitor compared before enquiring is genuinely useful;
+  // nothing identifying is attached to it (spec §39–§40).
+  useEffect(() => {
+    trackEvent('pricing_view');
+  }, []);
 
   return (
     <>

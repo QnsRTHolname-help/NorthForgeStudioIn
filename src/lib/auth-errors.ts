@@ -24,6 +24,7 @@ export type AuthErrorCode =
   | 'AUTH_PROFILE_MISSING'
   | 'AUTH_ROLE_ERROR'
   | 'AUTH_WEAK_PASSWORD'
+  | 'AUTH_AGE_REQUIRED'
   | 'AUTH_VALIDATION'
   | 'AUTH_UNKNOWN';
 

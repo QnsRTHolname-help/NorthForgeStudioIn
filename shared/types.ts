@@ -24,7 +24,15 @@ export type Priority = 'low' | 'medium' | 'high' | 'urgent';
 export type WebsiteStatus = 'draft' | 'building' | 'review' | 'live' | 'paused' | 'offline';
 export type DeploymentStatus = 'pending' | 'building' | 'live' | 'failed';
 
-export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'paused' | 'cancelled';
+export type SubscriptionStatus =
+  | 'trialing'
+  | 'active'
+  | 'past_due'
+  | 'paused'
+  /** Cancellation accepted: renewal stopped, access runs to `cancelAt`. */
+  | 'cancellation_pending'
+  | 'cancelled'
+  | 'expired';
 export type InvoiceStatus = 'draft' | 'open' | 'paid' | 'void' | 'uncollectible';
 export type PaymentStatus = 'pending' | 'succeeded' | 'failed' | 'refunded';
 
@@ -302,6 +310,13 @@ export interface Subscription {
   cancelAt: string | null;
   seats: number;
   isDemo: boolean;
+  /**
+   * Cancellation audit trail (migration 0012). Optional because the legacy
+   * SQLite backend does not carry these columns — the Supabase client does.
+   */
+  cancelledAt?: string | null;
+  cancellationReason?: string | null;
+  cancelledBy?: 'client' | 'admin' | 'system' | null;
 }
 
 export interface Invoice {
@@ -319,6 +334,12 @@ export interface Invoice {
   paidAt: string | null;
   lineItems: ProposalLineItem[];
   isDemo: boolean;
+  /**
+   * Business name captured when the invoice was raised (migration 0012).
+   * A retained invoice — one whose client account was closed — keeps this so
+   * it is still attributable. Optional: the legacy backend has no such column.
+   */
+  billedTo?: string | null;
 }
 
 export interface Payment {
@@ -331,6 +352,8 @@ export interface Payment {
   method: string | null;
   paidAt: string;
   isDemo: boolean;
+  /** Retained-payment attribution (migration 0012). See Invoice.billedTo. */
+  billedTo?: string | null;
 }
 
 /* ── Automation ──────────────────────────────────────────────── */

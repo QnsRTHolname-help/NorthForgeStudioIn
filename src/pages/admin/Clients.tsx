@@ -99,7 +99,6 @@ export default function Clients() {
                       <p className="truncate text-xs text-muted">{client.contactName}</p>
                     </div>
                   ),
-                  sortValue: (client) => client.businessName,
                 },
                 { key: 'type', header: 'Type', cell: (client) => client.businessType ?? '—', hideBelow: 'lg' },
                 { key: 'city', header: 'Location', cell: (client) => client.city ?? '—', hideBelow: 'lg' },
@@ -171,9 +170,10 @@ export default function Clients() {
         title="Delete this client?"
         description={
           <>
-            <strong>{confirmDelete?.name}</strong> and everything attached — websites, projects, invoices, payments,
-            requests and files — will be removed permanently. Set their status to <strong>churned</strong> instead to
-            keep the history.
+            <strong>{confirmDelete?.name}</strong> and everything attached — websites, projects, requests, files and
+            messages — will be removed permanently. <strong>Invoices and payments are kept</strong> as financial records
+            and detached from the account, because money actually billed cannot be deleted on request. Set their status
+            to <strong>churned</strong> instead if you want to keep the whole working history.
           </>
         }
         confirmLabel="Delete client"

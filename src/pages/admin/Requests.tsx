@@ -5,7 +5,7 @@ import { AsyncBoundary, EmptyState } from '@/components/ui/States';
 import { Badge } from '@/components/ui/Badge';
 import { AdminHeader, ListToolbar } from '@/components/admin/AdminHeader';
 import { Drawer } from '@/components/ui/Modal';
-import { Input, Select } from '@/components/ui/Form';
+import { Select, Textarea } from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
 import { useAsync, useMutation } from '@/hooks/useAsync';
 import { usePageMeta } from '@/hooks/usePageMeta';
@@ -58,7 +58,8 @@ export default function Requests() {
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <Kpi label="Total" value={items.length} />
+        {/* Labelled "Matching", not "Total": these describe the filtered set. */}
+        <Kpi label="Matching" value={items.length} />
         <Kpi label="Open" value={open.length} tone="warning" />
         <Kpi label="Blocked" value={items.filter((request) => request.status === 'blocked').length} tone="danger" />
       </div>
@@ -159,7 +160,8 @@ export default function Requests() {
               className="space-y-3 border-t border-line pt-4"
               onSubmit={async (event) => {
                 event.preventDefault();
-                const data = new FormData(event.currentTarget);
+                const form = event.currentTarget;
+                const data = new FormData(form);
                 await update
                   .mutate({
                     id: detail.id,
@@ -167,6 +169,11 @@ export default function Requests() {
                     comment: String(data.get('comment') ?? '') || undefined,
                   })
                   .catch(() => undefined);
+                // Refresh the drawer with the fresh request so the new
+                // status and history entry appear immediately.
+                const fresh = await state.refetch().catch(() => undefined);
+                const updated = (fresh?.items ?? []).find((request) => request.id === detail.id);
+                if (updated) setDetail(updated);
               }}
             >
               <Select
@@ -175,9 +182,10 @@ export default function Requests() {
                 defaultValue={detail.status}
                 options={STATUSES.map((value) => ({ value, label: titleCase(value) }))}
               />
-              <Input
+              <Textarea
                 label="Reply to the client"
                 name="comment"
+                rows={3}
                 placeholder="What you have done, or what you need from them."
               />
               {update.error ? <p className="text-xs text-danger">{update.error}</p> : null}

@@ -56,7 +56,15 @@ export default function Invoices() {
   const state = useAsync(() => billingService.invoices(), []);
   const subs = useAsync(() => billingService.subscriptions(), []);
   const clients = useAsync(() => clientsService.list({ pageSize: 1000 }), []);
-  const clientName = (id: string) => clients.data?.items.find((client) => client.id === id)?.businessName ?? 'Unknown client';
+  /**
+   * Who an invoice belongs to. An invoice whose client account was closed is
+   * retained with its business name snapshotted (billed_to) and no live
+   * client row — it must still read as attributable, not as "unknown".
+   */
+  const clientName = (id: string, billedTo?: string | null) =>
+    clients.data?.items.find((client) => client.id === id)?.businessName ??
+    billedTo ??
+    (id ? 'Unknown client' : 'Closed account — retained');
 
   /** Subscriptions belonging to the selected client (often none, early on). */
   const clientSubs = (subs.data?.items ?? []).filter((subscription) => subscription.clientId === invoiceClientId);
@@ -66,7 +74,7 @@ export default function Invoices() {
     const matchesQuery =
       !needle ||
       invoice.number.toLowerCase().includes(needle) ||
-      clientName(invoice.clientId).toLowerCase().includes(needle);
+      clientName(invoice.clientId, invoice.billedTo).toLowerCase().includes(needle);
     return matchesQuery && (!status || invoice.status === status);
   });
 
@@ -227,7 +235,8 @@ export default function Invoices() {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-mono text-[13px] font-medium text-fg">{invoice.number}</span>
                       <span className="block truncate text-2xs text-muted">
-                        {clientName(invoice.clientId)} · {invoice.lineItems[0]?.label ?? 'No line items'} · issued{' '}
+                        {clientName(invoice.clientId, invoice.billedTo)} · {invoice.lineItems[0]?.label ?? 'No line items'}{' '}
+                        · issued{' '}
                         {formatDate(invoice.issuedAt)}
                       </span>
                     </span>
@@ -258,7 +267,7 @@ export default function Invoices() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="font-mono text-[15px] font-semibold text-fg">{detail.number}</p>
-                <p className="text-[13px] text-muted">{clientName(detail.clientId)}</p>
+                <p className="text-[13px] text-muted">{clientName(detail.clientId, detail.billedTo)}</p>
               </div>
               <Badge tone={detail.status === 'paid' ? 'success' : detail.status === 'open' ? 'warning' : 'neutral'}>
                 {titleCase(detail.status)}

@@ -8,6 +8,7 @@ import { SplitText, CountUp } from '@/components/motion/primitives';
 import { GrowthSystem, GrowthChain } from './GrowthSystem';
 import { whatsappLink } from '@/data/site';
 import { useReducedMotion } from '@/hooks';
+import { trackEvent } from '@/lib/analytics';
 
 const PROOF = [
   { value: 4, suffix: ' weeks', label: 'Typical time to go live' },
@@ -100,7 +101,12 @@ export function Hero() {
 
             <div data-hero-actions className="mt-9 flex flex-wrap items-center gap-3">
               <Magnetic>
-                <LinkButton to="/contact" size="lg" arrow>
+                <LinkButton
+                  to="/contact"
+                  size="lg"
+                  arrow
+                  onClick={() => trackEvent('get_started_click', { location: 'hero' })}
+                >
                   Start a project
                 </LinkButton>
               </Magnetic>
@@ -113,9 +119,10 @@ export function Hero() {
                 variant="ghost"
                 size="lg"
                 iconLeft={<MessageCircle className="h-4 w-4" />}
-                onClick={() =>
-                  window.open(whatsappLink('Hi NorthForge — I would like to know more.'), '_blank', 'noopener')
-                }
+                onClick={() => {
+                  trackEvent('whatsapp_click', { context: 'general', location: 'hero' });
+                  window.open(whatsappLink('Hi NorthForge — I would like to know more.'), '_blank', 'noopener');
+                }}
               >
                 Talk on WhatsApp
               </Button>

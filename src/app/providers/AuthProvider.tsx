@@ -27,6 +27,8 @@ interface AuthContextValue {
     businessName: string;
     phone?: string;
     businessType?: string;
+    /** Age eligibility attestation (spec §10–§11). */
+    ageConfirmed: boolean;
   }) => Promise<AuthSession>;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<void>;

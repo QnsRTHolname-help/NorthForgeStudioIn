@@ -202,7 +202,14 @@ export function DataTable<T extends { id: string }>({
                 ))}
                 {rowActions ? (
                   <TD align="right" className="whitespace-nowrap">
-                    {rowActions(row)}
+                    {/* Swallow clicks so an action button inside a clickable
+                        row never also triggers the row's own navigation. */}
+                    <div
+                      className="inline-flex items-center gap-1.5"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      {rowActions(row)}
+                    </div>
                   </TD>
                 ) : null}
               </tr>
@@ -226,7 +233,11 @@ export function DataTable<T extends { id: string }>({
                   <dd className="min-w-0 text-right text-[13px] text-fg">{column.cell(row)}</dd>
                 </div>
               ))}
-              {rowActions ? <div className="pt-1 text-right">{rowActions(row)}</div> : null}
+              {rowActions ? (
+                <div className="pt-1 text-right" onClick={(event) => event.stopPropagation()}>
+                  {rowActions(row)}
+                </div>
+              ) : null}
             </dl>
           </li>
         ))}

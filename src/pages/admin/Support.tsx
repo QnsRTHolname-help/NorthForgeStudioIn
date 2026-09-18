@@ -142,7 +142,10 @@ export default function Support() {
               className="mt-4 space-y-3 border-t border-line pt-4"
               onSubmit={async (event) => {
                 event.preventDefault();
-                const data = new FormData(event.currentTarget);
+                // Capture the element BEFORE awaiting — `event.currentTarget`
+                // is detached after the await and reset() would throw.
+                const form = event.currentTarget;
+                const data = new FormData(form);
                 const body = String(data.get('body') ?? '').trim();
                 if (!body) return;
                 await reply
@@ -153,7 +156,12 @@ export default function Support() {
                     status: String(data.get('status') ?? '') || undefined,
                   })
                   .catch(() => undefined);
-                event.currentTarget.reset();
+                form.reset();
+                // Re-open the drawer with the fresh ticket so the reply and
+                // status appear immediately (no stale content).
+                const fresh = await state.refetch().catch(() => undefined);
+                const updated = fresh?.items.find((ticket) => ticket.id === detail.id);
+                if (updated) setDetail(updated);
               }}
             >
               <Textarea name="body" rows={3} placeholder="Write a reply…" aria-label="Reply" required />

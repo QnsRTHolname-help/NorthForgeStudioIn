@@ -32,7 +32,7 @@ export default function Dashboard() {
         action={
           <>
             <Link
-              to="/app/leads"
+              to="/app/pipeline"
               className="nf-focus inline-flex h-9 items-center gap-2 rounded-md border border-line px-3.5 text-[13px] font-medium text-fg transition-colors hover:bg-elevated"
             >
               Open pipeline
@@ -216,10 +216,22 @@ export default function Dashboard() {
 
             <div className="grid gap-4 sm:grid-cols-3">
               <Panel title="System">
+                {/* The indicator follows the ACTUAL health report. It used to
+                    read a hard-coded 'unknown' from the dashboard payload, so
+                    it showed a permanent warning even when every component
+                    reported operational. */}
                 <StatusIndicator
-                  status={metrics?.systemHealth ?? 'unknown'}
-                  tone={metrics?.systemHealth === 'operational' ? 'success' : 'warning'}
-                  pulse={metrics?.systemHealth === 'operational'}
+                  status={health.loading ? 'checking' : (health.data?.state ?? 'unknown')}
+                  tone={
+                    health.loading
+                      ? 'neutral'
+                      : health.data?.state === 'operational'
+                        ? 'success'
+                        : health.data?.state === 'offline'
+                          ? 'danger'
+                          : 'warning'
+                  }
+                  pulse={health.data?.state === 'operational'}
                 />
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {(health.data?.components ?? []).map((component) => (
@@ -243,7 +255,9 @@ export default function Dashboard() {
                 <p className="nf-num text-[28px] font-semibold tracking-tight text-fg">
                   {formatPercent(metrics?.conversionRate)}
                 </p>
-                <p className="mt-1 text-[13px] text-muted">Leads converted from recorded enquiries</p>
+                {/* The metric is won ÷ (won + lost) — say so, instead of
+                    implying it counts every enquiry. */}
+                <p className="mt-1 text-[13px] text-muted">Leads won out of those closed so far</p>
                 <Link to="/app/conversions" className="mt-3 inline-flex items-center gap-1 text-[13px] text-brand hover:underline">
                   Funnel detail <ArrowRight className="h-3 w-3" aria-hidden />
                 </Link>

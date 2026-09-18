@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { Navbar } from '@/components/marketing/Navbar';
 import { Footer } from '@/components/marketing/Footer';
 import { MobileActionBar } from '@/components/marketing/MobileActionBar';
+import { WhatsAppChat } from '@/components/marketing/WhatsAppChat';
 import { ScrollProgress, ScrollTrigger } from '@/components/motion';
 import { SmoothScrollProvider } from '@/components/motion/SmoothScroll';
 import { PageTransition } from '@/components/motion';
@@ -98,6 +99,9 @@ export function PublicLayout() {
         <Footer />
       </div>
       <MobileActionBar />
+      {/* Desktop click-to-chat launcher; on phones the action bar above
+          already carries WhatsApp within thumb reach. */}
+      <WhatsAppChat />
     </SmoothScrollProvider>
   );
 }

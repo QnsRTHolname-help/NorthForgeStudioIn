@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Check, CheckCircle2, Clock, Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
 import { Input, Textarea, Select, Field, FormError } from '@/components/ui/Form';
@@ -11,6 +11,7 @@ import { useToast } from '@/app/providers/ToastProvider';
 import { contactService } from '@/services';
 import { CONTACT, emailLink, whatsappLink } from '@/data/site';
 import { PLANS, planAmountLabel, planSetupLabel } from '@shared/catalog';
+import { trackEvent } from '@/lib/analytics';
 
 const BUSINESS_TYPES = [
   'Healthcare & clinic',
@@ -84,6 +85,8 @@ export default function Contact() {
   const [submitted, setSubmitted] = useState(false);
   const [reference, setReference] = useState<string | null>(null);
   const toast = useToast();
+  /** Fires once, on the first keystroke — the start of the funnel (spec §39). */
+  const startedRef = useRef(false);
 
   const mutation = useMutation(
     async (payload: FormState) => {
@@ -103,7 +106,9 @@ export default function Contact() {
       return result;
     },
     {
-      onSuccess: (result) => {
+      onSuccess: (result, payload) => {
+        // Which entry point produced the enquiry — never WHO submitted it.
+        trackEvent('contact_form_submit', { with_plan: Boolean(payload.plan), reference: result.reference ?? 'none' });
         setSubmitted(true);
         setReference(result.reference);
         setValues(EMPTY);
@@ -113,6 +118,10 @@ export default function Contact() {
   );
 
   const set = (key: keyof FormState) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    if (!startedRef.current) {
+      startedRef.current = true;
+      trackEvent('contact_form_start');
+    }
     setValues((prev) => ({ ...prev, [key]: event.target.value }));
     setErrors((prev) => ({ ...prev, [key]: '' }));
   };
@@ -152,7 +161,10 @@ export default function Contact() {
             <Button
               variant="secondary"
               iconLeft={<MessageCircle className="h-4 w-4" />}
-              onClick={() => window.open(whatsappLink(`Hi NorthForge — my enquiry reference is ${reference}.`), '_blank', 'noopener')}
+              onClick={() => {
+                trackEvent('whatsapp_click', { context: 'post_submit', location: 'contact_confirmation' });
+                window.open(whatsappLink(`Hi NorthForge — my enquiry reference is ${reference}.`), '_blank', 'noopener');
+              }}
             >
               Continue on WhatsApp
             </Button>
@@ -325,7 +337,14 @@ export default function Contact() {
                 <Button type="submit" size="lg" loading={mutation.pending} arrow>
                   Find my automation opportunities
                 </Button>
-                <p className="text-xs text-faint">We reply within one business day. No sales sequence.</p>
+                <p className="text-xs text-faint">
+                  We reply within one business day. No sales sequence. Your details are used only to answer this
+                  enquiry — see our{' '}
+                  <Link to="/privacy" className="text-brand underline decoration-brand/30 underline-offset-2">
+                    privacy policy
+                  </Link>
+                  .
+                </p>
               </div>
             </form>
           </Card>
@@ -340,6 +359,7 @@ export default function Contact() {
                     href={whatsappLink('Hi NorthForge — I would like to know more.')}
                     target="_blank"
                     rel="noreferrer noopener"
+                    onClick={() => trackEvent('whatsapp_click', { context: 'general', location: 'contact_page' })}
                     className="flex items-center gap-3 text-[13px] text-muted transition-colors hover:text-fg"
                   >
                     <MessageCircle className="h-4 w-4 shrink-0 text-brand" aria-hidden />

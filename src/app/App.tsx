@@ -5,6 +5,7 @@ import { AppRoutes } from './router';
 import { AuthUrlErrorHandler } from './providers/AuthUrlErrorHandler';
 import { trackPageView } from '@/lib/analytics';
 import { Loader } from '@/components/ui/Loader';
+import { ConsentBanner } from '@/components/system/ConsentBanner';
 
 /** SPA page views — there are no full-page reloads to count for us. */
 function PageViewTracker() {
@@ -16,10 +17,10 @@ function PageViewTracker() {
 }
 
 export default function App() {
-  return (
-    <AppProviders>
-      <PageViewTracker />
-      <AuthUrlErrorHandler />
+  return (      <AppProviders>
+        <PageViewTracker />
+        <AuthUrlErrorHandler />
+        <ConsentBanner />
       <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-canvas"><Loader /></div>}>
         <Routes>
           {AppRoutes.map((route) => (

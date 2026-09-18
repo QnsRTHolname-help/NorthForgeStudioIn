@@ -1,5 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, LogOut, Monitor, Moon, ShieldCheck, Sun } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import {
+  AlertTriangle,
+  Cookie as CookieIcon,
+  Download,
+  FileText,
+  LogOut,
+  Monitor,
+  Moon,
+  Receipt,
+  ShieldCheck,
+  Sun,
+  UserRound,
+} from 'lucide-react';
 import { Panel, Card } from '@/components/ui/Card';
 import { PortalHeader, MetricRow } from '@/components/portal/PortalHeader';
 import { PasswordInput, Input, FormError, Switch } from '@/components/ui/Form';
@@ -10,9 +23,11 @@ import { useAuth } from '@/app/providers/AuthProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { useTheme } from '@/app/providers/ThemeProvider';
 import { useAsync, useMutation } from '@/hooks/useAsync';
-import { authService, mfaService, preferencesService } from '@/services';
+import { authService, dataExportService, mfaService, preferencesService } from '@/services';
 import { cn } from '@/lib/cn';
 import { formatDateTime } from '@/lib/format';
+import { applyAnalyticsConsent, analyticsConfigured } from '@/lib/analytics';
+import { hasConsent, readConsent, writeConsent } from '@/lib/consent';
 import { PasswordStrength } from '@/components/ui/PasswordStrength';
 import { PASSWORD_POLICY, scorePassword } from '@shared/password';
 import type { NotificationPreferences } from '@/types';
@@ -83,6 +98,34 @@ export default function Settings() {
     <div className="space-y-6">
       <PortalHeader title="Settings" description="How NorthForge looks, how it reaches you, and your security." />
 
+      {/*
+        Account settings are split across surfaces, so this screen names
+        them rather than pretending one panel does everything (spec §56):
+        profile and billing live on their own pages, subscription
+        cancellation happens where the plan is described, and everything
+        else is handled below.
+      */}
+      <nav aria-label="Account settings" className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          { to: '/portal/profile', label: 'Profile', detail: 'Name, business, contact details', icon: UserRound },
+          { to: '/portal/subscription', label: 'Subscription', detail: 'Plan, renewal, cancel plan', icon: FileText },
+          { to: '/portal/invoices', label: 'Billing', detail: 'Invoices and payments', icon: Receipt },
+          { to: '/privacy', label: 'Privacy policy', detail: 'What we hold and why', icon: ShieldCheck },
+        ].map((item) => (
+          <Link
+            key={item.to}
+            to={item.to}
+            className="nf-focus flex items-start gap-3 rounded-lg border border-line bg-surface p-4 transition-colors hover:border-line-strong"
+          >
+            <item.icon className="mt-0.5 h-4 w-4 shrink-0 text-brand" aria-hidden />
+            <span className="min-w-0">
+              <span className="block text-[13px] font-medium text-fg">{item.label}</span>
+              <span className="mt-0.5 block text-xs text-faint">{item.detail}</span>
+            </span>
+          </Link>
+        ))}
+      </nav>
+
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel title="Appearance">
           <p className="text-[13px] text-muted">Choose how the portal looks on this device.</p>
@@ -133,7 +176,9 @@ export default function Settings() {
           )}
           <p className="mt-4 text-xs text-faint">
             These switches control your in-portal notifications and are stored on your account.
-            Account and security notices about your business cannot be fully disabled.
+            Account and security notices about your business cannot be fully disabled. Switching
+            “Announcements &amp; marketing” off is the marketing opt-out — it does not cancel your plan
+            and does not close your account.
           </p>
         </Panel>
       </div>
@@ -191,8 +236,146 @@ export default function Settings() {
         <p className="mt-3 text-xs text-faint">Last updated {formatDateTime(new Date().toISOString())}</p>
       </Panel>
 
+      {isClient ? <PrivacyAndData /> : null}
       {isClient ? <DangerZone /> : null}
     </div>
+  );
+}
+
+/**
+ * Privacy, data and communication controls (spec §22, §53, §54, §56).
+ *
+ * Three actions that are often wrongly bundled together, kept apart:
+ *
+ *   • Cookie preferences — optional analytics only; necessary storage is
+ *     not optional and is explained rather than asked about.
+ *   • Download my data — an export of what THIS account may already read.
+ *   • Marketing opt-out — lives with the notification switches above.
+ *
+ * Closing the account is a separate, deliberate action in the danger zone.
+ */
+function PrivacyAndData() {
+  const toast = useToast();
+  const [consent, setConsent] = useState(() => readConsent());
+  const [downloading, setDownloading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const setAnalytics = (allowed: boolean) => {
+    const next = writeConsent({
+      analytics: allowed,
+      marketing: hasConsent('marketing', consent),
+      decidedAt: new Date().toISOString(),
+    });
+    applyAnalyticsConsent(next);
+    setConsent(next);
+    toast.success(allowed ? 'Analytics allowed' : 'Analytics turned off');
+  };
+
+  const download = async () => {
+    setDownloading(true);
+    setError(null);
+    try {
+      const payload = await dataExportService.collect();
+      const blob = new Blob([JSON.stringify(payload.data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = payload.filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      if (payload.warnings.length) {
+        toast.info('Export downloaded with notes', payload.warnings.join(' '));
+      } else {
+        toast.success('Export downloaded');
+      }
+    } catch (err) {
+      setError((err as Error)?.message ?? 'We could not build your export. Please try again.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <Panel title="Privacy & data">
+      <div className="space-y-1">
+        <MetricRow
+          label="Privacy policy"
+          value={
+            <Link to="/privacy" className="text-brand hover:underline">
+              Read it
+            </Link>
+          }
+        />
+        <MetricRow
+          label="Terms of service"
+          value={
+            <Link to="/terms" className="text-brand hover:underline">
+              Read them
+            </Link>
+          }
+        />
+      </div>
+
+      <div className="mt-5 border-t border-line pt-5">
+        <div className="flex items-start gap-3">
+          <CookieIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand" aria-hidden />
+          <div className="min-w-0">
+            <p className="text-[13px] font-medium text-fg">Cookies &amp; analytics</p>
+            <p className="mt-1 text-[13px] leading-relaxed text-muted">
+              Signing in and your theme choice are strictly necessary and cannot be turned off.
+              Analytics is optional{analyticsConfigured ? '' : ' — and is not configured on this deployment'}.
+            </p>
+          </div>
+        </div>
+        {analyticsConfigured ? (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant={consent.analytics ? 'secondary' : 'primary'}
+              onClick={() => setAnalytics(true)}
+              disabled={consent.analytics}
+            >
+              {consent.analytics ? 'Analytics allowed' : 'Allow analytics'}
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setAnalytics(false)}
+              disabled={!consent.analytics}
+            >
+              Turn analytics off
+            </Button>
+            <span className="text-xs text-faint">
+              {consent.decidedAt
+                ? `Last set ${formatDateTime(consent.decidedAt)}`
+                : 'No choice recorded yet — analytics is off.'}
+            </span>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="mt-5 border-t border-line pt-5">
+        <div className="flex items-start gap-3">
+          <Download className="mt-0.5 h-4 w-4 shrink-0 text-brand" aria-hidden />
+          <div className="min-w-0">
+            <p className="text-[13px] font-medium text-fg">Download my data</p>
+            <p className="mt-1 text-[13px] leading-relaxed text-muted">
+              A JSON copy of your profile, business record, leads, projects, requests, bookings, files,
+              subscription, invoices, payments and messages. It contains only what this account can already
+              read — never another client's records or internal NorthForge notes.
+            </p>
+          </div>
+        </div>
+        <div className="mt-3">
+          <Button size="sm" variant="secondary" loading={downloading} onClick={download}>
+            Download my data
+          </Button>
+        </div>
+        {error ? <p className="mt-2 text-xs text-danger">{error}</p> : null}
+      </div>
+    </Panel>
   );
 }
 
@@ -216,7 +399,10 @@ function DangerZone() {
 
   const del = useMutation(() => deleteAccount(), {
     onSuccess: () => {
-      toast.info('Account deleted', 'All of your data has been removed. We are sorry to see you go.');
+      toast.info(
+        'Account closed',
+        'Data eligible for deletion has been removed. Some records may be retained where the law, security or accounting rules require it.',
+      );
       // AuthProvider has already reset state; the router lands on the
       // public site via the unauthenticated redirect.
     },
@@ -229,9 +415,19 @@ function DangerZone() {
         <div className="min-w-0">
           <p className="text-[13px] font-medium text-fg">Delete this account permanently</p>
           <p className="mt-1 text-[13px] leading-relaxed text-muted">
-            Removes your login, your business workspace and every record connected to it — leads,
-            projects, invoices, files and messages. This cannot be undone and no backup is kept for
-            recovery by you. Active subscriptions should be cancelled first.
+            This action permanently closes your NorthForge account and may remove data that is
+            eligible for deletion: your login, your business workspace and the records attached to it
+            — leads, projects, requests, files and messages. Some records may need to be retained for
+            legal, security, accounting or operational reasons, and backups can keep a copy for a
+            limited period before they cycle out. It cannot be undone from your side.
+          </p>
+          <p className="mt-2 text-[13px] leading-relaxed text-muted">
+            Closing your account is not the same as cancelling your plan. If your subscription is
+            still active,{' '}
+            <Link to="/portal/subscription" className="text-brand hover:underline">
+              cancel it first
+            </Link>{' '}
+            so billing stops cleanly.
           </p>
         </div>
       </div>

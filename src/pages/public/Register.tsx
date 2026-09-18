@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
-import { Input, PasswordInput, FormError } from '@/components/ui/Form';
+import { Input, PasswordInput, FormError, Checkbox } from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
 import { Logo } from '@/components/brand/Logo';
 import { usePageMeta } from '@/hooks/usePageMeta';
@@ -12,6 +12,7 @@ import { authService } from '@/services';
 import { PasswordStrength } from '@/components/ui/PasswordStrength';
 import { useCooldown } from '@/hooks/useCooldown';
 import { PASSWORD_POLICY } from '@shared/password';
+import { normalizeWhatsAppNumber, prettyWhatsAppNumber } from '@/lib/whatsapp';
 
 export default function Register() {
   usePageMeta({ title: 'Create your account', description: 'Create a NorthForge client account.', noIndex: true });
@@ -32,6 +33,16 @@ export default function Register() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   /** Email confirmation is enabled: the account exists but needs verifying. */
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  /**
+   * Age eligibility (spec §10–§11).
+   *
+   * A self-attested confirmation, NOT an identity check: a basic age gate
+   * does not justify asking an adult to upload a passport, Aadhaar card or
+   * driving licence. We store only the RESULT (age_verified /
+   * age_verified_at, migration 0012) — never a date of birth, which would be
+   * more sensitive information than the eligibility decision requires.
+   */
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
 
   const mutation = useMutation(
     async () => {
@@ -39,9 +50,10 @@ export default function Register() {
         name: values.name,
         businessName: values.businessName,
         email: values.email,
-        phone: values.phone || undefined,
+        phone: values.phone.trim() ? (normalizeWhatsAppNumber(values.phone) ?? undefined) : undefined,
         businessType: values.businessType || undefined,
         password: values.password,
+        ageConfirmed,
       });
       return session;
     },
@@ -73,6 +85,13 @@ export default function Register() {
       next.password = `Use at least ${PASSWORD_POLICY.minLength} characters.`;
     }
     if (values.password !== values.confirm) next.confirm = 'Passwords do not match.';
+    if (!ageConfirmed) next.age = 'Please confirm you meet the age requirement.';
+    // Phone is optional, but if it is given it must be a reachable number —
+    // it is the channel we (and your customers) reply on. It is normalised
+    // to international digits so it matches the WhatsApp inbox exactly.
+    if (values.phone.trim() && !normalizeWhatsAppNumber(values.phone)) {
+      next.phone = 'Enter a valid phone number, including the country code if outside India.';
+    }
     setErrors(next);
     if (Object.keys(next).length) return;
 
@@ -182,6 +201,11 @@ export default function Register() {
               value={values.phone}
               onChange={set('phone')}
               error={errors.phone}
+              hint={
+                values.phone.trim() && normalizeWhatsAppNumber(values.phone)
+                  ? `We will reach you on ${prettyWhatsAppNumber(normalizeWhatsAppNumber(values.phone))}`
+                  : 'Used to reach you about your account and your enquiries. Not shown publicly.'
+              }
             />
             <Input
               label="Business type"
@@ -209,6 +233,34 @@ export default function Register() {
             onChange={set('confirm')}
             error={errors.confirm}
           />
+
+          <div className="space-y-3 rounded-lg border border-line bg-sunken/30 p-4">
+            <Checkbox
+              checked={ageConfirmed}
+              onChange={(checked) => {
+                setAgeConfirmed(checked);
+                setErrors((prev) => ({ ...prev, age: '' }));
+              }}
+              label="I am 18 or older"
+              description="NorthForge provides business services intended for adults. We record only that this confirmation was given."
+            />
+            {errors.age ? (
+              <p className="text-xs text-danger" role="alert">
+                {errors.age}
+              </p>
+            ) : null}
+            <p className="text-xs leading-relaxed text-faint">
+              By creating an account you agree to our{' '}
+              <Link to="/terms" className="text-brand underline decoration-brand/30 underline-offset-2">
+                terms of service
+              </Link>{' '}
+              and confirm you have read our{' '}
+              <Link to="/privacy" className="text-brand underline decoration-brand/30 underline-offset-2">
+                privacy policy
+              </Link>
+              .
+            </p>
+          </div>
 
           <FormError message={mutation.error} />
 

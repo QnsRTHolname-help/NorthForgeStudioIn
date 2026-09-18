@@ -9,6 +9,7 @@ import { StaggerMenu, StaggerItem } from '@/components/motion/primitives';
 import { PUBLIC_NAV, whatsappLink } from '@/data/site';
 import { useScrolled, useReducedMotion, useFocusTrap } from '@/hooks';
 import { useSmoothScroll } from '@/components/motion/SmoothScroll';
+import { trackEvent } from '@/lib/analytics';
 
 /**
  * Public navigation.
@@ -170,6 +171,7 @@ export function Navbar() {
                 href={whatsappLink('Hi NorthForge — I would like to know more.')}
                 target="_blank"
                 rel="noreferrer noopener"
+                onClick={() => trackEvent('whatsapp_click', { context: 'general', location: 'navbar' })}
                 className="nf-focus hidden h-9 items-center gap-2 rounded-full px-3 text-[13px] text-muted transition-colors hover:bg-elevated hover:text-fg sm:inline-flex"
               >
                 <MessageCircle className="h-4 w-4" aria-hidden />
@@ -183,7 +185,12 @@ export function Navbar() {
                 Client login
               </Link>
 
-              <LinkButton to="/contact" size="sm" className="hidden sm:inline-flex">
+              <LinkButton
+                to="/contact"
+                size="sm"
+                className="hidden sm:inline-flex"
+                onClick={() => trackEvent('get_started_click', { location: 'navbar' })}
+              >
                 Get started
               </LinkButton>
 
@@ -247,7 +254,12 @@ export function Navbar() {
               </nav>
 
               <StaggerItem className="mt-5">
-                <LinkButton to="/contact" fullWidth size="lg">
+                <LinkButton
+                  to="/contact"
+                  fullWidth
+                  size="lg"
+                  onClick={() => trackEvent('get_started_click', { location: 'mobile_menu' })}
+                >
                   Get started
                 </LinkButton>
               </StaggerItem>
@@ -257,6 +269,7 @@ export function Navbar() {
                   href={whatsappLink('Hi NorthForge — I would like to know more.')}
                   target="_blank"
                   rel="noreferrer noopener"
+                  onClick={() => trackEvent('whatsapp_click', { context: 'general', location: 'mobile_menu' })}
                   className="nf-focus flex h-11 w-full items-center justify-center gap-2 rounded-md border border-line text-[13px] font-medium text-fg transition-colors hover:bg-elevated"
                 >
                   <MessageCircle className="h-4 w-4" aria-hidden />
