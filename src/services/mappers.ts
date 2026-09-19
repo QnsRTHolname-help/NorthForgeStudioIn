@@ -274,6 +274,7 @@ export function mapWhatsAppMessage(row: Record<string, unknown>): WhatsAppMessag
     to: String(row.to_number ?? ''),
     body: String(row.body ?? ''),
     status: (row.status as WhatsAppMessage['status']) ?? 'queued',
+    failureReason: (row.failure_reason as string) ?? null,
     templateId: (row.template_id as string) ?? null,
     automated: Boolean(row.automated ?? false),
     createdAt: String(row.created_at ?? ''),

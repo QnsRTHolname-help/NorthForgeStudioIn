@@ -400,6 +400,12 @@ export interface WhatsAppMessage {
   to: string;
   body: string;
   status: 'queued' | 'sent' | 'delivered' | 'read' | 'failed';
+  /**
+   * Why the provider rejected an outbound message (migration 0014). Recorded
+   * server-side by `whatsapp-send` so the inbox can explain a failure instead
+   * of just labelling it "failed".
+   */
+  failureReason: string | null;
   templateId: ID | null;
   automated: boolean;
   createdAt: string;

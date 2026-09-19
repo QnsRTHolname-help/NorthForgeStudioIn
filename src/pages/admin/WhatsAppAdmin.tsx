@@ -513,6 +513,17 @@ function Bubble({ message }: { message: WhatsAppMessage }) {
         )}
         {message.automated ? <Badge tone="info">Automated</Badge> : null}
       </p>
+      {/* Why Meta refused it — recorded by the Edge Function, not guessed here. */}
+      {outbound && message.status === 'failed' && message.failureReason ? (
+        <p
+          className={cn(
+            'mt-1.5 max-w-full rounded border border-danger/25 bg-danger/[0.06] px-2 py-1 text-2xs leading-relaxed text-danger',
+            outbound && 'text-right',
+          )}
+        >
+          {message.failureReason}
+        </p>
+      ) : null}
     </div>
   );
 }

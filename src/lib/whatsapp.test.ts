@@ -16,6 +16,7 @@ function message(overrides: Partial<WhatsAppMessage>): WhatsAppMessage {
     to: '919845012345',
     body: 'Hello',
     status: 'sent',
+    failureReason: null,
     templateId: null,
     automated: false,
     createdAt: '2026-01-01T10:00:00.000Z',
