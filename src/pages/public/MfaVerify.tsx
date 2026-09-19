@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Smartphone, ShieldCheck } from 'lucide-react';
-import { Input, FormError } from '@/components/ui/Form';
+import { FormError } from '@/components/ui/Form';
+import { OtpInput } from '@/components/ui/OtpInput';
 import { Button } from '@/components/ui/Button';
 import { Logo } from '@/components/brand/Logo';
 import { usePageMeta } from '@/hooks/usePageMeta';
@@ -30,8 +31,13 @@ export default function MfaVerify() {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * The code is passed in rather than read from state: the OTP field submits
+   * itself the instant the sixth digit lands, and a mutation that closed over
+   * the previous render's `code` would verify one code behind.
+   */
   const verify = useMutation(
-    async () => {
+    async (submitted: string) => {
       const factorIds = await mfaService.verifiedFactorIds();
       if (factorIds.length === 0) {
         throw new AuthError({
@@ -39,7 +45,7 @@ export default function MfaVerify() {
           message: 'No two-factor device is registered for this account. Sign in again or contact support.',
         });
       }
-      await mfaService.verifyChallenge(factorIds[0]!, code);
+      await mfaService.verifyChallenge(factorIds[0]!, submitted);
     },
     {
       onSuccess: async () => {
@@ -49,17 +55,23 @@ export default function MfaVerify() {
         const role = session?.user.role;
         navigate(role === 'admin' || role === 'super_admin' ? '/app' : '/portal', { replace: true });
       },
+      onError: () => {
+        // Codes rotate every 30 seconds; clear the boxes so the next attempt
+        // starts from typing rather than from editing a rejected one.
+        setCode('');
+      },
     },
   );
 
-  const onSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (code.replace(/\D/g, '').length !== 6) {
-      setError('Enter the 6-digit code from your authenticator app.');
-      return;
-    }
+  const submit = (submitted: string) => {
+    if (submitted.replace(/\D/g, '').length !== 6 || verify.pending) return;
     setError(null);
-    await verify.mutate().catch(() => undefined);
+    void verify.mutate(submitted).catch(() => undefined);
+  };
+
+  const onSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    submit(code);
   };
 
   return (
@@ -73,32 +85,50 @@ export default function MfaVerify() {
           <Smartphone className="h-5 w-5" aria-hidden />
         </span>
 
-        <h1 className="text-[26px] font-semibold tracking-[-0.02em] text-fg">Two-factor verification.</h1>
+        <h1 className="text-[26px] font-semibold tracking-[-0.02em] text-fg">Confirm it&rsquo;s you.</h1>
         <p className="mt-2 text-[13px] leading-relaxed text-muted">
-          Your password was accepted. Enter the 6-digit code from your authenticator app to finish signing in. Codes
-          rotate every 30 seconds.
+          Your password was accepted. Enter the 6-digit code from your authenticator app — it checks and continues on
+          its own as soon as the last digit lands.
         </p>
 
         <form onSubmit={onSubmit} noValidate className="mt-8 space-y-4">
-          <Input
-            label="Authentication code"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            required
-            maxLength={6}
+          <OtpInput
             value={code}
-            onChange={(event) => {
-              setCode(event.target.value.replace(/\D/g, '').slice(0, 6));
+            onChange={(next) => {
+              setCode(next);
               setError(null);
             }}
-            error={error ?? undefined}
-            placeholder="000000"
-            className="tracking-[0.4em] font-mono"
+            onComplete={submit}
+            disabled={verify.pending}
+            invalid={Boolean(error ?? verify.error)}
+            autoFocus
           />
 
+          <p className="min-h-[1rem] text-2xs" aria-live="polite">
+            {verify.pending ? (
+              <span className="text-muted">Checking that code…</span>
+            ) : code.length === 6 ? (
+              <span className="text-faint">Code complete.</span>
+            ) : (
+              <span className="text-faint">Paste it, or type it — codes rotate every 30 seconds.</span>
+            )}
+          </p>
+
+          {error ? (
+            <p role="alert" className="text-xs text-danger">
+              {error}
+            </p>
+          ) : null}
           <FormError message={verify.error} />
 
-          <Button type="submit" fullWidth size="lg" loading={verify.pending} disabled={verify.pending} arrow>
+          <Button
+            type="submit"
+            fullWidth
+            size="lg"
+            loading={verify.pending}
+            disabled={verify.pending || code.length !== 6}
+            arrow
+          >
             {verify.pending ? 'Verifying…' : 'Verify and continue'}
           </Button>
         </form>

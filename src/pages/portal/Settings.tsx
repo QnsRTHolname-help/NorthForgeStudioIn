@@ -16,6 +16,7 @@ import {
 import { Panel, Card } from '@/components/ui/Card';
 import { PortalHeader, MetricRow } from '@/components/portal/PortalHeader';
 import { PasswordInput, Input, FormError, Switch } from '@/components/ui/Form';
+import { ConfirmPhrase } from '@/components/ui/ConfirmPhrase';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { usePageMeta } from '@/hooks/usePageMeta';
@@ -384,16 +385,18 @@ function PrivacyAndData() {
  *
  * Placed last on Settings, visually distinct, and gated by typing the
  * business name — an irreversible action never sits behind a single tap.
- * The deletion itself is enforced server-side by the 0009 RPC: the client
- * row (and every business record that cascades from it) and the auth user
- * are removed in one transaction. Admins never see this panel — privileged
- * accounts are off-boarded by a super admin.
+ * The verification step itself (`ConfirmPhrase`) also states exactly what is
+ * removed and what is kept, because the two are not the same thing here.
+ *
+ * The deletion is enforced server-side by the RPC: the client row (and every
+ * business record that cascades from it) and the auth user are removed in one
+ * transaction. Admins never see this panel — privileged accounts are
+ * off-boarded by a super admin.
  */
 function DangerZone() {
   const toast = useToast();
   const { session, deleteAccount } = useAuth();
   const businessName = session?.client?.businessName ?? '';
-  const [confirmText, setConfirmText] = useState('');
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -415,11 +418,8 @@ function DangerZone() {
         <div className="min-w-0">
           <p className="text-[13px] font-medium text-fg">Delete this account permanently</p>
           <p className="mt-1 text-[13px] leading-relaxed text-muted">
-            This action permanently closes your NorthForge account and may remove data that is
-            eligible for deletion: your login, your business workspace and the records attached to it
-            — leads, projects, requests, files and messages. Some records may need to be retained for
-            legal, security, accounting or operational reasons, and backups can keep a copy for a
-            limited period before they cycle out. It cannot be undone from your side.
+            This permanently closes your NorthForge account. The next step lists exactly what is
+            removed and what has to be kept — they are not the same list.
           </p>
           <p className="mt-2 text-[13px] leading-relaxed text-muted">
             Closing your account is not the same as cancelling your plan. If your subscription is
@@ -444,46 +444,35 @@ function DangerZone() {
           </Button>
         </div>
       ) : (
-        <div className="mt-4 max-w-md rounded-lg border border-danger/30 bg-danger/[0.04] p-4">
-          <p className="text-[13px] text-fg">
-            Type <span className="font-mono font-semibold">{businessName || 'DELETE'}</span> to confirm.
-          </p>
-          <Input
-            className="mt-2"
-            value={confirmText}
-            onChange={(event) => setConfirmText(event.target.value)}
-            placeholder={businessName || 'DELETE'}
-            autoComplete="off"
-            aria-label="Confirmation phrase"
+        <div className="mt-4">
+          <ConfirmPhrase
+            phrase={businessName || 'DELETE'}
+            removed={[
+              'Your login, profile and phone number',
+              'Your business workspace and everything hanging off it',
+              'Leads, proposals, projects, milestones and tasks',
+              'Requests, support tickets and their messages',
+              'Uploaded files, and website analytics records',
+            ]}
+            kept={[
+              'Invoices and payments already issued or received',
+              'A short audit record that the account was closed',
+              'Backup copies, until they cycle out on their own schedule',
+            ]}
+            acknowledgement="I understand invoices and payments are kept as financial records, and that closing my account is not the same as cancelling my plan."
+            confirmLabel="Delete my account forever"
+            cancelLabel="Keep my account"
+            pending={del.pending}
+            error={error ?? del.error}
+            onCancel={() => {
+              setConfirming(false);
+              setError(null);
+            }}
+            onConfirm={() => {
+              setError(null);
+              del.mutate().catch(() => undefined);
+            }}
           />
-          {error ?? del.error ? (
-            <p className="mt-2 text-xs text-danger">{error ?? del.error}</p>
-          ) : null}
-          <div className="mt-3 flex gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                setConfirming(false);
-                setConfirmText('');
-                setError(null);
-              }}
-            >
-              Keep my account
-            </Button>
-            <Button
-              size="sm"
-              className="bg-danger text-white hover:bg-danger/90"
-              loading={del.pending}
-              disabled={confirmText.trim().toLowerCase() !== (businessName || 'DELETE').toLowerCase()}
-              onClick={() => {
-                setError(null);
-                del.mutate().catch(() => undefined);
-              }}
-            >
-              Delete forever
-            </Button>
-          </div>
         </div>
       )}
     </Panel>
