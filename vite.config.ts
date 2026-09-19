@@ -2,8 +2,13 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 
-const API_TARGET = process.env.NF_API_TARGET ?? 'http://127.0.0.1:4000';
-
+/**
+ * There is one backend: Supabase (Postgres + RLS + Auth + Storage + Edge
+ * Functions). The browser talks to it directly with the publishable key, so
+ * there is no `/api` proxy — the legacy Express/SQLite server and its proxy
+ * were removed rather than left configured against a service that no longer
+ * exists.
+ */
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -18,18 +23,11 @@ export default defineConfig({
     strictPort: true,
     // Accept the sandboxed preview hostnames used by hosted preview environments.
     allowedHosts: true,
-    proxy: {
-      '/api': { target: API_TARGET, changeOrigin: false },
-      '/health': { target: API_TARGET, changeOrigin: false },
-    },
   },
   preview: {
     host: '0.0.0.0',
     port: 4173,
     allowedHosts: true,
-    proxy: {
-      '/api': { target: API_TARGET, changeOrigin: false },
-    },
   },
   build: {
     target: 'es2020',

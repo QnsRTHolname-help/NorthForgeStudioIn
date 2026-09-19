@@ -41,13 +41,18 @@ npm run dev          # Vite on :5173
 | | |
 | --- | --- |
 | App | `http://localhost:5173` |
-| DB migration | run `supabase/migrations/0001_northforge_supabase.sql` once (non-destructive, safe to re-run) |
+| DB migrations | apply `supabase/migrations/` in order, `0001` → `0014` (all non-destructive and safe to re-run) |
 | Setup guide | [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md) |
 
-Environment: copy `.env.example` → `.env` and set
-`VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (public, bundled) and any
-optional server-side values. **Vercel:** set the variables per environment
-(Production / Preview / Development) and redeploy after changing them.
+There is no application server to run alongside it: the backend is Supabase
+(Postgres + RLS + Auth + Storage + Edge Functions). `npm run dev` starts Vite
+and nothing else.
+
+Environment: copy `.env.example` → `.env` and set `VITE_SUPABASE_URL` +
+`VITE_SUPABASE_ANON_KEY` (public, bundled) and any optional values.
+**Vercel:** set the variables per environment (Production / Preview /
+Development) and redeploy after changing them — Vite inlines them at build
+time.
 
 ### Accounts
 
@@ -62,11 +67,12 @@ update public.profiles set role = 'admin' where email = 'operator@example.com';
 ## Scripts
 
 ```bash
-npm run dev          # dev server
-npm run build        # typecheck + production bundle + sitemap
+npm run dev          # Vite dev server on :5173
+npm run build        # typecheck + production bundle + sitemap/robots
 npm run typecheck    # tsc --noEmit
 npm run lint         # eslint, zero warnings
-npm test             # unit + API integration tests
+npm test             # unit tests (billing, enquiry intake, consent,
+                     # WhatsApp edge helpers: signature + validation)
 ```
 
 ## What is real vs. not
@@ -77,12 +83,29 @@ npm test             # unit + API integration tests
 | Clients, leads, projects, tasks, websites | Real CRUD, RLS-scoped |
 | Billing, invoices, subscriptions | Real records; amounts in **paise** integers, formatted only at the edge |
 | Catalog/pricing | Static, versioned — one source of truth, browser never invents a price |
-| WhatsApp | Real records; Cloud API sending only with server-side provider credentials (env-only) |
+| WhatsApp | Real records; Cloud API sending only with server-side provider credentials (env-only). The webhook verifies Meta's request signature before writing anything |
 | Payments | Recorded; no gateway wired |
 | AI | **Intentionally not implemented** — schema + RLS exist as an extension point; no fake chatbot |
 
 **No fabricated business data.** Empty dashboards show empty states, never
 invented numbers.
+
+## Security model, in one place
+
+- **RLS is the boundary.** Route guards, hidden buttons and disabled inputs are
+  UX. Every table has policies; a client cannot read another client's rows even
+  by calling PostgREST directly.
+- **Service-owned columns are pinned by triggers**, not by the UI: `profiles`
+  (role, client linkage, the age-gate result) and `clients` (plan, status,
+  onboarding state, internal notes). A direct PATCH cannot escalate them.
+- **Privileged admin work requires a verified second factor** (AAL2). Once an
+  operator enrols MFA, an AAL1 session can neither read nor write admin data —
+  including through security-definer RPCs.
+- **The service-role key never reaches the browser.** It exists only inside
+  Supabase Edge Functions.
+
+See `docs/PRIVACY_DATA_AND_LAUNCH.md` for what deletion, retention and the data
+flows actually do.
 
 ## Before going live
 

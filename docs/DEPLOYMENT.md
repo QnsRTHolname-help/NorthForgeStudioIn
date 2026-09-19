@@ -1,157 +1,148 @@
 # Deploying NorthForge
 
-One Node process serves both the API and the built frontend. There is no separate web server, no sidecar and no build step on the host — the image arrives ready to run.
+There is **one** runtime and **one** backend:
 
 ```
-                 ┌──────────────────────────────┐
-   browser  ───► │  Express (node dist-server)  │
-                 │  /api/*  → JSON              │
-                 │  /*      → dist/ SPA         │
-                 │  /health → liveness          │
-                 └──────────┬───────────────────┘
-                            │
-                     SQLite file on a volume
+                              ┌──────────────────────────────────┐
+   browser ──── static ─────► │ Vercel: the built SPA (dist/)     │
+       │                      │ vercel.json: rewrites + headers   │
+       │                      └──────────────────────────────────┘
+       │
+       └── Supabase JS (publishable key) ──► Supabase
+                                              • Postgres + RLS (the boundary)
+                                              • Auth (sessions, TOTP MFA)
+                                              • Storage (private bucket)
+                                              • Edge Functions (WhatsApp)
 ```
+
+There is no application server, no `/api` route and no Docker image. The
+browser talks to Supabase directly with the publishable (anon) key; every
+table is protected by Row Level Security, so that key says *who you are* and
+never *what you may read*. An earlier Express + SQLite server and its Docker
+setup were **removed** — nothing in `src/` referenced them, and keeping a
+second, unused backend in the tree was a standing invitation to deploy the
+wrong one.
 
 ---
 
-## 1. What you need before deploying
+## 1. Environment variables
 
-| Variable | Required | Notes |
-| --- | --- | --- |
-| `JWT_SECRET` | **yes** | ≥ 32 chars. `openssl rand -hex 48`. Rotating it signs out every user. |
-| `CLIENT_ORIGIN` | **yes** | Comma-separated origins allowed to call the API, e.g. `https://northforge.studio` |
-| `DATABASE_FILE` | yes | Path to the SQLite file. Keep it **on a volume** — losing it loses the business. |
-| `PORT` | no | Defaults to `4000`. |
-| `BCRYPT_ROUNDS` | no | `10` in dev; `12` is a reasonable production value. |
-| `WHATSAPP_PHONE_NUMBER_ID` / `WHATSAPP_ACCESS_TOKEN` / `WHATSAPP_VERIFY_TOKEN` | no | Without these, messages are recorded locally instead of sent. |
-| `SITE_URL` | no | Used for `sitemap.xml` and canonical URLs. Defaults to `https://northforgestudio.vercel.app`. |
-| `VITE_API_URL` | no | Frontend-only. Set when the site and API are deployed **separately** (see §6). Leave unset when one process serves both. |
+Vite exposes **only** `VITE_`-prefixed variables to the browser. That prefix is
+the entire secrets boundary: the Supabase secret/service-role key must never
+be given a `VITE_` name.
 
-Copy `.env.example` to `.env`, fill it in, and never commit `.env`.
+| Variable | Where | Required | Notes |
+| --- | --- | --- | --- |
+| `VITE_SUPABASE_URL` | Vercel (all envs) | **yes** | Project URL. |
+| `VITE_SUPABASE_ANON_KEY` | Vercel (all envs) | **yes** | Publishable/anon key. Safe to ship — RLS is the boundary. |
+| `VITE_SITE_URL` | Vercel | **yes** | Canonical + OpenGraph base. Must match the production domain. |
+| `VITE_WHATSAPP_NUMBER` | Vercel | **yes** | Digits only, country code first. |
+| `VITE_GA4_ID` | Vercel | no | `G-XXXXXXXXXX`. Unset ⇒ no analytics script is requested at all. |
+| `VITE_GOOGLE_SITE_VERIFICATION` | Vercel | no | Search Console verification token. |
+| `WHATSAPP_ACCESS_TOKEN` | Supabase secrets | no | Cloud API sending. |
+| `WHATSAPP_PHONE_NUMBER_ID` | Supabase secrets | no | Cloud API sending + webhook filtering. |
+| `WHATSAPP_VERIFY_TOKEN` | Supabase secrets | no | Meta webhook subscription check. |
+| `WHATSAPP_APP_SECRET` | Supabase secrets | **yes for the webhook** | Meta App Secret. The webhook verifies `X-Hub-Signature-256` with it and **refuses every event while it is unset**. |
 
----
-
-## 2. Docker (recommended)
-
-```bash
-docker compose up --build          # build + run on :4000
-docker compose run --rm seed       # seed the admin + demo accounts (first run)
-```
-
-- The database lives on the `northforge-data` volume.
-- The container runs as a non-root user.
-- `HEALTHCHECK` hits `/health`, which probes the database and returns `503` if it is unreachable.
-
-### Seeding
-
-```bash
-npm run seed          # idempotent — safe to re-run
-npm run seed:demo     # demo rows only
-npm run seed:clean    # remove seeded demo rows (keeps real data)
-```
+Vite inlines env values at **build** time. Changing one requires a redeploy —
+not just an env edit.
 
 ---
 
-## 3. Without Docker
+## 2. Deploying
 
 ```bash
 npm ci
-npm run build         # tsc -b && vite build && sitemap
-npm run build:server  # esbuild → dist-server/index.js
-npm run seed
-NODE_ENV=production JWT_SECRET=… CLIENT_ORIGIN=https://… node dist-server/index.js
+npm run build      # tsc --noEmit && vite build && generate sitemap + robots
 ```
 
-Run it behind systemd, pm2 or any process supervisor. It is stateless apart from the SQLite file.
+Vercel runs exactly that (`vercel.json` → `buildCommand`), serves `dist/`, and
+applies the rewrites and headers described below. Push to `main` and Vercel
+deploys.
 
----
+### Database migrations
 
-## 4. Reverse proxy
-
-Terminate TLS at nginx/Caddy and forward to `127.0.0.1:4000`. Two things matter:
-
-```nginx
-location / {
-  proxy_pass http://127.0.0.1:4000;
-  proxy_set_header Host $host;
-  proxy_set_header X-Forwarded-Proto $scheme;
-  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-}
-
-# Never cache the entry document; assets are fingerprinted and cached by the app.
-location = /index.html { add_header Cache-Control "no-store"; }
-```
-
-`app.set('trust proxy', 1)` is already enabled, so `X-Forwarded-Proto` is respected for secure cookies.
-
----
-
-## 5. Backups
-
-SQLite, so backups are a file copy — but copy it **safely**:
+Migrations live in `supabase/migrations/` and are applied **in order**. They
+are written to be safe to re-run. Either paste them into the Supabase SQL
+editor, or use the CLI:
 
 ```bash
-sqlite3 /app/data/northforge.db ".backup /backups/northforge-$(date +%F).db"
+npx supabase link --project-ref <ref>
+npx supabase migration list
+npx supabase db push --dry-run     # always look before you leap
+npx supabase db push
 ```
 
-Do not `cp` a live database file; the WAL means a plain copy can be inconsistent. Schedule the `.backup` command nightly and ship the result off-host.
-
----
-
-## 6. After deploying
-
-- `GET /health` → `{"ok":true,"data":{"state":"operational",...}}`
-- Sign in, open **System health** in the admin OS, and run a re-check — every component reports a real probe result.
-- Confirm `robots.txt` and `sitemap.xml` are served, and that `SITE_URL` matches your real domain.
-
----
-
-## 7. Moving to Postgres
-
-`server/src/schema.sql` holds the Postgres/Supabase schema (the SQLite equivalent is `server/src/schema.ts`). The data layer is centralised in `server/src/db.ts`, so the migration is: create the schema from the SQL file, swap the driver, and keep the money convention — **integer paise**, never floats.
-
-
----
-
-## 6. Deploying the site to Vercel
-
-**The frontend alone cannot authenticate users.** Login posts to `/api/auth/login`.
-If no API is deployed there, Vercel answers with the HTML shell, the browser
-fails to parse it as JSON, and signing in appears to do nothing (or signs you
-straight back out). This is the single most common deployment mistake with
-this codebase.
-
-Pick one of two layouts:
-
-### A. One host (recommended — simplest, no CORS, no cookie issues)
-
-Run the Docker image on any host (Render, Railway, Fly.io, a VPS, your own
-machine behind a tunnel). The same process serves the site and the API, so
-both live on one origin. Nothing else to configure.
-
-### B. Site on Vercel, API elsewhere
-
-1. Deploy the API host first and note its URL, e.g. `https://api.yourdomain.com`.
-2. Add `CLIENT_ORIGIN=https://northforgestudio.vercel.app` to the **API's** env.
-3. Add `VITE_API_URL=https://api.yourdomain.com` to the **Vercel** project's
-   environment variables, then redeploy (Vite inlines it at build time).
-4. `vercel.json` in this repo already rewrites every non-`/api` path to
-   `index.html`, so `/login`, `/portal/*` and `/app/*` survive a hard refresh.
-
-> Sessions work in both layouts. The API returns a signed bearer token with
-> login, which the frontend sends on every request — so even when a browser
-> blocks third-party cookies (embedded previews, some in-app browsers), the
-> session holds.
-
-### Verifying a deployment
+If earlier migrations were applied by pasting SQL, the CLI's history table is
+empty and `db push` will try to replay everything. Tell it what is already
+done first:
 
 ```bash
-curl https://your-api-host/health                 # expect {"ok":true,...}
-curl -X POST https://your-api-host/api/auth/login \
-  -H 'content-type: application/json' -H 'x-nf-client: 1' \
-  -d '{"email":"owner@northforge.studio","password":"NorthForge@2026"}'
+npx supabase migration repair --status applied 0001 0002 0003 0004 0005 0006 0007 0008 0009 0010 0011 0012 0013
+npx supabase db push
 ```
 
-If the second command returns HTML instead of JSON, the API is not deployed at
-that address — the frontend is talking to a static host.
+### Edge Functions
+
+```bash
+npx supabase functions deploy whatsapp-send
+npx supabase functions deploy whatsapp-webhook --no-verify-jwt
+```
+
+`whatsapp-webhook` is `--no-verify-jwt` because Meta cannot present a Supabase
+session. It is therefore protected by Meta's own request signature instead —
+see `docs/WHATSAPP_SETUP.md`. Both functions import their pure logic from
+`supabase/functions/_shared/whatsapp-edge.ts`, which is unit-tested by
+`npm test`.
+
+---
+
+## 3. Security headers (`vercel.json`)
+
+| Header | Value / intent |
+| --- | --- |
+| `Content-Security-Policy` | Written against this bundle, not copied. `script-src` has **no** `'unsafe-inline'`: the theme bootstrap is an external file, and the JSON-LD blocks are *data blocks* that `script-src` does not apply to. |
+| `script-src-attr 'none'` | Blocks inline event-handler attributes. This is why `index.html` no longer uses the `media="print" onload="…"` async-CSS trick for Google Fonts — a blocked handler would have left the fonts unloaded. |
+| `style-src 'self' 'unsafe-inline' …` | **Deliberately relaxed.** Style is set imperatively in many places and injected style is not script execution. Removing it needs a per-component audit. |
+| `connect-src` / `img-src` | `https://*.supabase.co` (wildcard, so the header stays correct if the project ref changes), plus the only two third parties actually integrated: GA4 and the TOTP QR renderer. |
+| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload` |
+| `frame-ancestors 'none'` + `X-Frame-Options: DENY` | The dashboard is never framed. |
+| `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`, `X-Permitted-Cross-Domain-Policies`, `X-Content-Type-Options` | Standard hardening; all features the app does not use are denied. |
+
+**After changing the header list, verify a real deploy** — a CSP that breaks
+the app fails loudly in the browser console, not at build time.
+
+---
+
+## 4. Routing
+
+`vercel.json` rewrites every path that is not a real file (no dot) and not
+under `/assets` to `index.html`, so `/login`, `/portal/*` and `/app/*` survive
+a hard refresh. `/sitemap.xml`, `/robots.txt`, `/og.png` and hashed assets
+still resolve to their static files.
+
+Route guards are **UX only**. Direct URL entry is not the boundary: RLS decides
+what each session can actually read or write, whatever the router renders.
+
+---
+
+## 5. Post-deploy checks
+
+- Sign in, then open **System health** in the admin OS.
+- Confirm `/robots.txt` and `/sitemap.xml` are served.
+- Approve analytics in the consent banner, then confirm the GA4 script is
+  requested **only** after that choice.
+- An admin account with MFA enrolled must complete the second factor before any
+  admin page renders data (see migration 0008/0010/0014).
+- Account deletion must complete (migration 0014 fixed the storage column that
+  made it fail on every attempt).
+
+---
+
+## 6. Data protection
+
+Supabase holds the database and private storage; there is no local data
+directory. Use Supabase's own backup/PITR settings, and follow
+`docs/PRIVACY_DATA_AND_LAUNCH.md` for the retention story — invoices and
+payments are **retained** (detached, not deleted) when an account closes, so
+"deleted" never means "the accounting record is gone".

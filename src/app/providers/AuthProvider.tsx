@@ -156,17 +156,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /**
-   * Self-service account deletion (spec §47). The DATABASE deletes the
-   * auth user; the SIGNED_OUT event + the local reset below clear every
-   * piece of application state so nothing of the account remains visible.
+   * Self-service account deletion (spec §47). The DATABASE deletes the auth
+   * user; the SIGNED_OUT event plus the local reset below clear every piece of
+   * application state so nothing of the account remains visible.
+   *
+   * Deliberately NO `finally` around the call. Clearing the session there
+   * told the user their account had been deleted when the request may have
+   * failed — and the refusals the RPC raises on purpose (an expired session,
+   * a privileged account that must be off-boarded by a super admin) were
+   * swallowed and shown as a success. A failed deletion must leave the user
+   * signed in, with their data on screen and an actionable error.
    */
   const deleteAccount = useCallback(async () => {
-    try {
-      await authService.deleteAccount();
-    } finally {
-      setSession(null);
-      setStatus('unauthenticated');
-    }
+    await authService.deleteAccount();
+    setSession(null);
+    setStatus('unauthenticated');
   }, []);
 
   const patchClient = useCallback((client: Client) => {

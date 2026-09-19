@@ -2,15 +2,20 @@
 /**
  * NorthForge — WhatsApp Cloud API send (Edge Function).
  *
- * What admin sends on the website reaches the customer's real WhatsApp
- * through Meta's Cloud API. The access token and phone-number id never
- * leave the server: the browser calls this function with its Supabase
- * session, the function verifies the caller is an admin, then:
+ * What an admin sends on the website reaches the customer's real WhatsApp
+ * through Meta's Cloud API. The access token and phone-number id never leave
+ * the server: the browser calls this function with its Supabase session, the
+ * function verifies the caller is an admin, then:
  *
- *   1. inserts the outbound row into `whatsapp_messages` (RLS, as the
- *      admin) with the provider message id,
- *   2. POSTs to `/{phone_number_id}/messages` on the Graph API,
- *   3. marks the row `sent` or `failed` with a safe, human reason.
+ *   1. validates the request (number, body length, client reference),
+ *   2. inserts the outbound row into `whatsapp_messages` (RLS, as the admin),
+ *   3. POSTs to `/{phone_number_id}/messages` on the Graph API,
+ *   4. marks that same row `sent` — or `failed` with a human reason.
+ *
+ * ONE logical send produces at most ONE row. On provider failure the row is
+ * kept and marked `failed`, and its id is returned, so the browser can update
+ * the existing message instead of recording a second queued copy (see
+ * `whatsappService.send` in src/services/index.ts).
  *
  * Required secrets (set once per project):
  *   supabase secrets set WHATSAPP_ACCESS_TOKEN=… WHATSAPP_PHONE_NUMBER_ID=…
@@ -21,6 +26,10 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  isProbeRequest,
+  parseSendRequest,
+} from '../_shared/whatsapp-edge.ts';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -41,17 +50,6 @@ function json(payload: unknown, status = 200) {
   });
 }
 
-/** Only digits survive, same rules the browser applies before calling. */
-function normalizeNumber(raw: string): string | null {
-  let digits = (raw ?? '').replace(/\D/g, '');
-  if (!digits) return null;
-  if (digits.startsWith('00')) digits = digits.slice(2);
-  if (digits.length === 10) digits = `91${digits}`;
-  else if (digits.length === 11 && digits.startsWith('0')) digits = `91${digits.slice(1)}`;
-  if (digits.length < 8 || digits.length > 15 || digits.startsWith('0')) return null;
-  return digits;
-}
-
 /** The slice of the Graph API response we actually read. */
 interface GraphPayload {
   messages?: { id?: string }[];
@@ -70,23 +68,31 @@ function graphReason(payload: GraphPayload | null): string {
   }
   if (code === 190) return 'The WhatsApp access token is invalid or expired — refresh it in the Meta developer dashboard.';
   if (code === 131030) return 'That number is not a WhatsApp number.';
-  return String(error.message ?? 'WhatsApp rejected the message.') || 'WhatsApp rejected the message.';
+  // Never echo an unbounded provider string back to the browser.
+  return String(error.message ?? 'WhatsApp rejected the message.').slice(0, 300) || 'WhatsApp rejected the message.';
 }
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
 
-  // Cheap connectivity probe used by the admin UI ("is the Cloud API on?").
-  if (payload?.probe === true) {
-    // Not configured yet — the browser falls back to the wa.me deep link and
-    // keeps the message queued. Honest by design: never fake a delivery.
-    if (!ACCESS_TOKEN || !PHONE_NUMBER_ID) {
-      return json({ error: 'whatsapp_not_configured', configured: false }, 501);
-    }
-    return json({ configured: true });
+  // ── Parse the body EXACTLY ONCE, first. ────────────────────────
+  // The previous version read `payload?.probe` before `payload` was declared.
+  // Reading a `let` binding before initialisation is a ReferenceError, so
+  // EVERY request — probe and real send alike — threw and the function was
+  // completely non-functional. Parsing once, up front, removes that class of
+  // bug (and the temptation to read the stream twice, which is not possible).
+  let payload: unknown;
+  try {
+    payload = await req.json();
+  } catch {
+    return json({ error: 'bad_request', message: 'Malformed request body.' }, 400);
   }
 
+  // ── Authenticate BEFORE disclosing anything ────────────────────
+  // The probe used to answer unauthenticated callers, which told anyone who
+  // asked whether the studio's WhatsApp Cloud API was configured — supplier
+  // state leaked to the public internet. Authorization now comes first.
   const authorization = req.headers.get('Authorization') ?? '';
   if (!authorization.toLowerCase().startsWith('bearer ')) {
     return json({ error: 'unauthorized', message: 'Sign in again and retry.' }, 401);
@@ -111,19 +117,20 @@ Deno.serve(async (req) => {
     return json({ error: 'forbidden', message: 'Only NorthForge admins can send WhatsApp messages.' }, 403);
   }
 
-  let payload: Record<string, unknown>;
-  try {
-    payload = await req.json();
-  } catch {
-    return json({ error: 'bad_request', message: 'Malformed request body.' }, 400);
+  // ── Connectivity probe (authorized admins only) ────────────────
+  if (isProbeRequest(payload)) {
+    if (!ACCESS_TOKEN || !PHONE_NUMBER_ID) {
+      // Not configured yet — the browser falls back to the wa.me deep link
+      // and keeps the message queued. Honest by design: never fake delivery.
+      return json({ error: 'whatsapp_not_configured', configured: false }, 501);
+    }
+    return json({ configured: true });
   }
 
-  const to = normalizeNumber(String(payload?.to ?? ''));
-  const body = String(payload?.body ?? '').trim();
-  const clientId = typeof payload?.clientId === 'string' && payload.clientId ? payload.clientId : null;
-
-  if (!to) return json({ error: 'validation', message: 'Enter a valid WhatsApp number (country code first).' }, 400);
-  if (!body) return json({ error: 'validation', message: 'Write the message to send.' }, 400);
+  // ── Validate ───────────────────────────────────────────────────
+  const parsed = parseSendRequest(payload);
+  if (!parsed.ok) return json({ error: parsed.error, message: parsed.message }, parsed.status);
+  const { to, body, clientId } = parsed.value;
 
   const id = `wm_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
   const createdAt = new Date().toISOString();
@@ -146,30 +153,41 @@ Deno.serve(async (req) => {
   }
 
   // ── The real send ──────────────────────────────────────────────
-  const graphResponse = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${PHONE_NUMBER_ID}/messages`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${ACCESS_TOKEN}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      messaging_product: 'whatsapp',
-      recipient_type: 'individual',
-      to,
-      type: 'text',
-      text: { preview_url: true, body },
-    }),
-  });
+  let graphResponse: Response;
+  try {
+    graphResponse = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${PHONE_NUMBER_ID}/messages`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${ACCESS_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to,
+        type: 'text',
+        text: { preview_url: true, body },
+      }),
+    });
+  } catch {
+    // Network failure: the row exists and is marked failed, and its id comes
+    // back so the caller can update that row rather than create another.
+    const reason = 'Could not reach WhatsApp. Check the connection and try again.';
+    await client.from('whatsapp_messages').update({ status: 'failed', failure_reason: reason }).eq('id', id);
+    return json({ error: 'send_failed', message: reason, id, status: 'failed' }, 502);
+  }
 
   const graphPayload: GraphPayload | null = await graphResponse.json().catch(() => null);
   const providerMessageId: string | null = graphPayload?.messages?.[0]?.id ?? null;
 
   if (!graphResponse.ok || !providerMessageId) {
     const reason = graphReason(graphPayload);
-    await client.from('whatsapp_messages').update({ status: 'failed' }).eq('id', id);
-    return json({ error: 'send_failed', message: reason, id }, 502);
+    await client.from('whatsapp_messages').update({ status: 'failed', failure_reason: reason }).eq('id', id);
+    // `id` is the contract: one logical send attempt = one row, already
+    // recorded and already marked failed.
+    return json({ error: 'send_failed', message: reason, id, status: 'failed' }, 502);
   }
 
   await client
     .from('whatsapp_messages')
-    .update({ status: 'sent', provider_message_id: providerMessageId })
+    .update({ status: 'sent', provider_message_id: providerMessageId, failure_reason: null })
     .eq('id', id);
 
   return json({ sent: true, id, status: 'sent', to }, 201);

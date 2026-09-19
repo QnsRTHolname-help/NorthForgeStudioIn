@@ -9,9 +9,10 @@ same inbox.
 
 | Piece | Role |
 | --- | --- |
-| `supabase/functions/whatsapp-send` | Verifies the caller is an admin, posts the message to the Graph API, records `sent` / `failed` + the provider message id. |
-| `supabase/functions/whatsapp-webhook` | Receives Meta's webhook: inbound customer replies and delivery/read receipts. |
-| `whatsapp_messages.provider_message_id` | Links receipts to the row we sent (migration `0011`). |
+| `supabase/functions/whatsapp-send` | Verifies the caller is an admin, posts the message to the Graph API, records `sent` / `failed` + the provider message id and the failure reason. |
+| `supabase/functions/whatsapp-webhook` | Receives Meta's webhook: inbound customer replies and delivery/read receipts. Verifies `X-Hub-Signature-256` before it parses anything. |
+| `whatsapp_messages.provider_message_id` | Links receipts to the row we sent (migration `0011`); unique since `0014`, so a Meta retry cannot duplicate a message. |
+| `supabase/functions/_shared/whatsapp-edge.ts` | The pure logic both functions share (signature check, number + body validation). Unit-tested by `npm test`. |
 
 Until these are configured, every send still works: the message is recorded
 **queued** and a `wa.me` link opens the business WhatsApp with the exact
@@ -31,10 +32,18 @@ text pre-typed — nothing pretends to be delivered.
    supabase secrets set \
      WHATSAPP_ACCESS_TOKEN=EAAG… \
      WHATSAPP_PHONE_NUMBER_ID=1234567890 \
-     WHATSAPP_VERIFY_TOKEN=any-string-you-choose
+     WHATSAPP_VERIFY_TOKEN=any-string-you-choose \
+     WHATSAPP_APP_SECRET=<App Dashboard → Settings → Basic → App Secret>
    ```
-4. **Migrations** — apply `supabase/migrations/0011_whatsapp_provider_id.sql`
-   in the Supabase SQL editor (safe to re-run).
+   `WHATSAPP_APP_SECRET` is **not optional**, even though the Cloud API works
+   without it: the webhook runs with the service-role key (past RLS), so the
+   Meta request signature is the only thing standing between the public
+   internet and your client inbox. While it is unset the webhook answers
+   `403` to every event rather than storing anything it cannot verify.
+4. **Migrations** — apply `0011_whatsapp_provider_id.sql` and
+   `0014_security_hardening.sql` in the Supabase SQL editor, in order (both
+   are safe to re-run). `0014` is what makes duplicate deliveries harmless
+   and stops an out-of-order receipt from downgrading a message.
 5. **Deploy the functions**:
    ```bash
    supabase functions deploy whatsapp-send
@@ -60,4 +69,12 @@ secrets are set (the UI probes the deployed function; it never fakes it).
   become `919845012345`. International numbers work when typed with their
   country code.
 - The webhook stores inbound messages and updates sent → delivered → read
-  receipts; failures from Meta are recorded with a human reason.
+  receipts; failures from Meta are recorded with a human reason in
+  `whatsapp_messages.failure_reason`, so the inbox can say why.
+- Every POST to the webhook is rejected unless `X-Hub-Signature-256` matches
+  an HMAC-SHA256 of the **raw** body keyed by `WHATSAPP_APP_SECRET`. A signed
+  event for a different `metadata.phone_number_id` is ignored, so a second
+  number in the same Meta app cannot write into this inbox.
+- One send attempt produces at most one message row. If Meta rejects the
+  send, that row is marked `failed` (not duplicated as a second `queued`
+  message), and `whatsappService.send()` updates the existing record.

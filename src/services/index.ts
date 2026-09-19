@@ -476,12 +476,21 @@ export const catalogService = {
 /* ── Public enquiry (contact form, spec §38) ── */
 
 export const contactService = {
+  /**
+   * Submit the public contact form.
+   *
+   * The write goes through `app_submit_enquiry()` (migration 0014), not a
+   * table insert. Anonymous INSERT on `enquiries` was
+   * `with check (true)` and every row fires a trigger that creates a lead and
+   * notifies every admin, so one script could flood the inbox without limit.
+   * A browser honeypot is a speed bump, not a boundary. The RPC validates and
+   * length-caps every field and throttles per address and globally, and the
+   * table no longer accepts anonymous INSERTs at all.
+   */
   submit: async (input: Record<string, unknown>): Promise<{ received: boolean; reference: string | null }> => {
-    // The enquiry id is generated here and sent with the insert. PostgREST
-    // must NOT read the row back (`return=representation`): the enquiries
-    // SELECT policy is admin-only by design, so asking for the row after
-    // insert fails with 42501 for anonymous visitors. An explicit id gives
-    // the visitor a real reference without any SELECT privilege.
+    // The reference is generated here so the visitor gets a real one even
+    // though the enquiries SELECT policy is admin-only (the row must not be
+    // read back). The RPC validates its shape and adopts it.
     const bytes = new Uint8Array(6);
     crypto.getRandomValues(bytes);
     const reference = 'eq_' + Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
@@ -500,21 +509,31 @@ export const contactService = {
     const base = mapEnquiryPayload(input, reference);
     const plan = (input.plan as string) ?? null;
 
-    // Primary attempt: the dedicated plan column (migration 0006).
-    const first = await supabase.from('enquiries').insert({ ...base, plan });
-    if (!first.error) return { received: true, reference };
+    const { data, error } = await supabase.rpc('app_submit_enquiry', {
+      p_name: base.name,
+      p_email: base.email,
+      p_id: reference,
+      p_business_name: base.business_name,
+      p_whatsapp: base.whatsapp,
+      p_business_type: base.business_type,
+      p_current_tools: base.current_tools,
+      p_bottleneck: base.bottleneck,
+      p_monthly_enquiries: base.monthly_enquiries,
+      p_message: base.message,
+      p_plan: plan,
+    });
 
-    // Pre-migration database: the schema cache has no `plan` column yet
-    // (PGRST204). Never lose the lead over it — retry without the column
-    // and carry the plan inside the message instead.
-    const missingPlan = first.error.code === 'PGRST204' && first.error.message?.includes("'plan'");
-    if (!missingPlan) throw mapDatabaseError(first.error, 'contact.submit');
-    const message = plan
-      ? [input.message, `Plan of interest: ${plan}`].filter((part) => String(part).trim()).join('\n\n')
-      : input.message;
+    if (error) {
+      // A failed validation or throttle is raised by the function; its hint is
+      // written for the visitor, so surface it rather than a generic failure.
+      const hint = (error as { hint?: string }).hint ?? '';
+      if (error.code === 'P0001' && hint) {
+        throw new ApiError(hint, error.message?.includes('RATE_LIMITED') ? 429 : 400, 'validation');
+      }
+      throw mapDatabaseError(error, 'contact.submit');
+    }
 
-    await run<null>('contact.submit', () => supabase.from('enquiries').insert({ ...base, message }));
-    return { received: true, reference };
+    return { received: true, reference: typeof data === 'string' ? data : reference };
   },
 };
 
@@ -1269,8 +1288,17 @@ export const billingService = {
     }
     const { subtotal, tax, total } = totalize(lines);
     const now = new Date();
-    const rows = await run<Record<string, unknown>[]>('billing.createInvoice', () =>
-      supabase
+
+    /**
+     * Invoice numbers are `NF-YYYYMM-XXXX` with a random suffix, so a
+     * collision is rare but not negligible once a month's volume is in the
+     * hundreds. The UNIQUE constraint on `invoices.number` remains the
+     * authority; drawing a fresh suffix on a 23505 turns a hard failure the
+     * operator cannot act on into a non-event. Any other error is real.
+     */
+    let rows: Record<string, unknown>[] | null = null;
+    for (let attempt = 0; attempt < 5 && !rows; attempt += 1) {
+      const { data, error } = await supabase
         .from('invoices')
         .insert({
           number: nextInvoiceNumber(now),
@@ -1283,9 +1311,19 @@ export const billingService = {
           due_at: new Date(now.getTime() + (input.dueInDays ?? 14) * 86400000).toISOString(),
           line_items: lines,
         })
-        .select(),
-    );
-    return { invoice: mapInvoice(rows![0]) };
+        .select();
+
+      if (!error) {
+        rows = (data ?? []) as Record<string, unknown>[];
+        break;
+      }
+      if (error.code !== '23505') throw mapDatabaseError(error, 'billing.createInvoice');
+    }
+
+    if (!rows?.[0]) {
+      throw new ApiError('Could not allocate an invoice number. Please try again.', 409, 'duplicate');
+    }
+    return { invoice: mapInvoice(rows[0]) };
   },
   /**
    * Edit an invoice after it was raised: status, due date, line items and
@@ -1480,6 +1518,11 @@ export interface WhatsAppSendResult {
   fallbackUrl: string | null;
   /** Why the Cloud API path did not deliver (null when sent). */
   reason: string | null;
+  /**
+   * The `whatsapp_messages` row this attempt produced, when the server
+   * recorded one. Exactly one logical send maps to at most one row.
+   */
+  messageId: string | null;
 }
 
 /** Ask the Edge Function whether Cloud API credentials exist server-side. */
@@ -1542,21 +1585,28 @@ export const whatsappService = {
 
     let sent = false;
     let reason: string | null = null;
+    /** Server-recorded row for THIS attempt, if one exists. */
+    let messageId: string | null = null;
     try {
       const { data, error } = await supabase.functions.invoke('whatsapp-send', {
         body: { to: digits, body: text, clientId: input.clientId ?? null },
       });
       if (error) throw error;
-      sent = Boolean((data as { sent?: boolean } | null)?.sent);
+      const result = data as { sent?: boolean; id?: string } | null;
+      sent = Boolean(result?.sent);
+      if (typeof result?.id === 'string') messageId = result.id;
       if (!sent) reason = 'The message could not be delivered — it is recorded below.';
     } catch (fnError) {
       // FunctionsHttpError carries the Response; read the human reason out of
       // it (token expired, outside the 24-hour window, not configured…).
-      const httpError = fnError as { context?: { json?: () => Promise<{ message?: string }> }; message?: string };
+      const httpError = fnError as { context?: { json?: () => Promise<unknown> }; message?: string };
       reason = httpError?.message ?? null;
       try {
-        const body = await httpError?.context?.json?.();
+        const body = (await httpError?.context?.json?.()) as { message?: string; id?: string } | null;
         if (body?.message) reason = String(body.message);
+        // The function records the message and returns its id even when the
+        // provider rejected it, so this attempt already has a row.
+        if (typeof body?.id === 'string') messageId = body.id;
       } catch {
         /* body was not JSON — keep the generic reason */
       }
@@ -1564,9 +1614,13 @@ export const whatsappService = {
       sent = false;
     }
 
-    // The Edge Function records the row itself when it delivers; on any
-    // fallback path the message is recorded queued so the inbox stays true.
-    if (!sent) {
+    // ONE logical send = ONE row. The Edge Function records the row itself on
+    // every path it reaches (success and provider failure alike) and returns
+    // its id. Only a transport failure that never reached the function leaves
+    // no record, and only then is a queued row created — previously this ran
+    // unconditionally, so a rejected send produced message A (failed) followed
+    // by message B (queued) and the history disagreed with the provider.
+    if (!sent && !messageId) {
       await run('whatsapp.send', () =>
         supabase.from('whatsapp_messages').insert(
           compact({
@@ -1580,7 +1634,7 @@ export const whatsappService = {
       );
     }
 
-    return { sent, fallbackUrl: waLink(digits, text), reason };
+    return { sent, fallbackUrl: waLink(digits, text), reason, messageId };
   },
   /** Create a template record pending provider approval. */
   createTemplate: async (input: { name: string; body: string; category: 'utility' | 'marketing' | 'authentication' }): Promise<{ created: boolean }> => {
@@ -1776,11 +1830,12 @@ export const ticketsService = {
 /**
  * Ticket threads via the masking RPC (migration 0013).
  *
- * Falls back to a direct read ONLY when the function is not deployed yet, and
- * in that fallback an internal note is stripped for non-admins before it can
- * reach a client-facing screen. The RPC is the enforced path; the fallback
- * exists so an un-migrated environment degrades rather than showing a blank
- * page.
+ * There is deliberately NO fallback. An earlier version fell back to reading
+ * the raw `tickets` table and dropping internal notes in JavaScript — but by
+ * then the notes have already been sent to the browser, so the "filter" is a
+ * promise rather than a boundary, and it silently fails open whenever the
+ * role mapping or the field name drifts. If the masking function is not
+ * available we report that support is unavailable instead of leaking.
  */
 async function readTicketThreads(
   context: string,
@@ -1792,21 +1847,14 @@ async function readTicketThreads(
   // PGRST202 = no such function in the schema cache; 42883 = undefined_function.
   const missing =
     call.error.code === 'PGRST202' || call.error.code === '42883' || /function .* does not exist/i.test(call.error.message ?? '');
-  if (!missing) throw mapDatabaseError(call.error, context);
-
-  const session = await loadProfile();
-  const isClient = session.user.role === 'client';
-  let query = supabase.from('tickets').select('*').order('created_at', { ascending: false });
-  if (ticketId) query = query.eq('id', ticketId);
-  const rows = await run<Record<string, unknown>[]>(`${context}.fallback`, () => query);
-  if (!isClient) return rows ?? [];
-
-  return (rows ?? []).map((row) => ({
-    ...row,
-    messages: (Array.isArray(row.messages) ? (row.messages as Record<string, unknown>[]) : []).filter(
-      (message) => message.internal !== true,
-    ),
-  }));
+  if (missing) {
+    throw new ApiError(
+      'Support is unavailable right now because the database is not fully migrated. Please try again shortly.',
+      503,
+      'support_unavailable',
+    );
+  }
+  throw mapDatabaseError(call.error, context);
 }
 
 /* ── Announcements, preferences, milestones & files ─────────── */
@@ -2486,7 +2534,10 @@ export const dataExportService = {
     await grab('websites', () => supabase.from('websites').select('*'));
     await grab('bookings', () => supabase.from('bookings').select('*'));
     await grab('client_requests', () => supabase.from('client_requests').select('*'));
-    await grab('tickets', () => supabase.from('tickets').select('*'));
+    // Tickets go through the masking RPC, never the table. A client's own
+    // export must not contain an internal admin note — reading `tickets`
+    // directly would put those notes in the downloaded file.
+    await grab('tickets', () => supabase.rpc('app_ticket_threads', { p_ticket_id: null }));
     await grab('files', () => supabase.from('files').select('*'));
     await grab('subscriptions', () => supabase.from('subscriptions').select('*'));
     await grab('invoices', () => supabase.from('invoices').select('*'));

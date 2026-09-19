@@ -222,12 +222,9 @@ are created with a confirmed address by design. Leaving the toggle ON is
 still recommended: it makes Supabase itself refuse the login, so the
 protection does not depend on client-side code paths.
 
-For the **self-hosted Express stack**, the same is done with env vars —
-set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` and
-`APP_URL` in `.env`; signup/reset mail is then delivered through
-`nodemailer` (`server/src/services/mailer.ts`) and every send is recorded
-in the `email_outbox` table for auditing. Without SMTP configured, mail is
-queued there (status `queued`) instead of being silently dropped.
+Outbound mail is Supabase's job. Configure **Supabase → Authentication →
+SMTP Settings** (or the built-in sender for testing); the `email_outbox`
+table remains the audit record of what the application asked to send.
 
 ## 3. Environment variables (spec §26, §61)
 
@@ -238,8 +235,7 @@ pairs in every environment:
 | --- | --- | --- |
 | `VITE_SUPABASE_URL` | public | Project URL used by the browser client |
 | `VITE_SUPABASE_ANON_KEY` | public | Publishable (anon) key — safe because RLS governs access |
-| `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` | server-side (optional) | Future server/edge use |
-| `SUPABASE_SECRET_KEY` | server-side only | **NEVER** in a `VITE_` variable, never in the bundle |
+| `SUPABASE_SECRET_KEY` | server-side only | **NEVER** in a `VITE_` variable, never in the bundle. Only Supabase Edge Functions see an equivalent, as their own environment |
 | `VITE_SITE_URL` | public | Canonical URLs + sitemap generation |
 | `VITE_WHATSAPP_NUMBER` | public | Click-to-chat deep links |
 

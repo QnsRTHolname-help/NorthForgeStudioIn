@@ -48,34 +48,34 @@
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="manifest" href="/site.webmanifest" />
 
-    <!-- Type: preconnect + swap so text paints immediately. -->
+    <!--
+      Type. Preconnect, then a plain stylesheet — the `media="print"` +
+      `onload` async-CSS trick needs an inline event-handler attribute, which
+      the CSP (script-src-attr 'none') blocks, and a blocked handler would
+      leave the stylesheet stuck at media=print and the custom fonts unloaded.
+      `display=swap` in the URL still gives immediate text.
+    -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
-      media="print"
-      onload="this.media='all'"
     />
-    <noscript>
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
-      />
-    </noscript>
 
     <!--
       Theme bootstrap, before first paint. Kept as a separate file so the app
-      runs under a CSP with no 'unsafe-inline' scripts (see server/src/index.ts).
+      runs under the Content-Security-Policy in vercel.json without needing
+      'unsafe-inline' for scripts.
     -->
     <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>
     <noscript>
-      <div style="padding: 48px; font-family: system-ui, sans-serif">
+      <div>
         <h1>NorthForge</h1>
         <p>This application requires JavaScript to run. Please enable it and reload.</p>
+        <p>You can also reach us on WhatsApp at +91 91870 06703.</p>
       </div>
     </noscript>
     <script type="module" src="/src/main.tsx"></script>

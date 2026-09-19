@@ -4,9 +4,10 @@ import { fileURLToPath } from 'node:url';
 /**
  * Test configuration.
  *
- * Two projects, because the two halves of the product have different needs:
- * API tests run in Node against the real SQLite database helpers, and
- * component tests (when added) need a DOM.
+ * Everything runs in Node. The Supabase Edge Functions keep their pure,
+ * dependency-free logic in `supabase/functions/_shared/`, which is included
+ * below so the signature check and request validation are executed by the
+ * test suite rather than trusted by inspection.
  */
 export default defineConfig({
   resolve: {
@@ -17,8 +18,11 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['server/**/*.test.ts', 'shared/**/*.test.ts', 'src/**/*.test.{ts,tsx}'],
-    // The API tests open a real SQLite database; run them in isolation.
+    include: [
+      'src/**/*.test.{ts,tsx}',
+      'shared/**/*.test.ts',
+      'supabase/**/*.test.ts',
+    ],
     fileParallelism: false,
     testTimeout: 15_000,
   },

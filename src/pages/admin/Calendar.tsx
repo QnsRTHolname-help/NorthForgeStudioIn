@@ -30,7 +30,8 @@ const KIND_TONE: Record<string, string> = {
 
 /**
  * Calendar (spec §113): bookings, task due dates and project deadlines in
- * one month view. Uses the real /api/calendar aggregation endpoint.
+ * one month view, aggregated from Supabase through `calendarService` (the
+ * database decides what the caller may see via RLS).
  */
 export default function Calendar() {
   usePageMeta({ title: 'Calendar', noIndex: true });
