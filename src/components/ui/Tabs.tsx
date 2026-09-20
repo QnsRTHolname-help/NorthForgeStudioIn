@@ -130,7 +130,10 @@ export function Segmented<T extends string>({
     <div
       role="tablist"
       aria-label={ariaLabel}
-      className={cn('inline-flex rounded border border-line bg-sunken p-0.5', className)}
+      // max-w-full + overflow-x-auto so a long tab set stays reachable on a
+      // narrow screen instead of overflowing the pill (and being clipped by
+      // the page's overflow-x: hidden with no way to scroll to the last tab).
+      className={cn('inline-flex max-w-full overflow-x-auto rounded border border-line bg-sunken p-0.5', className)}
     >
       {options.map((option) => {
         const isActive = option.value === value;
@@ -142,7 +145,7 @@ export function Segmented<T extends string>({
             type="button"
             onClick={() => onChange(option.value)}
             className={cn(
-              'rounded transition-colors duration-150',
+              'shrink-0 whitespace-nowrap rounded transition-colors duration-150',
               size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-3 py-1.5 text-[13px]',
               isActive ? 'bg-elevated font-medium text-fg shadow-soft' : 'text-muted hover:text-fg',
             )}

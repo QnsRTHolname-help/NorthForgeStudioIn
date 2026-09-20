@@ -71,7 +71,7 @@ export default function Projects() {
         onRetry={() => state.refetch().catch(() => undefined)}
       >
         {items.length ? (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {items.map((project) => (
               <div key={project.id} className="rounded-lg border border-line bg-surface p-4">
                 <div className="flex items-start justify-between gap-3">
@@ -223,7 +223,7 @@ export function ProjectForm({
         value={form.clientId}
         onChange={(clientId) => setForm({ ...form, clientId })}
       />
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Select label="Stage" value={form.stage} onChange={(event) => setForm({ ...form, stage: event.target.value as Project['stage'] })} options={STAGES.map((value) => ({ value, label: titleCase(value) }))} />
         <Select label="Status" value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as Project['status'] })} options={STATUSES.map((value) => ({ value, label: titleCase(value) }))} />
         <Input label="Progress (%)" type="number" min={0} max={100} value={form.progress} onChange={(event) => setForm({ ...form, progress: event.target.value })} />

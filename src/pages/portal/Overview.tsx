@@ -72,7 +72,7 @@ export default function Overview() {
         {dashboard ? (
           <>
             {/* System status row */}
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <StatusCard
                 icon={<Globe className="h-4 w-4" />}
                 label="Your website"
@@ -112,7 +112,7 @@ export default function Overview() {
             </div>
 
             {/* Metrics */}
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <KpiCard
                 label="Visitors recorded"
                 value={formatNumber(metrics?.visitors)}

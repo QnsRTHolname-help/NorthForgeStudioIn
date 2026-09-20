@@ -62,7 +62,7 @@ export default function Onboarding() {
                 In progress <span className="ml-1 text-faint">({inProgress.length})</span>
               </h2>
               {inProgress.length ? (
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {inProgress.map((client) => (
                     <OnboardingCard key={client.id} client={client} onOpen={() => setSelected(client)} />
                   ))}
@@ -77,7 +77,7 @@ export default function Onboarding() {
                 <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-wider text-fg">
                   Completed <span className="ml-1 text-faint">({completed.length})</span>
                 </h2>
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {completed.map((client) => (
                     <OnboardingCard key={client.id} client={client} onOpen={() => setSelected(client)} />
                   ))}
