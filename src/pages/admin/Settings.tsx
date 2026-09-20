@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { LogOut, Monitor, Moon, ShieldCheck, Sun } from 'lucide-react';
 import { Panel } from '@/components/ui/Card';
 import { AdminHeader } from '@/components/admin/AdminHeader';
-import { PasswordInput, FormError } from '@/components/ui/Form';
+import { PasswordInput, FormError, HiddenUsername } from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
@@ -107,6 +107,7 @@ export default function Settings() {
 
       <Panel title="Change password">
         <form onSubmit={submit} className="grid max-w-md gap-4">
+          <HiddenUsername value={session?.user.email ?? ''} />
           <PasswordInput
             label="Current password"
             autoComplete="current-password"

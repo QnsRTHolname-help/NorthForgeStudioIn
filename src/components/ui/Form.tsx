@@ -352,6 +352,29 @@ export function Switch({
 
 /* ── Inline form error summary ─────────────────────────────────── */
 
+/**
+ * A password form must carry a username field, or a browser cannot tell whose
+ * password is being changed: Chrome logs an accessibility notice on the form
+ * and password managers may offer to save the new password against the wrong
+ * account. The signed-in address is already known here, so it is supplied
+ * invisibly — no new input for the operator to fill in, nothing added to the
+ * tab order, and nothing extra announced by a screen reader.
+ */
+export function HiddenUsername({ value }: { value: string }) {
+  return (
+    <input
+      type="email"
+      name="username"
+      autoComplete="username"
+      value={value}
+      readOnly
+      tabIndex={-1}
+      aria-hidden="true"
+      className="sr-only"
+    />
+  );
+}
+
 export function FormError({ message }: { message: string | null }) {
   if (!message) return null;
   return (

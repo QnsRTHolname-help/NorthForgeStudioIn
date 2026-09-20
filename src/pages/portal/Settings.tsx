@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { Panel, Card } from '@/components/ui/Card';
 import { PortalHeader, MetricRow } from '@/components/portal/PortalHeader';
-import { PasswordInput, Input, FormError, Switch } from '@/components/ui/Form';
+import { PasswordInput, Input, FormError, Switch, HiddenUsername } from '@/components/ui/Form';
 import { ConfirmPhrase } from '@/components/ui/ConfirmPhrase';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -187,6 +187,7 @@ export default function Settings() {
       <Card padded={false} className="p-6">
         <h2 className="text-[15px] font-semibold tracking-tight text-fg">Change password</h2>
         <form onSubmit={submitPassword} className="mt-4 grid max-w-md gap-4">
+          <HiddenUsername value={session?.user.email ?? ''} />
           <PasswordInput
             label="Current password"
             autoComplete="current-password"
