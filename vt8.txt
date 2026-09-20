@@ -1,0 +1,274 @@
+
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90mC:/Users/qnsrt/OneDrive/Documents/os[39m
+
+ [32m✓[39m supabase/functions/_shared/whatsapp-edge.test.ts [2m([22m[2m21 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m src/lib/whatsapp.test.ts [2m([22m[2m11 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+[90mstderr[2m | src/services/db.test.ts[2m > [22m[2mmapDatabaseError[2m > [22m[2mtreats a real PostgREST error as a schema problem, not a network problem
+[22m[39m[northforge:db] test schema missing {
+  code: [32m'PGRST205'[39m,
+  message: [32m"Could not find the table 'public.profiles' in the schema cache"[39m
+}
+
+[90mstderr[2m | src/services/db.test.ts[2m > [22m[2mmapDatabaseError[2m > [22m[2mmaps undefined_table to the actionable schema message
+[22m[39m[northforge:db] test schema missing { code: [32m'42P01'[39m, message: [32m'relation "public.profiles" does not exist'[39m }
+
+[90mstderr[2m | src/services/db.test.ts[2m > [22m[2mmapDatabaseError[2m > [22m[2mmaps RLS denial to a permission error, not a network error
+[22m[39m[northforge:db] test permission denied { code: [32m'42501'[39m }
+
+[90mstderr[2m | src/services/db.test.ts[2m > [22m[2mmapDatabaseError[2m > [22m[2mclassifies genuine transport failures as network errors
+[22m[39m[northforge:db] test transport error { code: [32m''[39m, status: [33m0[39m }
+
+[90mstderr[2m | src/services/db.test.ts[2m > [22m[2mmapDatabaseError[2m > [22m[2mclassifies FetchError as a transport failure
+[22m[39m[northforge:db] test transport error { code: [32m''[39m, status: [33m0[39m }
+
+[90mstderr[2m | src/services/db.test.ts[2m > [22m[2mmapDatabaseError[2m > [22m[2mmaps other PGRST errors to a service-unavailable error
+[22m[39m[northforge:db] test API error { code: [32m'PGRST301'[39m, message: [32m'JWT expired'[39m }
+
+[90mstderr[2m | src/services/db.test.ts[2m > [22m[2mmapDatabaseError[2m > [22m[2mnever leaks raw error text into user-facing messages
+[22m[39m[northforge:db] test unmapped error { code: [32m'XX999'[39m, status: [33m0[39m }
+
+ [32m✓[39m src/services/db.test.ts [2m([22m[2m11 tests[22m[2m)[22m[90m 5[2mms[22m[39m
+ [32m✓[39m shared/catalog.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 19[2mms[22m[39m
+ [31m❯[39m src/lib/email-client-verify.test.ts [2m([22m[2m0 test[22m[2m)[22m
+ [32m✓[39m src/lib/consent.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 15[2mms[22m[39m
+ [32m✓[39m src/lib/billing.test.ts [2m([22m[2m8 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m src/lib/enquiry.test.ts [2m([22m[2m7 tests[22m[2m)[22m[90m 3[2mms[22m[39m
+ [31m❯[39m src/lib/secrets.test.ts [2m([22m[2m0 test[22m[2m)[22m
+ [31m❯[39m src/pages/public/AuthCallback.test.tsx [2m([22m[2m0 test[22m[2m)[22m
+
+[31m⎯⎯⎯⎯⎯⎯[1m[7m Failed Suites 3 [27m[22m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[31m[1m[7m FAIL [27m[22m[39m src/lib/email-client-verify.test.ts[2m [ src/lib/email-client-verify.test.ts ][22m
+[31m[1mError[22m: Transform failed with 24 errors:
+C:/Users/qnsrt/OneDrive/Documents/os/src/lib/email-client-verify.ts:13:13: ERROR: Multiple exports with the same name "VERIFY_EMAIL_SUBJECT"
+C:/Users/qnsrt/OneDrive/Documents/os/src/lib/email-client-verify.ts:13:13: ERROR: The symbol "VERIFY_EMAIL_SUBJECT" has already been declared
+C:/Users/qnsrt/OneDrive/Documents/os/src/lib/email-client-verify.ts:14:13: ERROR: Multiple exports with the same name "VERIFY_EMAIL_PREVIEW"
+C:/Users/qnsrt/OneDrive/Documents/os/src/lib/email-client-verify.ts:14:13: ERROR: The symbol "VERIFY_EMAIL_PREVIEW" has already been declared
+C:/Users/qnsrt/OneDrive/Documents/os/src/lib/email-client-verify.ts:15:13: ERROR: Multiple exports with the same name "VERIFY_EMAIL_VERSION"
+...[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/qnsrt/OneDrive/Documents/os/src/lib/email-client-verify.ts[39m:13:13
+[33m  
+  [33mMultiple exports with the same name "VERIFY_EMAIL_SUBJECT"[33m
+  11 |   * Verified email copy
+  12 |   */
+  13 |  export const VERIFY_EMAIL_SUBJECT = process.env.VITE_VERIFY_EMAIL_SUBJECT ?? 'Please confirm your NorthForge account';
+     |               ^
+  14 |  export const VERIFY_EMAIL_PREVIEW = process.env.VITE_VERIFY_EMAIL_PREVIEW ?? 'Tap the link in the email to verify your NorthForge account';
+  15 |  export const VERIFY_EMAIL_VERSION = stableSecret('VERIFY_EMAIL_VERSION', '1.0');
+  
+  [33mThe symbol "VERIFY_EMAIL_SUBJECT" has already been declared[33m
+  11 |   * Verified email copy
+  12 |   */
+  13 |  export const VERIFY_EMAIL_SUBJECT = process.env.VITE_VERIFY_EMAIL_SUBJECT ?? 'Please confirm your NorthForge account';
+     |               ^
+  14 |  export const VERIFY_EMAIL_PREVIEW = process.env.VITE_VERIFY_EMAIL_PREVIEW ?? 'Tap the link in the email to verify your NorthForge account';
+  15 |  export const VERIFY_EMAIL_VERSION = stableSecret('VERIFY_EMAIL_VERSION', '1.0');
+  
+  [33mMultiple exports with the same name "VERIFY_EMAIL_PREVIEW"[33m
+  12 |   */
+  13 |  export const VERIFY_EMAIL_SUBJECT = process.env.VITE_VERIFY_EMAIL_SUBJECT ?? 'Please confirm your NorthForge account';
+  14 |  export const VERIFY_EMAIL_PREVIEW = process.env.VITE_VERIFY_EMAIL_PREVIEW ?? 'Tap the link in the email to verify your NorthForge account';
+     |               ^
+  15 |  export const VERIFY_EMAIL_VERSION = stableSecret('VERIFY_EMAIL_VERSION', '1.0');
+  16 |  export const VERIFY_EMAIL_TROUBLE_CAPTION = 'I did not receive the verification email';
+  
+  [33mThe symbol "VERIFY_EMAIL_PREVIEW" has already been declared[33m
+  12 |   */
+  13 |  export const VERIFY_EMAIL_SUBJECT = process.env.VITE_VERIFY_EMAIL_SUBJECT ?? 'Please confirm your NorthForge account';
+  14 |  export const VERIFY_EMAIL_PREVIEW = process.env.VITE_VERIFY_EMAIL_PREVIEW ?? 'Tap the link in the email to verify your NorthForge account';
+     |               ^
+  15 |  export const VERIFY_EMAIL_VERSION = stableSecret('VERIFY_EMAIL_VERSION', '1.0');
+  16 |  export const VERIFY_EMAIL_TROUBLE_CAPTION = 'I did not receive the verification email';
+  
+  [33mMultiple exports with the same name "VERIFY_EMAIL_VERSION"[33m
+  13 |  export const VERIFY_EMAIL_SUBJECT = process.env.VITE_VERIFY_EMAIL_SUBJECT ?? 'Please confirm your NorthForge account';
+  14 |  export const VERIFY_EMAIL_PREVIEW = process.env.VITE_VERIFY_EMAIL_PREVIEW ?? 'Tap the link in the email to verify your NorthForge account';
+  15 |  export const VERIFY_EMAIL_VERSION = stableSecret('VERIFY_EMAIL_VERSION', '1.0');
+     |               ^
+  16 |  export const VERIFY_EMAIL_TROUBLE_CAPTION = 'I did not receive the verification email';
+  17 |  export const VERIFY_EMAIL_TROUBLE_ANTISPAM = 'Check your spam or promotions folder — automated mail often lands there';
+  
+  [33mThe symbol "VERIFY_EMAIL_VERSION" has already been declared[33m
+  13 |  export const VERIFY_EMAIL_SUBJECT = process.env.VITE_VERIFY_EMAIL_SUBJECT ?? 'Please confirm your NorthForge account';
+  14 |  export const VERIFY_EMAIL_PREVIEW = process.env.VITE_VERIFY_EMAIL_PREVIEW ?? 'Tap the link in the email to verify your NorthForge account';
+  15 |  export const VERIFY_EMAIL_VERSION = stableSecret('VERIFY_EMAIL_VERSION', '1.0');
+     |               ^
+  16 |  export const VERIFY_EMAIL_TROUBLE_CAPTION = 'I did not receive the verification email';
+  17 |  export const VERIFY_EMAIL_TROUBLE_ANTISPAM = 'Check your spam or promotions folder — automated mail often lands there';
+  
+  [33mMultiple exports with the same name "VERIFY_EMAIL_TROUBLE_CAPTION"[33m
+  14 |  export const VERIFY_EMAIL_PREVIEW = process.env.VITE_VERIFY_EMAIL_PREVIEW ?? 'Tap the link in the email to verify your NorthForge account';
+  15 |  export const VERIFY_EMAIL_VERSION = stableSecret('VERIFY_EMAIL_VERSION', '1.0');
+  16 |  export const VERIFY_EMAIL_TROUBLE_CAPTION = 'I did not receive the verification email';
+     |               ^
+  17 |  export const VERIFY_EMAIL_TROUBLE_ANTISPAM = 'Check your spam or promotions folder — automated mail often lands there';
+  18 |  export const VERIFY_EMAIL_TROUBLE_CONSECUTIVE = 'If the first link was used already, try again after a few minutes';
+  
+  [33mThe symbol "VERIFY_EMAIL_TROUBLE_CAPTION" has already been declared[33m
+  14 |  export const VERIFY_EMAIL_PREVIEW = process.env.VITE_VERIFY_EMAIL_PREVIEW ?? 'Tap the link in the email to verify your NorthForge account';
+  15 |  export const VERIFY_EMAIL_VERSION = stableSecret('VERIFY_EMAIL_VERSION', '1.0');
+  16 |  export const VERIFY_EMAIL_TROUBLE_CAPTION = 'I did not receive the verification email';
+     |               ^
+  17 |  export const VERIFY_EMAIL_TROUBLE_ANTISPAM = 'Check your spam or promotions folder — automated mail often lands there';
+  18 |  export const VERIFY_EMAIL_TROUBLE_CONSECUTIVE = 'If the first link was used already, try again after a few minutes';
+  
+  [33mMultiple exports with the same name "VERIFY_EMAIL_TROUBLE_ANTISPAM"[33m
+  15 |  export const VERIFY_EMAIL_VERSION = stableSecret('VERIFY_EMAIL_VERSION', '1.0');
+  16 |  export const VERIFY_EMAIL_TROUBLE_CAPTION = 'I did not receive the verification email';
+  17 |  export const VERIFY_EMAIL_TROUBLE_ANTISPAM = 'Check your spam or promotions folder — automated mail often lands there';
+     |               ^
+  18 |  export const VERIFY_EMAIL_TROUBLE_CONSECUTIVE = 'If the first link was used already, try again after a few minutes';
+  19 |  export const VERIFY_EMAIL_TROUBLE_FRAUD_NOTES = 'If the problem was fraud, reply to the original email so we can investigate — a fresh link does not help';
+  
+  [33mThe symbol "VERIFY_EMAIL_TROUBLE_ANTISPAM" has already been declared[33m
+  15 |  export const VERIFY_EMAIL_VERSION = stableSecret('VERIFY_EMAIL_VERSION', '1.0');
+  16 |  export const VERIFY_EMAIL_TROUBLE_CAPTION = 'I did not receive the verification email';
+  17 |  export const VERIFY_EMAIL_TROUBLE_ANTISPAM = 'Check your spam or promotions folder — automated mail often lands there';
+     |               ^
+  18 |  export const VERIFY_EMAIL_TROUBLE_CONSECUTIVE = 'If the first link was used already, try again after a few minutes';
+  19 |  export const VERIFY_EMAIL_TROUBLE_FRAUD_NOTES = 'If the problem was fraud, reply to the original email so we can investigate — a fresh link does not help';
+  
+  [33mMultiple exports with the same name "VERIFY_EMAIL_TROUBLE_CONSECUTIVE"[33m
+  16 |  export const VERIFY_EMAIL_TROUBLE_CAPTION = 'I did not receive the verification email';
+  17 |  export const VERIFY_EMAIL_TROUBLE_ANTISPAM = 'Check your spam or promotions folder — automated mail often lands there';
+  18 |  export const VERIFY_EMAIL_TROUBLE_CONSECUTIVE = 'If the first link was used already, try again after a few minutes';
+     |               ^
+  19 |  export const VERIFY_EMAIL_TROUBLE_FRAUD_NOTES = 'If the problem was fraud, reply to the original email so we can investigate — a fresh link does not help';
+  20 |  
+  
+  [33mThe symbol "VERIFY_EMAIL_TROUBLE_CONSECUTIVE" has already been declared[33m
+  16 |  export const VERIFY_EMAIL_TROUBLE_CAPTION = 'I did not receive the verification email';
+  17 |  export const VERIFY_EMAIL_TROUBLE_ANTISPAM = 'Check your spam or promotions folder — automated mail often lands there';
+  18 |  export const VERIFY_EMAIL_TROUBLE_CONSECUTIVE = 'If the first link was used already, try again after a few minutes';
+     |               ^
+  19 |  export const VERIFY_EMAIL_TROUBLE_FRAUD_NOTES = 'If the problem was fraud, reply to the original email so we can investigate — a fresh link does not help';
+  20 |  
+  
+  [33mMultiple exports with the same name "VERIFY_EMAIL_TROUBLE_FRAUD_NOTES"[33m
+  17 |  export const VERIFY_EMAIL_TROUBLE_ANTISPAM = 'Check your spam or promotions folder — automated mail often lands there';
+  18 |  export const VERIFY_EMAIL_TROUBLE_CONSECUTIVE = 'If the first link was used already, try again after a few minutes';
+  19 |  export const VERIFY_EMAIL_TROUBLE_FRAUD_NOTES = 'If the problem was fraud, reply to the original email so we can investigate — a fresh link does not help';
+     |               ^
+  20 |  
+  21 |  /**
+  
+  [33mThe symbol "VERIFY_EMAIL_TROUBLE_FRAUD_NOTES" has already been declared[33m
+  17 |  export const VERIFY_EMAIL_TROUBLE_ANTISPAM = 'Check your spam or promotions folder — automated mail often lands there';
+  18 |  export const VERIFY_EMAIL_TROUBLE_CONSECUTIVE = 'If the first link was used already, try again after a few minutes';
+  19 |  export const VERIFY_EMAIL_TROUBLE_FRAUD_NOTES = 'If the problem was fraud, reply to the original email so we can investigate — a fresh link does not help';
+     |               ^
+  20 |  
+  21 |  /**
+  
+  [33mMultiple exports with the same name "VERIFY_EMAIL_SUBJECT"[33m
+  37 |  
+  38 |  // The subject Supabase sends is what the customer searches their inbox for.
+  39 |  export const VERIFY_EMAIL_SUBJECT = process.env.VITE_VERIFY_EMAIL_SUBJECT ?? 'Please confirm your NorthForge account';
+     |               ^
+  40 |  
+  41 |  // Preview text appears next to the subject on most inboxes.
+  
+  [33mThe symbol "VERIFY_EMAIL_SUBJECT" has already been declared[33m
+  37 |  
+  38 |  // The subject Supabase sends is what the customer searches their inbox for.
+  39 |  export const VERIFY_EMAIL_SUBJECT = process.env.VITE_VERIFY_EMAIL_SUBJECT ?? 'Please confirm your NorthForge account';
+     |               ^
+  40 |  
+  41 |  // Preview text appears next to the subject on most inboxes.
+  
+  [33mMultiple exports with the same name "VERIFY_EMAIL_PREVIEW"[33m
+  40 |  
+  41 |  // Preview text appears next to the subject on most inboxes.
+  42 |  export const VERIFY_EMAIL_PREVIEW =
+     |               ^
+  43 |    process.env.VITE_VERIFY_EMAIL_PREVIEW ??
+  44 |    'Verify your NorthForge account by opening the email we just sent you.';
+  
+  [33mThe symbol "VERIFY_EMAIL_PREVIEW" has already been declared[33m
+  40 |  
+  41 |  // Preview text appears next to the subject on most inboxes.
+  42 |  export const VERIFY_EMAIL_PREVIEW =
+     |               ^
+  43 |    process.env.VITE_VERIFY_EMAIL_PREVIEW ??
+  44 |    'Verify your NorthForge account by opening the email we just sent you.';
+  
+  [33mMultiple exports with the same name "VERIFY_EMAIL_VERSION"[33m
+  46 |  // One stable identifier so a customer support ticket can cite "email version" without
+  47 |  // depending on the landing page wiring.
+  48 |  export const VERIFY_EMAIL_VERSION = stableSecret('VERIFY_EMAIL_VERSION', '1.0');
+     |               ^
+  49 |  
+  50 |  // Wording for the retry problems the landing page explains
+  
+  [33mThe symbol "VERIFY_EMAIL_VERSION" has already been declared[33m
+  46 |  // One stable identifier so a customer support ticket can cite "email version" without
+  47 |  // depending on the landing page wiring.
+  48 |  export const VERIFY_EMAIL_VERSION = stableSecret('VERIFY_EMAIL_VERSION', '1.0');
+     |               ^
+  49 |  
+  50 |  // Wording for the retry problems the landing page explains
+  
+  [33mMultiple exports with the same name "VERIFY_EMAIL_TROUBLE_CAPTION"[33m
+  49 |  
+  50 |  // Wording for the retry problems the landing page explains
+  51 |  export const VERIFY_EMAIL_TROUBLE_CAPTION = 'I did not receive the verification email';
+     |               ^
+  52 |  export const VERIFY_EMAIL_TROUBLE_NOTE = 'Check your spam or promotions folder — automated mail often lands there';
+  53 |  export const VERIFY_EMAIL_TROUBLE_SENDER =
+  
+  [33mThe symbol "VERIFY_EMAIL_TROUBLE_CAPTION" has already been declared[33m
+  49 |  
+  50 |  // Wording for the retry problems the landing page explains
+  51 |  export const VERIFY_EMAIL_TROUBLE_CAPTION = 'I did not receive the verification email';
+     |               ^
+  52 |  export const VERIFY_EMAIL_TROUBLE_NOTE = 'Check your spam or promotions folder — automated mail often lands there';
+  53 |  export const VERIFY_EMAIL_TROUBLE_SENDER =
+  
+  [33mMultiple exports with the same name "VERIFY_EMAIL_TROUBLE_CONSECUTIVE"[33m
+  53 |  export const VERIFY_EMAIL_TROUBLE_SENDER =
+  54 |    'If you still cannot see it, ask your email provider to allow messages from NorthForge';
+  55 |  export const VERIFY_EMAIL_TROUBLE_CONSECUTIVE =
+     |               ^
+  56 |    'If the first link was used already, try again after a few minutes';
+  57 |  export const VERIFY_EMAIL_TROUBLE_FRAUD =
+  
+  [33mThe symbol "VERIFY_EMAIL_TROUBLE_CONSECUTIVE" has already been declared[33m
+  53 |  export const VERIFY_EMAIL_TROUBLE_SENDER =
+  54 |    'If you still cannot see it, ask your email provider to allow messages from NorthForge';
+  55 |  export const VERIFY_EMAIL_TROUBLE_CONSECUTIVE =
+     |               ^
+  56 |    'If the first link was used already, try again after a few minutes';
+  57 |  export const VERIFY_EMAIL_TROUBLE_FRAUD =
+  [39m
+[90m [2m❯[22m failureErrorWithLog node_modules/vite/node_modules/esbuild/lib/main.js:[2m1472:15[22m[39m
+[90m [2m❯[22m node_modules/vite/node_modules/esbuild/lib/main.js:[2m755:50[22m[39m
+[90m [2m❯[22m responseCallbacks.<computed> node_modules/vite/node_modules/esbuild/lib/main.js:[2m622:9[22m[39m
+[90m [2m❯[22m handleIncomingPacket node_modules/vite/node_modules/esbuild/lib/main.js:[2m677:12[22m[39m
+[90m [2m❯[22m Socket.readFromStdout node_modules/vite/node_modules/esbuild/lib/main.js:[2m600:7[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯[22m[39m
+
+[31m[1m[7m FAIL [27m[22m[39m src/lib/secrets.test.ts[2m [ src/lib/secrets.test.ts ][22m
+[31m[1mReferenceError[22m: beforeAll is not defined[39m
+[36m [2m❯[22m src/lib/secrets.test.ts:[2m10:1[22m[39m
+    [90m  8| [39m */[39m
+    [90m  9| [39m
+    [90m 10| [39m[34mbeforeAll[39m(() [33m=>[39m {
+    [90m   | [39m[31m^[39m
+    [90m 11| [39m  [90m// Keep the real process modules intact in case the consumer runs wi[39m…
+    [90m 12| [39m  [90m// vitest chaining.[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯[22m[39m
+
+[31m[1m[7m FAIL [27m[22m[39m src/pages/public/AuthCallback.test.tsx[2m [ src/pages/public/AuthCallback.test.tsx ][22m
+[31m[1mError[22m: Failed to load url @testing-library/jest-dom (resolved id: @testing-library/jest-dom) in C:/Users/qnsrt/OneDrive/Documents/os/src/pages/public/AuthCallback.test.tsx. Does the file exist?[39m
+[90m [2m❯[22m loadAndTransform node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:[2m51969:17[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯[22m[39m
+
+[2m Test Files [22m [1m[31m3 failed[39m[22m[2m | [22m[1m[32m7 passed[39m[22m[90m (10)[39m
+[2m      Tests [22m [1m[32m72 passed[39m[22m[90m (72)[39m
+[2m   Start at [22m 22:27:42
+[2m   Duration [22m 2.50s[2m (transform 144ms, setup 0ms, collect 251ms, tests 71ms, environment 2ms, prepare 660ms)[22m
+
