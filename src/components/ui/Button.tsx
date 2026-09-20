@@ -73,12 +73,13 @@ export function LinkButton({
   size = 'md',
   arrow,
   iconLeft,
+  fullWidth,
   className,
   children,
   external,
   onClick,
   ...props
-}: CommonProps & {
+}: Omit<CommonProps, 'loading' | 'iconRight'> & {
   to: string;
   external?: boolean;
   /**
@@ -87,7 +88,21 @@ export function LinkButton({
    */
   onClick?: () => void;
 }) {
-  const classes = cn(BASE, VARIANTS[variant], SIZES[size], arrow && 'group', className);
+  // `fullWidth` has to be destructured even though it only feeds a class:
+  // left inside `...props` it was spread onto <Link>, reached the DOM as an
+  // unknown attribute (React logged it on every page that used it), and the
+  // two call sites asking for a full-width CTA silently never got one.
+  // `loading`/`iconRight` are omitted above because a navigation link has no
+  // busy state to show — putting a spinner inside one would leak the prop the
+  // same way.
+  const classes = cn(
+    BASE,
+    VARIANTS[variant],
+    SIZES[size],
+    arrow && 'group',
+    fullWidth && 'w-full',
+    className,
+  );
 
   if (external) {
     return (
