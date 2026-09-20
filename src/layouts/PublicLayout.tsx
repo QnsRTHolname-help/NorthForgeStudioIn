@@ -76,7 +76,7 @@ export function PublicLayout() {
   // the page, centred, at native scroll behaviour.
   if (FULL_SCREEN_ROUTES.has(pathname)) {
     return (
-      <div className="flex min-h-screen flex-col bg-canvas">
+      <div className="flex nf-min-h-viewport flex-col bg-canvas">
         <main id="main" className="flex-1">
           <Outlet />
         </main>
@@ -88,7 +88,7 @@ export function PublicLayout() {
     <SmoothScrollProvider>
       {/* The bottom padding reserves the space the mobile action bar floats
           over, so the footer's last row is never hidden behind it. */}
-      <div className="flex min-h-screen flex-col bg-canvas pb-20 lg:pb-0">
+      <div className="flex nf-min-h-viewport flex-col bg-canvas pb-20 lg:pb-0">
         <ScrollProgress />
         <Navbar />
         <main id="main" className="flex-1 pt-16 lg:pt-[72px]">

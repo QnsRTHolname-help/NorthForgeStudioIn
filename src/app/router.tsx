@@ -1,17 +1,26 @@
 import { lazy, type ComponentType } from 'react';
 import { Navigate } from 'react-router-dom';
 import { PublicLayout } from '@/layouts/PublicLayout';
-import { PortalLayout } from '@/layouts/PortalLayout';
-import { AdminLayout } from '@/layouts/AdminLayout';
 import { RequireAdmin, RequireAuth, RequireClient, RequireGuest } from './guards/RequireRole';
 
 /**
  * Route table (spec §127).
  *
- * Every page is code-split — the marketing bundle never carries the admin
- * application, and vice versa. Guards wrap the layouts so a direct URL hit
- * and a client-side navigation behave identically.
+ * Every page is code-split. The portal and admin *shells* are split too, not
+ * just their pages: while both layouts were imported eagerly, the whole admin
+ * chrome shipped in the bundle every marketing visitor downloads, because a
+ * static `import` at the top of this file pulls its graph into the entry
+ * chunk no matter which route renders it. Guards wrap the layouts so a direct
+ * URL hit and a client-side navigation behave identically.
+ *
+ * Both shells are named exports, hence the `.then()` re-shaping.
  */
+const PortalLayout = lazy(() =>
+  import('@/layouts/PortalLayout').then((module) => ({ default: module.PortalLayout })),
+);
+const AdminLayout = lazy(() =>
+  import('@/layouts/AdminLayout').then((module) => ({ default: module.AdminLayout })),
+);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const lazyPage = (loader: () => Promise<{ default: ComponentType<any> }>) => lazy(loader);

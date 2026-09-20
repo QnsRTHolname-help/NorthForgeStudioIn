@@ -1,4 +1,4 @@
-import type { CatalogResponse } from '@/services';
+import type { CatalogResponse } from '@/services/public';
 import { BILLING_FACTS, BILLING_INTERVAL_DAYS, CURRENCY, PLANS, SERVICE_GROUPS, SERVICES, THIRD_PARTY_COSTS } from '@shared/catalog';
 
 /**

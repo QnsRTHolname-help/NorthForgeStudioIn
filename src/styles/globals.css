@@ -106,18 +106,29 @@
     --nf-line-strong: 190 184 176;
 
     --nf-fg: 16 17 20; /* #101114 */
-    --nf-muted: 138 135 127; /* #8A877F */
-    --nf-faint: 98 96 90; /* #62605A */
 
-    --nf-blue: 59 130 255; /* #3B82FF */
-    --nf-violet: 124 92 255; /* #7C5CFF */
+    /* The ladder must read fg → muted → faint, each step quieter but still
+       legible. It was inverted: muted was #8A877F (3.18:1 on cream) while
+       faint was already #62605A (5.58:1), so the "secondary" colour was the
+       least readable text in the product and every one of its call sites
+       inherited a WCAG AA failure. Both steps now clear 4.5:1 for small text
+       while keeping a visible difference between them. */
+    --nf-muted: 98 96 90; /* #62605A — 5.58:1 on cream */
+    --nf-faint: 110 108 102; /* #6E6C66 — 4.66:1, still a real step down */
+
+    /* The bright brand blue is a dark-surface accent. On cream it read
+       3.2:1 as text and white on it was 3.6:1 — both under AA. The deeper
+       blue clears both (5.7:1 as text, 6.4:1 for white on it). Keep the
+       bright value in the dark block above, where it already passes. */
+    --nf-blue: 36 88 197; /* #2458C5 */
+    --nf-violet: 109 77 224; /* #6D4DE0 — text-brand-violet was 3.9:1 */
     --nf-blue-soft: 138 168 255; /* Not in master prompt but keeping for compatibility */
     --nf-blue-deep: 36 88 197; /* #2458C5 */
 
     --nf-success: 22 148 92; /* Not in master prompt but keeping for compatibility */
     --nf-warning: 176 110 8; /* Not in master prompt but keeping for compatibility */
     --nf-danger: 203 58 74; /* Not in master prompt but keeping for compatibility */
-    --nf-info: 59 130 255; /* Not in master prompt but keeping for compatibility */
+    --nf-info: 36 88 197; /* matches the accessible blue above */
 
     /* Ink, not white: a white grid on cream is invisible — the texture
        never rendered on the public site. */
@@ -296,6 +307,16 @@
 }
 
 @layer utilities {
+  /* Full-height shells. `100dvh` tracks the mobile browser's collapsing
+     toolbar, so a vertically centred card is not pushed under it on iOS; the
+     plain vh line above it is the fallback for browsers without dvh support
+     (Safari before 15.4), which would otherwise discard the declaration
+     entirely and lose the height. Replaces Tailwind's `min-h-screen`. */
+  .nf-min-h-viewport {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
   .nf-mask-fade-b {
     -webkit-mask-image: linear-gradient(to bottom, black 55%, transparent 100%);
     mask-image: linear-gradient(to bottom, black 55%, transparent 100%);

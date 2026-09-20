@@ -30,7 +30,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
     if (!error) return this.props.children;
 
     return (
-      <div className="flex min-h-screen items-center justify-center bg-canvas px-6">
+      <div className="flex nf-min-h-viewport items-center justify-center bg-canvas px-6">
         <div className="w-full max-w-md rounded-lg border border-line bg-surface p-8 text-center">
           <Logo className="mx-auto mb-6" />
           <h1 className="text-lg font-semibold tracking-tight text-fg">Something went wrong</h1>

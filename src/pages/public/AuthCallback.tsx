@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { AlertTriangle, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Mail, ShieldCheck } from 'lucide-react';
 import { Logo } from '@/components/brand/Logo';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Form';
 import { Loader } from '@/components/ui/Loader';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { CONTACT } from '@/data/site';
+import { AUTH_CALLBACK_PATH, canonicalUrl } from '@/lib/links';
 import { initialAuthUrl, looksExpired } from '@/lib/auth-url';
 
 type Phase = 'working' | 'confirmed' | 'expired' | 'invalid';
@@ -34,6 +36,34 @@ export default function AuthCallback() {
   const { status, isAdmin } = useAuth();
   const [phase, setPhase] = useState<Phase>('working');
   const [detail, setDetail] = useState<string | null>(null);
+  const [email, setEmail] = useState('');
+  const [sending, setSending] = useState(false);
+  const [resent, setResent] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+
+  /**
+   * Ask Supabase for a fresh confirmation link.
+   *
+   * This actually sends one — it does not navigate and hope, because a button
+   * labelled "send me a link" that only opens the sign-in page is a lie the
+   * customer cannot see through. Supabase deliberately answers "ok" for
+   * addresses it does not know, so this screen cannot be used to discover
+   * which emails have accounts; the copy is worded the same way.
+   */
+  const resend = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSending(true);
+    setSendError(null);
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email.trim(),
+      options: { emailRedirectTo: canonicalUrl(AUTH_CALLBACK_PATH) },
+    });
+    setSending(false);
+    // The provider's raw wording is for the console, not the customer.
+    if (error) setSendError('We could not send that just now. Try again in a minute.');
+    else setResent(true);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -101,7 +131,7 @@ export default function AuthCallback() {
   }, [phase, status, isAdmin, navigate]);
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-5 py-14">
+    <main className="flex nf-min-h-viewport items-center justify-center px-5 py-14">
       <div className="w-full max-w-md text-center">
         <Link to="/" className="mb-10 inline-block">
           <Logo />
@@ -153,17 +183,46 @@ export default function AuthCallback() {
                 ? 'Verification links are time-limited. Sign in and we will send a fresh one — or create the account again with the same email.'
                 : 'The link may have been truncated by your email app, or already used. Sign in and request a new link.'}
             </p>
-            {detail ? <p className="mt-2 text-2xs text-faint">Technical detail: {detail}</p> : null}
+            {detail ? <p className="mt-2 text-2xs text-muted">Technical detail: {detail}</p> : null}
+
             <div className="mt-8 space-y-3">
-              <Button fullWidth size="lg" onClick={() => navigate('/login', { replace: true })} arrow>
-                Go to sign in
-              </Button>
-              <p className="text-2xs text-faint">
-                Still stuck? Email{' '}
-                <a href={`mailto:${CONTACT.email}`} className="underline underline-offset-2">
-                  {CONTACT.email}
-                </a>{' '}
-                and we will confirm you manually.
+              {resent ? (
+                <p role="status" className="rounded border border-line bg-surface px-4 py-3 text-left text-[13px] leading-relaxed text-muted">
+                  If <span className="font-medium text-fg">{email.trim()}</span> has an unverified
+                  account, a new link is on its way. It expires in one hour.
+                </p>
+              ) : (
+                <>
+                  <Button fullWidth size="lg" onClick={() => navigate('/login', { replace: true })}>
+                    Go to sign in
+                  </Button>
+                  <form onSubmit={resend} className="space-y-2 pt-1 text-left">
+                    <Input
+                      type="email"
+                      name="email"
+                      label="Or send me another link"
+                      placeholder="you@company.com"
+                      autoComplete="email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      required
+                      iconLeft={<Mail className="h-4 w-4" aria-hidden />}
+                      error={sendError ?? undefined}
+                    />
+                    <Button type="submit" variant="secondary" fullWidth loading={sending} disabled={sending}>
+                      Send a new verification link
+                    </Button>
+                  </form>
+                </>
+              )}
+
+              <ul className="space-y-1.5 pt-3 text-left text-2xs leading-relaxed text-muted">
+                <li>Check your spam or promotions folder — automated mail often lands there.</li>
+                <li>If a link was already used, wait a minute before asking for another.</li>
+                <li>Reporting fraud? Reply to the original email — a fresh link will not help us investigate.</li>
+              </ul>
+              <p className="text-2xs leading-relaxed text-muted">
+                Still stuck? Message us on WhatsApp {CONTACT.whatsappDisplay} and we will sort it out.
               </p>
             </div>
           </>

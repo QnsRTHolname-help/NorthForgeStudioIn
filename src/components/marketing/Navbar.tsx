@@ -141,26 +141,30 @@ export function Navbar() {
                 {PUBLIC_NAV.map((item) => {
                   const isActive = activeId === item.id;
                   return (
-                    <button
+                    <Link
                       key={item.to}
+                      to={item.to}
                       data-nav-id={item.id}
-                      type="button"
-                      onClick={() => {
-                        if (location.pathname === '/') goToSection(item.id);
+                      aria-current={isActive ? 'location' : undefined}
+                      onClick={(event) => {
+                        // On the homepage these are in-page jumps. Keep the
+                        // href a real URL and only take over the scroll when
+                        // the section actually exists — a <Link> nested in a
+                        // <button> shrank the hit area, behaved differently in
+                        // Firefox/Safari, and left the nav uncrawlable because
+                        // the homepage rendered buttons with no href.
+                        if (location.pathname !== '/') return;
+                        if (!document.getElementById(item.id)) return;
+                        event.preventDefault();
+                        goToSection(item.id);
                       }}
                       className={cn(
                         'relative rounded-full px-3.5 py-1.5 text-[13px] transition-colors duration-300',
                         isActive ? 'text-fg' : 'text-muted hover:text-fg',
                       )}
                     >
-                      {location.pathname === '/' ? (
-                        item.label
-                      ) : (
-                        <Link to={item.to} className="block">
-                          {item.label}
-                        </Link>
-                      )}
-                    </button>
+                      {item.label}
+                    </Link>
                   );
                 })}
               </div>
@@ -231,24 +235,20 @@ export function Navbar() {
               <nav aria-label="Mobile" className="flex flex-col">
                 {PUBLIC_NAV.map((item) => (
                   <StaggerItem key={item.to}>
-                    {location.pathname === '/' ? (
-                      <button
-                        type="button"
-                        onClick={() => goToSection(item.id)}
-                        className="flex w-full items-center justify-between border-b border-line py-3.5 text-left text-[15px] text-fg"
-                      >
-                        {item.label}
-                        <ArrowUpRight className="h-4 w-4 text-faint" aria-hidden />
-                      </button>
-                    ) : (
-                      <Link
-                        to={item.to}
-                        className="flex w-full items-center justify-between border-b border-line py-3.5 text-left text-[15px] text-fg"
-                      >
-                        {item.label}
-                        <ArrowUpRight className="h-4 w-4 text-faint" aria-hidden />
-                      </Link>
-                    )}
+                    <Link
+                      to={item.to}
+                      aria-current={location.pathname === item.to ? 'page' : undefined}
+                      onClick={(event) => {
+                        if (location.pathname !== '/') return;
+                        if (!document.getElementById(item.id)) return;
+                        event.preventDefault();
+                        goToSection(item.id);
+                      }}
+                      className="flex w-full items-center justify-between border-b border-line py-3.5 text-left text-[15px] text-fg"
+                    >
+                      {item.label}
+                      <ArrowUpRight className="h-4 w-4 text-faint" aria-hidden />
+                    </Link>
                   </StaggerItem>
                 ))}
               </nav>

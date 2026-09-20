@@ -6,18 +6,23 @@
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#F5F1E8" />
 
-    <title>NorthForge — Websites, Automation, AI & Growth Systems</title>
+    <!--
+      These are the homepage's defaults, i.e. what the dev server serves.
+      In a production build scripts/prerender.mjs replaces everything between
+      the two markers below with the tags for that specific route, so
+      /pricing ships its own title, description, canonical and social preview
+      instead of the homepage's. Keep the markers — the build fails loudly
+      without them, rather than shipping seven pages with one set of tags.
+    -->
+    <!-- nf:meta:start -->
+    <title>Websites, automation and AI systems that grow your business · NorthForge</title>
     <meta
       name="description"
-      content="NorthForge is a digital systems studio in Mangaluru, Karnataka, building premium websites connected to lead capture, WhatsApp, AI, automation and analytics — so your website works as a business system, not a brochure."
+      content="NorthForge is a digital systems studio in Mangaluru, Karnataka. We build premium websites and connect them to lead capture, WhatsApp, AI, automation and analytics."
     />
     <!-- Canonical/OG base URL — keep in sync with VITE_SITE_URL (src/data/site.ts). -->
     <link rel="canonical" href="https://northforgestudio.vercel.app/" />
     <meta name="robots" content="index,follow,max-image-preview:large" />
-    <meta name="author" content="NorthForge" />
-    <meta name="geo.region" content="IN-KA" />
-    <meta name="geo.placename" content="Mangaluru, Karnataka" />
-
     <!-- OpenGraph -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="NorthForge" />
@@ -27,7 +32,10 @@
       content="Websites connected to lead capture, WhatsApp, AI, automation and analytics. Built as one system."
     />
     <meta property="og:url" content="https://northforgestudio.vercel.app/" />
-    <meta property="og:image" content="/og.png" />
+    <!-- Scrapers (WhatsApp, LinkedIn, Facebook) do not resolve relative image
+         paths against the page URL, so these must be absolute. -->
+    <meta property="og:image" content="https://northforgestudio.vercel.app/og.png" />
+    <meta property="og:image:secure_url" content="https://northforgestudio.vercel.app/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:type" content="image/png" />
@@ -41,7 +49,13 @@
       name="twitter:description"
       content="Websites connected to lead capture, WhatsApp, AI, automation and analytics."
     />
-    <meta name="twitter:image" content="/og.png" />
+    <meta name="twitter:image" content="https://northforgestudio.vercel.app/og.png" />
+    <!-- nf:meta:end -->
+
+    <!-- Route-independent: the same on every page, so they stay outside the block. -->
+    <meta name="author" content="NorthForge" />
+    <meta name="geo.region" content="IN-KA" />
+    <meta name="geo.placename" content="Mangaluru, Karnataka" />
 
     <!-- Brand assets -->
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />

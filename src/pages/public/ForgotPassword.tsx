@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Logo } from '@/components/brand/Logo';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useMutation } from '@/hooks/useAsync';
-import { authService } from '@/services';
+import { authService } from '@/services/public';
 
 export default function ForgotPassword() {
   usePageMeta({ title: 'Reset your password', noIndex: true });
@@ -32,7 +32,7 @@ export default function ForgotPassword() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-5 py-14">
+    <main className="flex nf-min-h-viewport items-center justify-center px-5 py-14">
       <div className="w-full max-w-sm">
         <Link to="/" className="mb-10 inline-block">
           <Logo />

@@ -41,6 +41,7 @@ export function SplitText({
   duration = 0.9,
   start = 'top 85%',
   trigger = 'scroll',
+  fade = true,
 }: {
   text: string;
   as?: 'span' | 'h1' | 'h2' | 'h3' | 'p';
@@ -52,6 +53,14 @@ export function SplitText({
   duration?: number;
   start?: string;
   trigger?: 'scroll' | 'mount';
+  /**
+   * Whether the units also fade. Set false for above-the-fold text: opacity 0
+   * makes an element ineligible as a Largest Contentful Paint candidate until
+   * the tween runs, so the largest text on the page stayed unpainted for the
+   * length of its delay. The units sit inside an `overflow-hidden` mask, so
+   * sliding them up on transform alone reads the same and paints immediately.
+   */
+  fade?: boolean;
 }) {
   const ref = useRef<HTMLElement>(null);
   const reduced = useReducedMotion();
@@ -76,7 +85,7 @@ export function SplitText({
       const inners = node.querySelectorAll('[data-split-inner]');
       gsap.fromTo(
         inners,
-        { yPercent: 118, opacity: 0 },
+        fade ? { yPercent: 118, opacity: 0 } : { yPercent: 118 },
         {
           yPercent: 0,
           opacity: 1,
@@ -90,7 +99,7 @@ export function SplitText({
     }, node);
 
     return () => ctx.revert();
-  }, [reduced, by, delay, stagger, duration, start, trigger, units.length]);
+  }, [reduced, by, delay, stagger, duration, start, trigger, fade, units.length]);
 
   return (
     <Tag ref={ref as never} className={className}>

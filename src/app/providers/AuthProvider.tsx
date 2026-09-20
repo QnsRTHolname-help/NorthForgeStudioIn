@@ -1,6 +1,6 @@
 ﻿import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
-import { authService, type AuthSession } from '@/services';
+import { authService, type AuthSession } from '@/services/public';
 import { logAuthEvent } from '@/lib/auth-errors';
 import { ApiError } from '@/types';
 import type { Client, Role } from '@/types';

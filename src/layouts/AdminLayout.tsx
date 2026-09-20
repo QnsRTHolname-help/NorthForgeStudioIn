@@ -256,7 +256,7 @@ export function AdminLayout() {
   );
 
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className="nf-min-h-viewport bg-canvas">
       {/* Desktop rail */}
       <aside
         className={cn(

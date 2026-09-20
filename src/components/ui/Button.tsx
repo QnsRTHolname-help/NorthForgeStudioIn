@@ -51,7 +51,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       type={props.type ?? 'button'}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={cn(BASE, VARIANTS[variant], SIZES[size], fullWidth && 'w-full', className)}
+      // `arrow` animates on group-hover, so the button has to be the group.
+      // Without it the arrow's hover transition was dead code.
+      className={cn(BASE, VARIANTS[variant], SIZES[size], arrow && 'group', fullWidth && 'w-full', className)}
       {...props}
     >
       {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : iconLeft}
@@ -85,14 +87,19 @@ export function LinkButton({
    */
   onClick?: () => void;
 }) {
-  const classes = cn(BASE, VARIANTS[variant], SIZES[size], className);
+  const classes = cn(BASE, VARIANTS[variant], SIZES[size], arrow && 'group', className);
 
   if (external) {
     return (
       <a href={to} target="_blank" rel="noreferrer noopener" onClick={onClick} className={classes}>
         {iconLeft}
         <span>{children}</span>
-        {arrow ? <ArrowRight className="h-4 w-4 transition-transform duration-200 ease-forge" aria-hidden /> : null}
+        {arrow ? (
+          <ArrowRight
+            className="h-4 w-4 transition-transform duration-200 ease-forge group-hover:translate-x-0.5"
+            aria-hidden
+          />
+        ) : null}
       </a>
     );
   }
@@ -101,7 +108,12 @@ export function LinkButton({
     <Link to={to} className={classes} onClick={onClick} {...props}>
       {iconLeft}
       <span>{children}</span>
-      {arrow ? <ArrowRight className="h-4 w-4 transition-transform duration-200 ease-forge" aria-hidden /> : null}
+      {arrow ? (
+        <ArrowRight
+          className="h-4 w-4 transition-transform duration-200 ease-forge group-hover:translate-x-0.5"
+          aria-hidden
+        />
+      ) : null}
     </Link>
   );
 }

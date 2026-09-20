@@ -8,7 +8,7 @@ import { usePageMeta } from '@/hooks/usePageMeta';
 import { useMutation } from '@/hooks/useAsync';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useToast } from '@/app/providers/ToastProvider';
-import { authService } from '@/services';
+import { authService } from '@/services/public';
 import { PasswordStrength } from '@/components/ui/PasswordStrength';
 import { useCooldown } from '@/hooks/useCooldown';
 import { PASSWORD_POLICY } from '@shared/password';
@@ -111,7 +111,7 @@ export default function Register() {
 
   if (needsConfirmation) {
     return (
-      <main className="flex min-h-screen items-center justify-center px-5 py-14">
+      <main className="flex nf-min-h-viewport items-center justify-center px-5 py-14">
         <div className="w-full max-w-md text-center">
           <Link to="/" className="mb-10 inline-block">
             <Logo />
@@ -167,7 +167,7 @@ export default function Register() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-5 py-14">
+    <main className="flex nf-min-h-viewport items-center justify-center px-5 py-14">
       <div className="w-full max-w-md">
         <Link to="/" className="mb-10 inline-block">
           <Logo />

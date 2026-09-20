@@ -40,8 +40,14 @@ export function Hero() {
       const timeline = gsap.timeline({ defaults: { ease: 'power3.out' } });
 
       timeline
+        // The headline is the largest text on the page, which makes it the
+        // Largest Contentful Paint element. It used to start at opacity 0 and
+        // stay hidden until 0.7s after boot, so the paint was delayed by the
+        // animation rather than by anything being slow to load. SplitText's
+        // masked line slide already carries the reveal, so the block itself
+        // now moves on transform alone and never touches opacity.
+        .fromTo('[data-hero-copy]', { y: 14 }, { y: 0, duration: 0.7 }, 0)
         .fromTo('[data-hero-eyebrow]', { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5 }, 0.1)
-        .fromTo('[data-hero-copy]', { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.7 }, 0.7)
         .fromTo('[data-hero-actions] > *', { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.6, stagger: 0.08 }, 0.82)
         .fromTo('[data-hero-system]', { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 1.1, ease: 'expo.out' }, 0.75)
         .fromTo('[data-hero-meta]', { opacity: 0 }, { opacity: 1, duration: 0.6 }, 1.25);
@@ -90,6 +96,7 @@ export function Hero() {
                 by="line"
                 stagger={0.09}
                 trigger="mount"
+                fade={false}
               />
             </h1>
 

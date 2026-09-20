@@ -27,7 +27,11 @@ export function Tabs({
   const [internal, setInternal] = useState(items[0]?.id ?? '');
   const active = value ?? internal;
   const setActive = onChange ?? setInternal;
-  const groupId = useId();
+  // DOM ids must come from position, not from the caller's `id`: those are
+  // values ("overview", "Do I need a website?") and `aria-controls` is a
+  // space-separated list, so a label with a space silently points at several
+  // non-existent ids. `useId()` also returns colons, which are stripped here.
+  const groupId = `nf-tabs-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
   const onKeyDown = (event: React.KeyboardEvent) => {
     const index = items.findIndex((item) => item.id === active);
@@ -61,15 +65,15 @@ export function Tabs({
           variant === 'pills' && 'rounded bg-sunken p-1',
         )}
       >
-        {items.map((item) => {
+        {items.map((item, index) => {
           const isActive = item.id === active;
           return (
             <button
               key={item.id}
               role="tab"
-              id={`${groupId}-${item.id}`}
+              id={`${groupId}-tab-${index}`}
               aria-selected={isActive}
-              aria-controls={`${groupId}-${item.id}-panel`}
+              aria-controls={`${groupId}-panel-${index}`}
               tabIndex={isActive ? 0 : -1}
               onClick={() => setActive(item.id)}
               className={cn(
@@ -89,12 +93,12 @@ export function Tabs({
         })}
       </div>
       <div className="mt-5">
-        {items.map((item) => (
+        {items.map((item, index) => (
           <div
             key={item.id}
             role="tabpanel"
-            id={`${groupId}-${item.id}-panel`}
-            aria-labelledby={`${groupId}-${item.id}`}
+            id={`${groupId}-panel-${index}`}
+            aria-labelledby={`${groupId}-tab-${index}`}
             hidden={item.id !== active}
           >
             {item.id === active ? item.content : null}
@@ -163,7 +167,9 @@ export function Accordion({
   className?: string;
 }) {
   const [open, setOpen] = useState<string[]>(() => (items[0] ? [items[0].id] : []));
-  const baseId = useId();
+  // Position-derived ids, for the same reason as Tabs above: the FAQ passes
+  // the question text as `id`, which contains spaces and a "?".
+  const baseId = `nf-accordion-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
   const toggle = (id: string) => {
     setOpen((prev) => {
@@ -174,16 +180,19 @@ export function Accordion({
 
   return (
     <div className={cn('divide-y divide-line border-y border-line', className)}>
-      {items.map((item) => {
+      {items.map((item, index) => {
         const isOpen = open.includes(item.id);
+        const panelId = `${baseId}-panel-${index}`;
+        const buttonId = `${baseId}-button-${index}`;
         return (
           <div key={item.id}>
             <h3>
               <button
                 type="button"
+                id={buttonId}
                 onClick={() => toggle(item.id)}
                 aria-expanded={isOpen}
-                aria-controls={`${baseId}-${item.id}`}
+                aria-controls={panelId}
                 className="group flex w-full items-start justify-between gap-6 py-5 text-left"
               >
                 <span className={cn('text-[15px] font-medium transition-colors', isOpen ? 'text-fg' : 'text-fg/90 group-hover:text-brand')}>
@@ -199,7 +208,9 @@ export function Accordion({
               </button>
             </h3>
             <div
-              id={`${baseId}-${item.id}`}
+              id={panelId}
+              role="region"
+              aria-labelledby={buttonId}
               hidden={!isOpen}
               className="pb-5 pr-10"
             >

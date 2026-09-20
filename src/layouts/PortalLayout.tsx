@@ -106,7 +106,7 @@ export function PortalLayout() {
   const secondaryItems = SECTIONS.flatMap((section) => section.items).filter((item) => !item.primary);
 
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className="nf-min-h-viewport bg-canvas">
       {/* Desktop rail */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-line bg-surface lg:flex">
         <div className="flex h-16 items-center border-b border-line px-5">

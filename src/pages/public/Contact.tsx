@@ -8,7 +8,7 @@ import { SectionHeader } from '@/components/ui/Card';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useMutation } from '@/hooks/useAsync';
 import { useToast } from '@/app/providers/ToastProvider';
-import { contactService } from '@/services';
+import { contactService } from '@/services/public';
 import { CONTACT, emailLink, whatsappLink } from '@/data/site';
 import { PLANS, planAmountLabel, planSetupLabel } from '@shared/catalog';
 import { trackEvent } from '@/lib/analytics';

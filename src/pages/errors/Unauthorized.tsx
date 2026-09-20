@@ -15,7 +15,7 @@ export default function Unauthorized() {
   const { isAdmin, isClient } = useAuth();
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-5 py-24 text-center">
+    <main className="flex nf-min-h-viewport flex-col items-center justify-center px-5 py-24 text-center">
       <Logo className="mb-10" />
       <span className="mb-6 inline-flex h-11 w-11 items-center justify-center rounded-full border border-line bg-sunken text-faint">
         <ShieldAlert className="h-5 w-5" aria-hidden />

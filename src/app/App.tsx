@@ -21,7 +21,7 @@ export default function App() {
         <PageViewTracker />
         <AuthUrlErrorHandler />
         <ConsentBanner />
-      <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-canvas"><Loader /></div>}>
+      <Suspense fallback={<div className="flex nf-min-h-viewport items-center justify-center bg-canvas"><Loader /></div>}>
         <Routes>
           {AppRoutes.map((route) => (
             <Route key={route.path} path={route.path} element={route.element}>

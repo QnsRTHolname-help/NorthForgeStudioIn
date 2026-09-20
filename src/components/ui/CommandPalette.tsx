@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { CornerDownLeft, Plus, Search } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useHotkey, useScrollLock } from '@/hooks';
-import { insightsService, type SearchResult } from '@/services';
+import type { SearchResult } from '@/services';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { Spinner } from './Loader';
 import { useDebounce } from '@/hooks';
@@ -107,6 +107,12 @@ export function CommandPaletteProvider({ children }: { children: ReactNode }) {
       }
       setSearching(true);
       try {
+        // Loaded on demand. This provider is mounted app-wide, so a static
+        // import here pulled the entire admin/portal service barrel into the
+        // entry chunk — the one every public visitor downloads before the
+        // homepage paints. The palette is behind a login and a hotkey, so
+        // paying for its data layer on the homepage never made sense.
+        const { insightsService } = await import('@/services');
         const data = await insightsService.search(debounced.trim(), controller.signal);
         if (!cancelled) setResults(data.results);
       } catch {

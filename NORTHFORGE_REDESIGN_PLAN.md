@@ -189,13 +189,19 @@ Key transformations:
 - Do not invent clients, statistics, or results
 
 #### Pricing Section
-- Use actual NorthForge catalog:
-  - STARTER: ₹999 / 28 days
-  - GROWTH: ₹1,999 / 28 days (visually recommended if appropriate)
-  - PRO: ₹2,999 / 28 days
-  - CUSTOM: Custom Quote
+- Use the actual NorthForge catalog. The single source of truth is
+  `shared/catalog.ts`, which is what the live pricing page, the FAQ and the
+  page metadata all read from. Amounts are stored in paise as integers.
+  - LEAD: ₹7,500 / month + ₹15,000 setup
+  - CONVERT: ₹15,000 / month + ₹30,000 setup (visually recommended if appropriate)
+  - AUTOPILOT: ₹30,000 / month + ₹60,000 setup
+  - CUSTOM: custom quote
 - Implement premium comparison/editorial layout (not generic SaaS cards)
-- Centralize pricing data source
+- Never hard-code an amount in a component — read it from the catalog
+
+> This section previously listed STARTER ₹999 / GROWTH ₹1,999 / PRO ₹2,999
+> per 28 days. Those plans and prices never matched the shipped product and
+> have been removed, so the plan doc cannot be mistaken for the real pricing.
 
 #### Contact/Audit Section
 - Create strong conversion section

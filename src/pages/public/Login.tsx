@@ -8,7 +8,7 @@ import { usePageMeta } from '@/hooks/usePageMeta';
 import { useMutation } from '@/hooks/useAsync';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useToast } from '@/app/providers/ToastProvider';
-import { authService } from '@/services';
+import { authService } from '@/services/public';
 import { AuthError } from '@/lib/auth-errors';
 import { useCooldown } from '@/hooks/useCooldown';
 import { GrowthChain } from '@/components/marketing/GrowthSystem';
@@ -89,7 +89,7 @@ export default function Login() {
 
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
+    <div className="grid nf-min-h-viewport lg:grid-cols-2">
       {/* Brand panel */}
       <aside className="relative hidden overflow-hidden border-r border-line bg-sunken/30 lg:flex lg:flex-col lg:justify-between">
         <div className="nf-grid-bg pointer-events-none absolute inset-0 opacity-60" aria-hidden />

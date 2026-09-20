@@ -14,7 +14,7 @@ import type { Role } from '@/types';
 
 function Booting() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-canvas">
+    <div className="flex nf-min-h-viewport items-center justify-center bg-canvas">
       <Loader label="Verifying your session" />
     </div>
   );

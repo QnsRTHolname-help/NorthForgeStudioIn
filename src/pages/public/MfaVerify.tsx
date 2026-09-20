@@ -8,7 +8,7 @@ import { Logo } from '@/components/brand/Logo';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useMutation } from '@/hooks/useAsync';
 import { useAuth } from '@/app/providers/AuthProvider';
-import { mfaService } from '@/services';
+import { mfaService } from '@/services/public';
 import { AuthError } from '@/lib/auth-errors';
 
 /**
@@ -75,7 +75,7 @@ export default function MfaVerify() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-5 py-14">
+    <main className="flex nf-min-h-viewport items-center justify-center px-5 py-14">
       <div className="w-full max-w-sm">
         <Link to="/" className="mb-10 inline-block">
           <Logo />

@@ -9,7 +9,7 @@ export default function NotFound() {
   usePageMeta({ title: 'Page not found', noIndex: true });
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-5 py-24 text-center">
+    <main className="flex nf-min-h-viewport flex-col items-center justify-center px-5 py-24 text-center">
       <Logo className="mb-10" />
       <span className="nf-eyebrow">Error 404</span>
       <h1 className="mt-5 text-display-sm font-semibold text-fg">This page doesn't exist.</h1>
