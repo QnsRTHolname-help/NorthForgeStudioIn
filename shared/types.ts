@@ -300,6 +300,28 @@ export interface Service {
   active: boolean;
 }
 
+/**
+ * Something sold ON TOP of a plan: extra employee seats, the Company Second
+ * Brain, a voice receptionist.
+ *
+ * `amount` is deliberately allowed to be null. Seat *rules* are published in
+ * `PlanLimits.users` because the portal has to render the allowance; a seat or
+ * add-on *price* is only published once it has actually been agreed. A null
+ * amount renders as "quoted" — never as free.
+ */
+export interface AddOn {
+  id: ID;
+  slug: string;
+  name: string;
+  description: string;
+  /** Recurring amount in the smallest currency unit (paise); null = quoted. */
+  amount: number | null;
+  /** How the amount is charged, e.g. "per seat / month". */
+  unit: string;
+  /** The plans this add-on can be bought on top of. */
+  availableOn: Plan['slug'][];
+}
+
 export interface Subscription {
   id: ID;
   clientId: ID;
@@ -604,6 +626,7 @@ export interface ClientDashboard {
     whatsappClicks: number | null;
     bookings: number;
     openRequests: number;
+    openTasks: number;
   };
   series: SeriesPoint[];
   upcomingBookings: Booking[];

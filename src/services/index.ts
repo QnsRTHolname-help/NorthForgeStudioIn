@@ -1612,12 +1612,13 @@ export const insightsService = {
       supabase.from('websites').select('*').eq('client_id', clientId).limit(1),
     );
 
-    const [projects, subscriptions, leads, bookings, requests, analytics] = await Promise.all([
+    const [projects, subscriptions, leads, bookings, requests, tasks, analytics] = await Promise.all([
       run<Record<string, unknown>[]>('dashboard.client.projects', () => supabase.from('projects').select('*').eq('client_id', clientId).order('created_at', { ascending: false }).limit(1)),
       run<Record<string, unknown>[]>('dashboard.client.subscriptions', () => supabase.from('subscriptions').select('*').eq('client_id', clientId).order('started_at', { ascending: false }).limit(1)),
       run<Record<string, unknown>[]>('dashboard.client.leads', () => supabase.from('leads').select('status, created_at').eq('client_id', clientId)),
       run<Record<string, unknown>[]>('dashboard.client.bookings', () => supabase.from('bookings').select('*').eq('client_id', clientId).gte('starts_at', new Date().toISOString()).order('starts_at').limit(10)),
       run<Record<string, unknown>[]>('dashboard.client.requests', () => supabase.from('client_requests').select('status').eq('client_id', clientId)),
+      run<Record<string, unknown>[]>('dashboard.client.tasks', () => supabase.from('tasks').select('status').eq('client_id', clientId)),
       websites?.[0]
         ? run<Record<string, unknown>[]>('dashboard.client.analytics', () =>
             supabase.from('website_analytics').select('*').eq('website_id', (websites[0] as { id: string }).id).order('date', { ascending: true }).limit(90),
@@ -1652,6 +1653,7 @@ export const insightsService = {
           whatsappClicks: whatsappClicks || null,
           bookings: (bookings ?? []).length,
           openRequests: (requests ?? []).filter((row) => row.status === 'open' || row.status === 'in_progress').length,
+          openTasks: (tasks ?? []).filter((row) => row.status !== 'done').length,
         },
         series: (analytics ?? []).map((row) => ({ date: String(row.date), value: Number(row.visitors ?? 0) })),
         upcomingBookings: (bookings ?? []).map(mapBooking),
@@ -2104,6 +2106,5 @@ export const dataExportService = {
     };
   },
 };
-
 
 

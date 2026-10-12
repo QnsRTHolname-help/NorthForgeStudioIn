@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, CalendarDays, Globe, Sparkles, TrendingUp } from 'lucide-react';
+import { ArrowRight, BrainCircuit, CalendarDays, Globe, ListTodo, Plug, Sparkles, TrendingUp, UsersRound } from 'lucide-react';
 import { KpiCard, Panel } from '@/components/ui/Card';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
 import { LinkButton } from '@/components/ui/Button';
@@ -138,6 +138,58 @@ export default function Overview() {
                 hint={outstanding > 0 ? 'Unpaid invoices' : 'Everything is paid up'}
               />
             </div>
+
+            <Panel
+              title="Start here today"
+              description="The daily operating layer: schedule, tasks, people, integrations and business memory."
+              className="nf-os-hero"
+              bodyClassName="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"
+            >
+              {[
+                {
+                  to: '/portal/calendar',
+                  icon: CalendarDays,
+                  label: 'Calendar',
+                  detail: `${metrics?.bookings ?? 0} upcoming appointments`,
+                },
+                {
+                  to: '/portal/tasks',
+                  icon: ListTodo,
+                  label: 'Tasks',
+                  detail: `${metrics?.openTasks ?? 0} open tasks`,
+                },
+                {
+                  to: '/portal/employees',
+                  icon: UsersRound,
+                  label: 'Employees',
+                  detail: 'Team access and contribution tracking',
+                },
+                {
+                  to: '/portal/integrations',
+                  icon: Plug,
+                  label: 'Integrations',
+                  detail: 'WhatsApp, email, calendar and sheets',
+                },
+                {
+                  to: '/portal/second-brain',
+                  icon: BrainCircuit,
+                  label: 'Second Brain',
+                  detail: 'Business memory and knowledge',
+                },
+              ].map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className="nf-os-tile group p-3"
+                >
+                  <span className="nf-os-icon">
+                    <item.icon className="h-4 w-4" aria-hidden />
+                  </span>
+                  <p className="mt-3 text-[13px] font-medium text-fg">{item.label}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted">{item.detail}</p>
+                </Link>
+              ))}
+            </Panel>
 
             {/* Traffic chart */}
             <Panel

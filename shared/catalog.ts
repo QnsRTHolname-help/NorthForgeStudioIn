@@ -1,4 +1,4 @@
-import type { Plan, Service } from './types';
+import type { AddOn, Plan, Service } from './types';
 
 /**
  * NORTHFORGE BUSINESS CATALOG — SINGLE SOURCE OF TRUTH (spec §105).
@@ -26,6 +26,9 @@ export const PLAN_SCOPE_ROWS = [
   'WhatsApp automation',
   'Follow-ups',
   'Integrations',
+  'Employee portal',
+  'Daily OS',
+  'Second Brain',
   'AI agents',
   'Voice AI',
   'Analytics',
@@ -43,26 +46,33 @@ export const PLANS: Plan[] = [
     currency: CURRENCY,
     intervalDays: BILLING_INTERVAL_DAYS,
     tagline: 'Capture every opportunity.',
-    outcome: 'Capture and respond to more opportunities.',
+    outcome: 'Capture, qualify and organize every opportunity.',
     description:
-      'Stop losing enquiries to slow replies and forgotten follow-ups. Lead capture, instant acknowledgement, a basic AI assistant and a lead database — running without anyone watching it.',
+      'Stop losing enquiries to slow replies and forgotten follow-ups. Lead capture, instant acknowledgement, basic qualification, a lightweight CRM, calendar booking and a daily owner dashboard — running without anyone watching it.',
     features: [
       'Lead capture from your existing website, WhatsApp, form or chosen channel',
       'Automated enquiry acknowledgement',
       'Basic AI FAQ assistant using your business information',
-      'Lead database or simple CRM',
+      'Basic lead qualification and lightweight CRM',
       'Lead notifications to the owner or team',
+      'Basic appointment scheduling and calendar view',
+      'Tasks, todo list and owner dashboard',
       'Basic follow-up automation',
       'Up to 2 active workflows and 1 integration',
       'Monthly monitoring, basic reporting and small workflow changes',
+      '3 included users; extra employee seats available',
+      'Company Second Brain available as an add-on',
     ],
     scope: {
       'Active workflows': '2',
       'AI assistant': 'Basic',
-      CRM: 'Basic',
+      CRM: 'Basic + qualification',
       'WhatsApp automation': 'Basic',
       'Follow-ups': 'Basic',
       Integrations: '1',
+      'Employee portal': '3 users, add-on seats',
+      'Daily OS': 'Tasks + calendar',
+      'Second Brain': 'Add-on',
       'AI agents': '—',
       'Voice AI': 'Add-on',
       Analytics: 'Basic',
@@ -95,6 +105,8 @@ export const PLANS: Plan[] = [
       'Up to 5 active workflows and 3 integrations',
       'Google Sheets or CRM integrations where suitable',
       'Conversion analytics and monthly optimisation',
+      'Employee portal with up to 15 users',
+      'Company Second Brain included',
     ],
     scope: {
       'Active workflows': '5',
@@ -103,13 +115,16 @@ export const PLANS: Plan[] = [
       'WhatsApp automation': 'Advanced',
       'Follow-ups': 'Multi-step',
       Integrations: 'Up to 3',
+      'Employee portal': '15 users',
+      'Daily OS': 'Tasks, calendar, projects',
+      'Second Brain': 'Included',
       'AI agents': '1',
       'Voice AI': 'Add-on',
       Analytics: 'Advanced',
       'Monthly optimisation': 'Included',
       Support: 'Standard',
     },
-    limits: { workflows: 5, integrations: 3, aiAgents: 1, automationRuns: 20_000, users: 10 },
+    limits: { workflows: 5, integrations: 3, aiAgents: 1, automationRuns: 20_000, users: 15 },
     recommended: true,
     sortOrder: 2,
   },
@@ -137,6 +152,8 @@ export const PLANS: Plan[] = [
       'Automated reports and owner dashboard',
       '10+ active workflows, subject to discovery and infrastructure limits',
       'Priority support, continuous optimisation and new workflow development within agreed scope',
+      'Employee portal with up to 30 users',
+      'Custom onboarding messages across WhatsApp and email',
     ],
     scope: {
       'Active workflows': '10+',
@@ -145,13 +162,16 @@ export const PLANS: Plan[] = [
       'WhatsApp automation': 'Advanced',
       'Follow-ups': 'Multi-step / custom',
       Integrations: '5+',
+      'Employee portal': '30 users',
+      'Daily OS': 'Custom owner command center',
+      'Second Brain': 'Custom',
       'AI agents': 'Multiple',
       'Voice AI': 'Included where suitable',
       Analytics: 'Custom',
       'Monthly optimisation': 'Continuous, priority',
       Support: 'Priority',
     },
-    limits: { workflows: 10, integrations: 5, aiAgents: 5, automationRuns: 100_000, users: 25 },
+    limits: { workflows: 10, integrations: 5, aiAgents: 5, automationRuns: 100_000, users: 30 },
     recommended: false,
     sortOrder: 3,
   },
@@ -184,6 +204,9 @@ export const PLANS: Plan[] = [
       'WhatsApp automation': 'Scoped',
       'Follow-ups': 'Scoped',
       Integrations: 'Scoped',
+      'Employee portal': 'Scoped',
+      'Daily OS': 'Scoped',
+      'Second Brain': 'Scoped',
       'AI agents': 'Scoped',
       'Voice AI': 'Scoped',
       Analytics: 'Scoped',
@@ -193,6 +216,55 @@ export const PLANS: Plan[] = [
     limits: { workflows: -1, integrations: -1, aiAgents: -1, automationRuns: -1, users: -1 },
     recommended: false,
     sortOrder: 4,
+  },
+];
+
+/* ── Add-ons ───────────────────────────────────────────────────── */
+
+/**
+ * Employee seats and capabilities sold ON TOP of a plan.
+ *
+ * Seat *rules* are published here as `limits.users`, because the portal has to
+ * show each client the allowance it is actually granted (LEAD 3, CONVERT 15,
+ * AUTOPILOT 30). Seat and add-on *prices* are not published: no figure has been
+ * agreed with a client yet, so `amount` stays null and the label reads
+ * "Quoted". The surface lives in the catalog anyway so the pricing page, the
+ * portal and a future invoice all learn an add-on from one place, and setting a
+ * real figure later is a one-line change rather than a hunt through components.
+ *
+ * `availableOn` is not decoration: `catalog.test.ts` fails if an add-on is
+ * offered on a plan whose scope matrix does not mark that capability as one.
+ */
+export const ADD_ONS: AddOn[] = [
+  {
+    id: 'addon_employee_seats',
+    slug: 'extra-employee-seats',
+    name: 'Extra Employee Seats',
+    description:
+      'Add team members beyond the seats included in your plan. Each person gets their own login and sees only the work assigned to them.',
+    amount: null,
+    unit: 'per seat / month',
+    availableOn: ['lead', 'convert', 'autopilot'],
+  },
+  {
+    id: 'addon_second_brain',
+    slug: 'company-second-brain',
+    name: 'Company Second Brain',
+    description:
+      'A structured business memory for customer, project and sales context. Included with CONVERT and built to order with AUTOPILOT.',
+    amount: null,
+    unit: 'per month',
+    availableOn: ['lead'],
+  },
+  {
+    id: 'addon_voice_receptionist',
+    slug: 'ai-voice-receptionist',
+    name: 'AI Voice Receptionist',
+    description:
+      'Answers calls, captures the enquiry and books the appointment where a phone line still matters.',
+    amount: null,
+    unit: 'per month',
+    availableOn: ['lead', 'convert'],
   },
 ];
 
@@ -417,6 +489,22 @@ export function planSetupLabel(plan: Plan) {
 
 export function planIntervalLabel(plan: Plan) {
   return plan.amount === null ? '' : '/ month';
+}
+
+/** "3 seats" / "Scoped by agreement" — the employee allowance a plan grants. */
+export function planSeatLabel(plan: Plan) {
+  if (plan.limits.users < 0) return 'Scoped by agreement';
+  return `${plan.limits.users} seat${plan.limits.users === 1 ? '' : 's'}`;
+}
+
+/** The add-ons a client on this plan can buy on top of it. */
+export const addOnsForPlan = (slug: string) =>
+  ADD_ONS.filter((addOn) => addOn.availableOn.includes(slug as Plan['slug']));
+
+/** "₹1,200 per seat / month", or "Quoted per seat / month" while undecided. */
+export function addOnAmountLabel(addOn: AddOn) {
+  if (addOn.amount === null) return `Quoted ${addOn.unit}`;
+  return `₹${(addOn.amount / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })} ${addOn.unit}`;
 }
 
 /** Honest billing copy (spec §123–124): separates our price from third-party costs. */

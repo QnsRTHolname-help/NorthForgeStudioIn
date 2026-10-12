@@ -2,18 +2,22 @@ import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   BarChart3,
+  BrainCircuit,
   CalendarDays,
   FileText,
   FolderOpen,
   Globe,
   LayoutDashboard,
   LifeBuoy,
+  ListTodo,
   LogOut,
   Megaphone,
   MessagesSquare,
   MoreHorizontal,
+  Plug,
   Settings,
   Store,
+  UsersRound,
   Workflow as WorkflowIcon,
   X,
 } from 'lucide-react';
@@ -45,10 +49,18 @@ const SECTIONS: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
+    title: 'Daily OS',
+    items: [
+      { to: '/portal/calendar', label: 'Calendar', icon: CalendarDays, primary: true },
+      { to: '/portal/tasks', label: 'Tasks', icon: ListTodo, primary: true },
+      { to: '/portal/project', label: 'Project', icon: WorkflowIcon },
+      { to: '/portal/employees', label: 'Employees', icon: UsersRound },
+    ],
+  },
+  {
     title: 'My website',
     items: [
-      { to: '/portal/website', label: 'Website', icon: Globe, primary: true },
-      { to: '/portal/project', label: 'Project', icon: WorkflowIcon },
+      { to: '/portal/website', label: 'Website', icon: Globe },
     ],
   },
   {
@@ -62,7 +74,9 @@ const SECTIONS: { title: string; items: NavItem[] }[] = [
     title: 'Engage',
     items: [
       { to: '/portal/whatsapp', label: 'WhatsApp', icon: MessagesSquare },
-      { to: '/portal/bookings', label: 'Bookings', icon: CalendarDays, primary: true },
+      { to: '/portal/bookings', label: 'Bookings', icon: CalendarDays },
+      { to: '/portal/integrations', label: 'Integrations', icon: Plug },
+      { to: '/portal/second-brain', label: 'Second Brain', icon: BrainCircuit },
     ],
   },
   {
@@ -74,7 +88,7 @@ const SECTIONS: { title: string; items: NavItem[] }[] = [
       { to: '/portal/subscription', label: 'Subscription', icon: FileText },
       { to: '/portal/invoices', label: 'Invoices', icon: FileText },
       { to: '/portal/support', label: 'Support', icon: LifeBuoy },
-      { to: '/portal/settings', label: 'Settings', icon: Settings, primary: true },
+      { to: '/portal/settings', label: 'Settings', icon: Settings },
     ],
   },
 ];
@@ -106,7 +120,7 @@ export function PortalLayout() {
   const secondaryItems = SECTIONS.flatMap((section) => section.items).filter((item) => !item.primary);
 
   return (
-    <div className="nf-min-h-viewport bg-canvas">
+    <div className="nf-min-h-viewport bg-[linear-gradient(180deg,rgb(var(--nf-canvas)),rgb(var(--nf-elevated)/0.72))]">
       {/* Desktop rail */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-line bg-surface lg:flex">
         <div className="flex h-16 items-center border-b border-line px-5">
@@ -128,7 +142,9 @@ export function PortalLayout() {
                       className={({ isActive }) =>
                         cn(
                           'flex items-center gap-2.5 rounded px-2.5 py-2 text-[13px] font-medium transition-colors duration-150',
-                          isActive ? 'bg-sunken text-fg' : 'text-muted hover:bg-sunken/60 hover:text-fg',
+                          isActive
+                            ? 'border border-brand/20 bg-brand/[0.08] text-fg shadow-soft'
+                            : 'border border-transparent text-muted hover:bg-sunken/60 hover:text-fg',
                         )
                       }
                     >

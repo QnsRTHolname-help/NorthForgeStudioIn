@@ -1,13 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ADD_ONS,
   BILLING_INTERVAL_DAYS,
   PLANS,
   PLAN_SCOPE_ROWS,
   SERVICES,
   SERVICE_GROUPS,
+  addOnAmountLabel,
+  addOnsForPlan,
   getPlan,
   getPlanById,
   planAmountLabel,
+  planSeatLabel,
   planSetupLabel,
   recommendedPlan,
   servicesByGroup,
@@ -91,5 +95,80 @@ describe('catalog', () => {
   it('bills monthly', () => {
     expect(BILLING_INTERVAL_DAYS).toBe(30);
     for (const plan of PLANS) expect(plan.intervalDays).toBe(BILLING_INTERVAL_DAYS);
+  });
+
+  /*
+   * Employee seats are quoted in the marketing copy ("30 users"), rendered in
+   * the portal and enforced as `limits.users`. The scope row and the limit were
+   * once allowed to drift (AUTOPILOT advertised 30 while the limit said 25) —
+   * a client would have been sold seats the product would not hand over.
+   */
+  it('grants the seat allowance it advertises', () => {
+    expect(getPlan('lead')!.limits.users).toBe(3);
+    expect(getPlan('convert')!.limits.users).toBe(15);
+    expect(getPlan('autopilot')!.limits.users).toBe(30);
+    expect(getPlan('custom')!.limits.users).toBe(-1);
+  });
+
+  it('keeps the seat count in the scope matrix in step with the enforced limit', () => {
+    for (const plan of PLANS.filter((p) => p.amount !== null)) {
+      const quoted = Number(plan.scope['Employee portal']?.match(/\d+/)?.[0]);
+      expect(quoted, `${plan.name} should quote its seat allowance in "Employee portal"`).toBe(
+        plan.limits.users,
+      );
+    }
+  });
+
+  it('reads a seat allowance the way the portal shows it', () => {
+    expect(planSeatLabel(getPlan('lead')!)).toBe('3 seats');
+    expect(planSeatLabel(getPlan('autopilot')!)).toBe('30 seats');
+    expect(planSeatLabel(getPlan('custom')!)).toBe('Scoped by agreement');
+  });
+
+  it('publishes add-ons with unique ids and slugs, on plans that exist', () => {
+    expect(ADD_ONS.length).toBeGreaterThan(0);
+    expect(new Set(ADD_ONS.map((addOn) => addOn.id)).size).toBe(ADD_ONS.length);
+    expect(new Set(ADD_ONS.map((addOn) => addOn.slug)).size).toBe(ADD_ONS.length);
+
+    const slugs = new Set(PLANS.map((plan) => plan.slug));
+    for (const addOn of ADD_ONS) {
+      expect(addOn.availableOn.length, `${addOn.name} is offered on nothing`).toBeGreaterThan(0);
+      for (const slug of addOn.availableOn) {
+        expect(slugs.has(slug), `${addOn.name} is offered on unknown plan "${slug}"`).toBe(true);
+      }
+    }
+  });
+
+  it('never prices an add-on it has not agreed, and says so instead', () => {
+    for (const addOn of ADD_ONS) {
+      if (addOn.amount === null) continue;
+      expect(Number.isInteger(addOn.amount)).toBe(true);
+      expect(addOn.amount).toBeGreaterThan(0);
+    }
+    const seats = ADD_ONS.find((addOn) => addOn.slug === 'extra-employee-seats')!;
+    expect(seats.unit).toBe('per seat / month');
+    expect(addOnAmountLabel(seats)).toBe('Quoted per seat / month');
+  });
+
+  it('offers the seat add-on on every plan that meters seats', () => {
+    for (const plan of PLANS.filter((p) => p.amount !== null)) {
+      expect(addOnsForPlan(plan.slug).map((addOn) => addOn.slug)).toContain('extra-employee-seats');
+    }
+    expect(addOnsForPlan('does-not-exist')).toEqual([]);
+  });
+
+  /* An add-on sold where the matrix says it is included is a double charge. */
+  it('sells an add-on exactly where the scope matrix marks it as one', () => {
+    const scopeRowFor: Record<string, string> = {
+      'company-second-brain': 'Second Brain',
+      'ai-voice-receptionist': 'Voice AI',
+    };
+
+    for (const [slug, row] of Object.entries(scopeRowFor)) {
+      const offered = ADD_ONS.find((addOn) => addOn.slug === slug)!.availableOn;
+      for (const plan of PLANS.filter((p) => p.amount !== null)) {
+        expect(offered.includes(plan.slug), `${plan.name} / ${row}`).toBe(plan.scope[row] === 'Add-on');
+      }
+    }
   });
 });

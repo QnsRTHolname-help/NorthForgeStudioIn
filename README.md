@@ -41,7 +41,7 @@ npm run dev          # Vite on :5173
 | | |
 | --- | --- |
 | App | `http://localhost:5173` |
-| DB migrations | apply `supabase/migrations/` in order, `0001` → `0014` (all non-destructive and safe to re-run) |
+| DB migrations | apply `supabase/migrations/` in order, `0001` → `0015` (all non-destructive and safe to re-run) |
 | Setup guide | [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md) |
 
 There is no application server to run alongside it: the backend is Supabase

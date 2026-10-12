@@ -19,7 +19,24 @@ supabase/migrations/0005_fix_enquiries_public_insert.sql
 supabase/migrations/0006_enquiries_become_leads.sql
 supabase/migrations/0007_enquiries_plan.sql
 supabase/migrations/0008_aal2_admin_enforcement.sql
+supabase/migrations/0009_account_self_deletion.sql
+supabase/migrations/0010_aal2_requires_enrolled_factor.sql
+supabase/migrations/0011_whatsapp_provider_id.sql
+supabase/migrations/0012_age_gate_and_plan_cancellation.sql
+supabase/migrations/0013_internal_support_notes.sql
+supabase/migrations/0014_security_hardening.sql
+supabase/migrations/0015_client_tasks.sql
 ```
+
+**0015 — client tasks.** The portal's Tasks and Calendar tabs are only honest
+if a client can actually write to `tasks`. Until 0015 the table allowed reads
+for the owning client and writes for administrators only, so "New task" was
+refused by RLS. 0015 adds a client INSERT/UPDATE policy scoped to
+`app_profile_client_id()`, brings the two `tasks` policies in line with the
+0014 model (authenticated role, `app_aal2()` on the operator path), and adds a
+`guard_task_write` trigger so a client's write can only move the columns the
+portal edits — never `client_id`, `project_id`, `assignee_id` or `is_demo`.
+The file carries its own ROLLBACK and VERIFY queries.
 
 ## Security hardening (this release)
 

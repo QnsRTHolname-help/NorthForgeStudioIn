@@ -262,6 +262,62 @@
     background-size: 22px 22px;
   }
 
+  .nf-os-hero {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgb(var(--nf-line));
+    border-radius: 8px;
+    background:
+      linear-gradient(135deg, rgb(var(--nf-blue) / 0.14), rgb(var(--nf-violet) / 0.08) 38%, transparent 64%),
+      linear-gradient(180deg, rgb(var(--nf-surface) / 0.96), rgb(var(--nf-elevated) / 0.82));
+    box-shadow: var(--nf-shadow-lift);
+  }
+
+  .nf-os-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(to right, rgb(var(--nf-line-strong) / 0.22) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(var(--nf-line-strong) / 0.18) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: linear-gradient(90deg, transparent, black 16%, black 84%, transparent);
+  }
+
+  .nf-os-hero > * {
+    position: relative;
+  }
+
+  .nf-os-tile {
+    border: 1px solid rgb(var(--nf-line));
+    border-radius: 8px;
+    background:
+      linear-gradient(180deg, rgb(var(--nf-surface) / 0.92), rgb(var(--nf-elevated) / 0.74)),
+      rgb(var(--nf-surface));
+    box-shadow: var(--nf-shadow-soft);
+    transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease;
+  }
+
+  .nf-os-tile:hover {
+    border-color: rgb(var(--nf-blue) / 0.42);
+    transform: translateY(-1px);
+  }
+
+  .nf-os-icon {
+    display: inline-flex;
+    height: 2.25rem;
+    width: 2.25rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid rgb(var(--nf-line));
+    background:
+      linear-gradient(135deg, rgb(var(--nf-blue) / 0.14), rgb(var(--nf-violet) / 0.1)),
+      rgb(var(--nf-sunken) / 0.64);
+    color: rgb(var(--nf-blue));
+  }
+
   /* Brand text gradient — used sparingly, never on body copy. */
   .nf-gradient-text {
     background: linear-gradient(96deg, rgb(var(--nf-fg)) 0%, rgb(var(--nf-fg)) 42%, rgb(var(--nf-blue)) 78%, rgb(var(--nf-violet)) 100%);

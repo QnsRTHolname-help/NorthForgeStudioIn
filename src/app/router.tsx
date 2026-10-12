@@ -47,10 +47,15 @@ const PortalOverview = lazyPage(() => import('@/pages/portal/Overview'));
 const PortalProfile = lazyPage(() => import('@/pages/portal/Profile'));
 const PortalWebsite = lazyPage(() => import('@/pages/portal/Website'));
 const PortalProject = lazyPage(() => import('@/pages/portal/Project'));
+const PortalTasks = lazyPage(() => import('@/pages/portal/Tasks'));
+const PortalCalendar = lazyPage(() => import('@/pages/portal/Calendar'));
 const PortalLeads = lazyPage(() => import('@/pages/portal/Leads'));
 const PortalAnalytics = lazyPage(() => import('@/pages/portal/Analytics'));
 const PortalWhatsApp = lazyPage(() => import('@/pages/portal/WhatsApp'));
 const PortalBookings = lazyPage(() => import('@/pages/portal/Bookings'));
+const PortalIntegrations = lazyPage(() => import('@/pages/portal/Integrations'));
+const PortalEmployees = lazyPage(() => import('@/pages/portal/Employees'));
+const PortalSecondBrain = lazyPage(() => import('@/pages/portal/SecondBrain'));
 const PortalSubscription = lazyPage(() => import('@/pages/portal/Subscription'));
 const PortalInvoices = lazyPage(() => import('@/pages/portal/Invoices'));
 const PortalRequests = lazyPage(() => import('@/pages/portal/Requests'));
@@ -155,10 +160,15 @@ export const AppRoutes: RouteDefinition[] = [
       { path: 'profile', element: <PortalProfile /> },
       { path: 'website', element: <PortalWebsite /> },
       { path: 'project', element: <PortalProject /> },
+      { path: 'tasks', element: <PortalTasks /> },
+      { path: 'calendar', element: <PortalCalendar /> },
       { path: 'leads', element: <PortalLeads /> },
       { path: 'analytics', element: <PortalAnalytics /> },
       { path: 'whatsapp', element: <PortalWhatsApp /> },
       { path: 'bookings', element: <PortalBookings /> },
+      { path: 'integrations', element: <PortalIntegrations /> },
+      { path: 'employees', element: <PortalEmployees /> },
+      { path: 'second-brain', element: <PortalSecondBrain /> },
       { path: 'subscription', element: <PortalSubscription /> },
       { path: 'invoices', element: <PortalInvoices /> },
       { path: 'requests', element: <PortalRequests /> },
