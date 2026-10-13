@@ -683,15 +683,20 @@ export const contactService = {
       }
 
       const rpcMsg = (errObj?.message ?? '').toLowerCase();
-      // Handle RPC missing / schema cache desync / 0014 search_path gen_random_bytes bug (42883)
-      const isRpcMissing =
+      // Handle RPC missing / schema cache desync / missing plan column (42703/PGRST204) /
+      // 0014 search_path gen_random_bytes bug (42883) / RPC execute permission gap (42501)
+      const isRpcFallbackCandidate =
         errObj?.code === 'PGRST202' ||
+        errObj?.code === 'PGRST204' ||
         errObj?.code === '42883' ||
+        errObj?.code === '42703' ||
+        errObj?.code === '42501' ||
         rpcMsg.includes('schema cache') ||
-        rpcMsg.includes('could not find the function') ||
-        rpcMsg.includes('does not exist');
+        rpcMsg.includes('could not find') ||
+        rpcMsg.includes('does not exist') ||
+        rpcMsg.includes('permission denied');
 
-      if (isRpcMissing) {
+      if (isRpcFallbackCandidate) {
         const row = {
           id: reference,
           name: base.name,
@@ -713,6 +718,26 @@ export const contactService = {
             return { received: true, reference };
           }
           insertError = res.error;
+
+          // If migration 0007 (`plan` column on `enquiries`) has not been applied yet,
+          // fold the selected plan into `message` and retry without `plan` (spec / SUPABASE_SETUP.md).
+          const insertMsg = (insertError?.message ?? '').toLowerCase();
+          const isPlanColumnMissing =
+            Boolean(plan) &&
+            (insertError?.code === '42703' ||
+              insertError?.code === 'PGRST204' ||
+              insertMsg.includes('plan'));
+          if (isPlanColumnMissing) {
+            const foldedMessage = [`Plan of interest: ${plan}`, base.message].filter(Boolean).join('\n\n');
+            const { plan: _omitted, ...rowWithoutPlan } = row;
+            const retryRes = await supabase
+              .from('enquiries')
+              .insert({ ...rowWithoutPlan, message: foldedMessage });
+            if (!retryRes.error) {
+              return { received: true, reference };
+            }
+            insertError = retryRes.error;
+          }
         } catch (err) {
           insertError = (err as { code?: string; message?: string }) ?? { message: 'insert_failed' };
         }
@@ -765,15 +790,67 @@ export const contactService = {
         const isGenRandomBytesBug =
           errObj?.code === '42883' && rpcMsg.includes('gen_random_bytes');
         if (isGenRandomBytesBug && (!insertError || insertError.code === '42501')) {
+          const storageKey = 'nf.pending_enquiries';
+          const now = Date.now();
+          const normalizedEmail = base.email.trim().toLowerCase();
+          let existing: Array<{ email?: string; created_at?: string }> = [];
+
           try {
-            if (typeof window !== 'undefined' && window.sessionStorage) {
-              const key = 'nf.pending_enquiries';
-              const existing = JSON.parse(window.sessionStorage.getItem(key) ?? '[]') as unknown[];
-              existing.push({ ...row, created_at: new Date().toISOString() });
-              window.sessionStorage.setItem(key, JSON.stringify(existing.slice(-20)));
+            const store =
+              typeof window !== 'undefined'
+                ? (window.localStorage ?? window.sessionStorage)
+                : null;
+            if (store) {
+              const raw = store.getItem(storageKey);
+              const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+              if (Array.isArray(parsed)) {
+                existing = parsed as Array<{ email?: string; created_at?: string }>;
+              }
             }
           } catch {
-            /* storage unavailable */
+            /* storage read unavailable */
+          }
+
+          // Enforce the same per-address (1/minute, 3/hour) and global (40/10m) throttles
+          // against pending submissions so static-host fallback cannot bypass rate limits.
+          const recentHour = existing.filter((entry) => {
+            const ts = Date.parse(entry.created_at ?? '');
+            return !Number.isNaN(ts) && ts > now - 60 * 60 * 1000;
+          });
+          const forEmailHour = recentHour.filter(
+            (entry) => (entry.email ?? '').trim().toLowerCase() === normalizedEmail,
+          );
+          if (forEmailHour.length >= 3) {
+            throw new ApiError('We already have this enquiry — we will be in touch.', 429, 'validation');
+          }
+          const forEmailMin = forEmailHour.filter((entry) => {
+            const ts = Date.parse(entry.created_at ?? '');
+            return !Number.isNaN(ts) && ts > now - 60 * 1000;
+          });
+          if (forEmailMin.length >= 1) {
+            throw new ApiError('Please wait a moment before sending another enquiry.', 429, 'validation');
+          }
+          const globalTenMin = recentHour.filter((entry) => {
+            const ts = Date.parse(entry.created_at ?? '');
+            return !Number.isNaN(ts) && ts > now - 10 * 60 * 1000;
+          });
+          if (globalTenMin.length >= 40) {
+            throw new ApiError(
+              'We are receiving a lot of enquiries right now — please try again shortly, or message us on WhatsApp.',
+              429,
+              'validation',
+            );
+          }
+
+          const updated = [...existing, { ...row, created_at: new Date(now).toISOString() }].slice(-40);
+          try {
+            if (typeof window !== 'undefined') {
+              const serialized = JSON.stringify(updated);
+              window.localStorage?.setItem(storageKey, serialized);
+              window.sessionStorage?.setItem(storageKey, serialized);
+            }
+          } catch {
+            /* storage write unavailable */
           }
           return { received: true, reference };
         }

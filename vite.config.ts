@@ -33,6 +33,8 @@ function emitRouteMeta(): Plugin {
   };
 }
 
+import { handleEnquiryRelayRequest } from './shared/enquiryRelay';
+
 /**
  * Server-side relay for public contact enquiries (`/api/enquiries`).
  *
@@ -49,136 +51,6 @@ function enquiryRelayPlugin(): Plugin {
   let supabaseUrl = '';
   let secretKey = '';
 
-  const sendJson = (res: ServerResponse, status: number, payload: unknown) => {
-    res.statusCode = status;
-    res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.end(JSON.stringify(payload));
-  };
-
-  const handleRequest = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
-    if (req.method !== 'POST') {
-      if (req.method === 'OPTIONS') {
-        res.statusCode = 204;
-        res.end();
-        return;
-      }
-      next();
-      return;
-    }
-
-    try {
-      const chunks: Buffer[] = [];
-      for await (const chunk of req) {
-        chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
-      }
-      const rawBody = Buffer.concat(chunks).toString('utf8');
-      const body = (rawBody ? JSON.parse(rawBody) : {}) as Record<string, unknown>;
-
-      const name = String(body.name ?? '').trim().slice(0, 120);
-      const email = String(body.email ?? '').trim().toLowerCase().slice(0, 200);
-
-      if (!name) {
-        sendJson(res, 400, { error: { code: 'validation', message: 'Enter your name.' } });
-        return;
-      }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
-        sendJson(res, 400, { error: { code: 'validation', message: 'Enter a valid email address.' } });
-        return;
-      }
-
-      if (!supabaseUrl || !secretKey) {
-        sendJson(res, 503, { error: { code: 'service_unavailable', message: 'Enquiry relay is not configured.' } });
-        return;
-      }
-
-      const headers = {
-        apikey: secretKey,
-        Authorization: `Bearer ${secretKey}`,
-        'Content-Type': 'application/json',
-      };
-
-      // Per-address throttle (1/minute, 3/hour) and global throttle (40/10m)
-      const now = Date.now();
-      const oneHourAgo = new Date(now - 60 * 60 * 1000).toISOString();
-      const oneMinAgo = new Date(now - 60 * 1000).toISOString();
-      const tenMinAgo = new Date(now - 10 * 60 * 1000).toISOString();
-
-      const recentRes = await fetch(
-        `${supabaseUrl}/rest/v1/enquiries?select=email,created_at&created_at=gt.${encodeURIComponent(oneHourAgo)}`,
-        { headers },
-      );
-      if (recentRes.ok) {
-        const recentRows = (await recentRes.json()) as Array<{ email?: string; created_at?: string }>;
-        const forEmailHour = recentRows.filter((r) => (r.email ?? '').toLowerCase() === email);
-        if (forEmailHour.length >= 3) {
-          sendJson(res, 429, {
-            error: { code: 'validation', message: 'We already have this enquiry — we will be in touch.' },
-          });
-          return;
-        }
-        const forEmailMin = forEmailHour.filter((r) => (r.created_at ?? '') > oneMinAgo);
-        if (forEmailMin.length >= 1) {
-          sendJson(res, 429, {
-            error: { code: 'validation', message: 'Please wait a moment before sending another enquiry.' },
-          });
-          return;
-        }
-        const globalTenMin = recentRows.filter((r) => (r.created_at ?? '') > tenMinAgo);
-        if (globalTenMin.length >= 40) {
-          sendJson(res, 429, {
-            error: {
-              code: 'validation',
-              message:
-                'We are receiving a lot of enquiries right now — please try again shortly, or message us on WhatsApp.',
-            },
-          });
-          return;
-        }
-      }
-
-      const cleanOrNull = (val: unknown, maxLen: number): string | null => {
-        if (typeof val !== 'string') return null;
-        const trimmed = val.trim().slice(0, maxLen);
-        return trimmed.length > 0 ? trimmed : null;
-      };
-
-      const rawId = typeof body.id === 'string' && /^eq_[0-9a-f]{12}$/.test(body.id) ? body.id : undefined;
-      const insertRow: Record<string, unknown> = {
-        ...(rawId ? { id: rawId } : {}),
-        name,
-        email,
-        business_name: cleanOrNull(body.business_name, 200),
-        whatsapp: cleanOrNull(body.whatsapp, 40),
-        business_type: cleanOrNull(body.business_type, 80),
-        current_tools: cleanOrNull(body.current_tools, 300),
-        bottleneck: cleanOrNull(body.bottleneck, 300),
-        monthly_enquiries: cleanOrNull(body.monthly_enquiries, 80),
-        message: cleanOrNull(body.message, 4000),
-        plan: cleanOrNull(body.plan, 80),
-      };
-
-      const insertRes = await fetch(`${supabaseUrl}/rest/v1/enquiries`, {
-        method: 'POST',
-        headers: { ...headers, Prefer: 'return=representation' },
-        body: JSON.stringify(insertRow),
-      });
-
-      if (!insertRes.ok) {
-        const errText = await insertRes.text();
-        sendJson(res, insertRes.status, {
-          error: { code: 'error', message: errText || 'Could not save enquiry.' },
-        });
-        return;
-      }
-
-      const inserted = (await insertRes.json()) as Array<{ id?: string }>;
-      const reference = inserted?.[0]?.id ?? rawId ?? null;
-      sendJson(res, 200, { received: true, reference });
-    } catch {
-      sendJson(res, 500, { error: { code: 'server_error', message: 'Could not process enquiry.' } });
-    }
-  };
-
   return {
     name: 'northforge:enquiry-relay',
     configResolved(config) {
@@ -187,10 +59,14 @@ function enquiryRelayPlugin(): Plugin {
       secretKey = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
     },
     configureServer(server) {
-      server.middlewares.use('/api/enquiries', handleRequest);
+      server.middlewares.use('/api/enquiries', (req: IncomingMessage, res: ServerResponse, next: () => void) => {
+        void handleEnquiryRelayRequest(req, res, { supabaseUrl, secretKey }, next);
+      });
     },
     configurePreviewServer(server) {
-      server.middlewares.use('/api/enquiries', handleRequest);
+      server.middlewares.use('/api/enquiries', (req: IncomingMessage, res: ServerResponse, next: () => void) => {
+        void handleEnquiryRelayRequest(req, res, { supabaseUrl, secretKey }, next);
+      });
     },
   };
 }

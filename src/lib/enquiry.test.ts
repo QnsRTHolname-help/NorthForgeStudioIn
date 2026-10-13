@@ -347,6 +347,147 @@ describe('contactService validation & RPC fallback', () => {
       expect(result.received).toBe(true);
       expect(result.reference).toMatch(/^eq_[0-9a-f]{12}$/);
     });
+
+    it('folds plan into message when direct table insert fails with 42703/PGRST204 missing plan column', async () => {
+      vi.spyOn(supabase, 'rpc').mockResolvedValueOnce({
+        data: null,
+        error: {
+          code: 'PGRST202',
+          message: 'Could not find the function app_submit_enquiry in the schema cache',
+        },
+      } as never);
+
+      const insertSpy = vi
+        .fn()
+        // First attempt with plan column fails with 42703
+        .mockResolvedValueOnce({
+          data: null,
+          error: { code: '42703', message: 'column "plan" of relation "enquiries" does not exist' },
+        })
+        // Second attempt with plan folded into message succeeds
+        .mockResolvedValueOnce({ data: null, error: null });
+
+      vi.spyOn(supabase, 'from').mockReturnValue({
+        insert: insertSpy,
+      } as never);
+
+      const result = await contactService.submit({ ...validForm, plan: 'CONVERT' });
+      expect(result.received).toBe(true);
+      expect(insertSpy).toHaveBeenCalledTimes(2);
+      expect(insertSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          message: expect.stringContaining('Plan of interest: CONVERT'),
+        }),
+      );
+      // Confirms plan property was omitted on retry
+      expect(insertSpy.mock.calls[1][0]).not.toHaveProperty('plan');
+    });
+
+    it('enforces 429 rate limit on client-side queue fallback when repeated within 60s', async () => {
+      const g = globalThis as Record<string, unknown>;
+      const origWindow = g.window;
+      const fakeStorage = new Map<string, string>();
+      const existing = [
+        {
+          id: 'eq_prev12345678',
+          name: 'Jane Doe',
+          email: 'jane@example.com',
+          created_at: new Date().toISOString(),
+        },
+      ];
+      fakeStorage.set('nf.pending_enquiries', JSON.stringify(existing));
+
+      g.window = {
+        localStorage: {
+          getItem: (key: string) => fakeStorage.get(key) ?? null,
+          setItem: (key: string, val: string) => fakeStorage.set(key, val),
+        },
+        sessionStorage: {
+          getItem: (key: string) => fakeStorage.get(key) ?? null,
+          setItem: (key: string, val: string) => fakeStorage.set(key, val),
+        },
+      };
+
+      vi.spyOn(supabase, 'rpc').mockResolvedValueOnce({
+        data: null,
+        error: {
+          code: '42883',
+          message: 'function gen_random_bytes(integer) does not exist',
+        },
+      } as never);
+
+      vi.spyOn(supabase, 'from').mockReturnValueOnce({
+        insert: vi.fn().mockResolvedValueOnce({
+          data: null,
+          error: { code: '42501', message: 'permission denied for table enquiries' },
+        }),
+      } as never);
+
+      try {
+        await expect(
+          contactService.submit({ ...validForm, email: 'jane@example.com' }),
+        ).rejects.toThrowError(
+          expect.objectContaining({
+            status: 429,
+            message: 'Please wait a moment before sending another enquiry.',
+          }),
+        );
+      } finally {
+        g.window = origWindow;
+      }
+    });
+
+    it('enforces 429 rate limit on client-side queue fallback when 3+ enquiries sent in 1 hour', async () => {
+      const g = globalThis as Record<string, unknown>;
+      const origWindow = g.window;
+      const fakeStorage = new Map<string, string>();
+      const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+      const existing = [
+        { id: 'eq_1', email: 'repeat@example.com', created_at: thirtyMinsAgo },
+        { id: 'eq_2', email: 'repeat@example.com', created_at: thirtyMinsAgo },
+        { id: 'eq_3', email: 'repeat@example.com', created_at: thirtyMinsAgo },
+      ];
+      fakeStorage.set('nf.pending_enquiries', JSON.stringify(existing));
+
+      g.window = {
+        localStorage: {
+          getItem: (key: string) => fakeStorage.get(key) ?? null,
+          setItem: (key: string, val: string) => fakeStorage.set(key, val),
+        },
+        sessionStorage: {
+          getItem: (key: string) => fakeStorage.get(key) ?? null,
+          setItem: (key: string, val: string) => fakeStorage.set(key, val),
+        },
+      };
+
+      vi.spyOn(supabase, 'rpc').mockResolvedValueOnce({
+        data: null,
+        error: {
+          code: '42883',
+          message: 'function gen_random_bytes(integer) does not exist',
+        },
+      } as never);
+
+      vi.spyOn(supabase, 'from').mockReturnValueOnce({
+        insert: vi.fn().mockResolvedValueOnce({
+          data: null,
+          error: { code: '42501', message: 'permission denied for table enquiries' },
+        }),
+      } as never);
+
+      try {
+        await expect(
+          contactService.submit({ ...validForm, email: 'repeat@example.com' }),
+        ).rejects.toThrowError(
+          expect.objectContaining({
+            status: 429,
+            message: 'We already have this enquiry — we will be in touch.',
+          }),
+        );
+      } finally {
+        g.window = origWindow;
+      }
+    });
   });
 });
 

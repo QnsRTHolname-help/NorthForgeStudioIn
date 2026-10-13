@@ -26,6 +26,8 @@ supabase/migrations/0012_age_gate_and_plan_cancellation.sql
 supabase/migrations/0013_internal_support_notes.sql
 supabase/migrations/0014_security_hardening.sql
 supabase/migrations/0015_client_tasks.sql
+supabase/migrations/0016_ticket_replies_and_email_mfa.sql
+supabase/migrations/0017_fix_rpc_search_path.sql
 ```
 
 **0015 — client tasks.** The portal's Tasks and Calendar tabs are only honest
@@ -37,6 +39,14 @@ refused by RLS. 0015 adds a client INSERT/UPDATE policy scoped to
 `guard_task_write` trigger so a client's write can only move the columns the
 portal edits — never `client_id`, `project_id`, `assignee_id` or `is_demo`.
 The file carries its own ROLLBACK and VERIFY queries.
+
+**0016 & 0017 — ticket replies, email MFA, and RPC `search_path`.** 0016 fixes
+the `returning t.id into v_ticket` casting bug in `app_add_ticket_message` and
+provisions `account_security` for optional email MFA. 0017 updates
+`app_submit_enquiry` and `app_add_ticket_message` to include `extensions` in
+their `search_path` (`set search_path = public, extensions`) and use
+`gen_random_uuid()` instead of `gen_random_bytes(6)` so `app_submit_enquiry`
+never raises `42883`.
 
 ## Security hardening (this release)
 
