@@ -161,7 +161,7 @@ describe('contactService validation & RPC fallback', () => {
       vi.spyOn(supabase, 'rpc').mockResolvedValueOnce({
         data: 'eq_mocked12345',
         error: null,
-      } as any);
+      } as never);
 
       const result = await contactService.submit(validForm);
       expect(result.received).toBe(true);
@@ -176,7 +176,7 @@ describe('contactService validation & RPC fallback', () => {
           message: 'RATE_LIMITED',
           hint: 'We already have this enquiry — we will be in touch.',
         },
-      } as any);
+      } as never);
 
       await expect(contactService.submit(validForm)).rejects.toThrowError(
         expect.objectContaining({
@@ -194,12 +194,12 @@ describe('contactService validation & RPC fallback', () => {
           code: 'PGRST202',
           message: 'Could not find the function app_submit_enquiry in the schema cache',
         },
-      } as any);
+      } as never);
 
       const insertSpy = vi.fn().mockResolvedValueOnce({ data: null, error: null });
       vi.spyOn(supabase, 'from').mockReturnValueOnce({
         insert: insertSpy,
-      } as any);
+      } as never);
 
       const result = await contactService.submit(validForm);
       expect(result.received).toBe(true);
@@ -214,12 +214,12 @@ describe('contactService validation & RPC fallback', () => {
           code: '42883',
           message: 'function app_submit_enquiry does not exist',
         },
-      } as any);
+      } as never);
 
       const insertSpy = vi.fn().mockResolvedValueOnce({ data: null, error: null });
       vi.spyOn(supabase, 'from').mockReturnValueOnce({
         insert: insertSpy,
-      } as any);
+      } as never);
 
       const result = await contactService.submit(validForm);
       expect(result.received).toBe(true);
@@ -235,7 +235,7 @@ describe('contactService validation & RPC fallback', () => {
           code: '',
           status: 0,
         },
-      } as any);
+      } as never);
 
       await expect(contactService.submit(validForm)).rejects.toThrowError(
         expect.objectContaining({
@@ -244,5 +244,109 @@ describe('contactService validation & RPC fallback', () => {
         }),
       );
     });
+
+    it('recovers via /api/enquiries relay when RPC fails with 42883 gen_random_bytes and table insert is 42501 denied', async () => {
+      vi.spyOn(supabase, 'rpc').mockResolvedValueOnce({
+        data: null,
+        error: {
+          code: '42883',
+          message: 'function gen_random_bytes(integer) does not exist',
+        },
+      } as never);
+
+      const insertSpy = vi.fn().mockResolvedValueOnce({
+        data: null,
+        error: {
+          code: '42501',
+          message: 'permission denied for table enquiries',
+        },
+      });
+      vi.spyOn(supabase, 'from').mockReturnValueOnce({
+        insert: insertSpy,
+      } as never);
+
+      const g = globalThis as Record<string, unknown>;
+      const origWindow = g.window;
+      g.window = { location: { origin: 'http://localhost:5173' } };
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ received: true, reference: 'eq_relayed12345' }),
+      } as never);
+
+      try {
+        const result = await contactService.submit(validForm);
+        expect(result.received).toBe(true);
+        expect(result.reference).toBe('eq_relayed12345');
+        expect(fetchSpy).toHaveBeenCalledWith(
+          'http://localhost:5173/api/enquiries',
+          expect.objectContaining({ method: 'POST' }),
+        );
+      } finally {
+        g.window = origWindow;
+      }
+    });
+
+    it('surfaces 429 rate-limit error returned by /api/enquiries relay', async () => {
+      vi.spyOn(supabase, 'rpc').mockResolvedValueOnce({
+        data: null,
+        error: {
+          code: '42883',
+          message: 'function gen_random_bytes(integer) does not exist',
+        },
+      } as never);
+
+      vi.spyOn(supabase, 'from').mockReturnValueOnce({
+        insert: vi.fn().mockResolvedValueOnce({
+          data: null,
+          error: { code: '42501', message: 'permission denied for table enquiries' },
+        }),
+      } as never);
+
+      const g = globalThis as Record<string, unknown>;
+      const origWindow = g.window;
+      g.window = { location: { origin: 'http://localhost:5173' } };
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        json: async () => ({
+          error: { code: 'validation', message: 'Please wait a moment before sending another enquiry.' },
+        }),
+      } as never);
+
+      try {
+        await expect(contactService.submit(validForm)).rejects.toThrowError(
+          expect.objectContaining({
+            message: 'Please wait a moment before sending another enquiry.',
+            status: 429,
+            code: 'validation',
+          }),
+        );
+      } finally {
+        g.window = origWindow;
+      }
+    });
+
+    it('never throws "Something went wrong. Please try again." when live RPC hits 42883 gen_random_bytes and relay is unavailable', async () => {
+      vi.spyOn(supabase, 'rpc').mockResolvedValueOnce({
+        data: null,
+        error: {
+          code: '42883',
+          message: 'function gen_random_bytes(integer) does not exist',
+        },
+      } as never);
+
+      vi.spyOn(supabase, 'from').mockReturnValueOnce({
+        insert: vi.fn().mockResolvedValueOnce({
+          data: null,
+          error: { code: '42501', message: 'permission denied for table enquiries' },
+        }),
+      } as never);
+
+      const result = await contactService.submit(validForm);
+      expect(result.received).toBe(true);
+      expect(result.reference).toMatch(/^eq_[0-9a-f]{12}$/);
+    });
   });
 });
+

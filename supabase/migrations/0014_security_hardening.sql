@@ -563,7 +563,7 @@ create or replace function app_add_ticket_message(
   p_internal boolean default false,
   p_status text default null
 ) returns jsonb
-  language plpgsql security definer set search_path = public as $$
+  language plpgsql security definer set search_path = public, extensions as $$
 declare
   v_uid uuid;
   v_is_admin boolean;
@@ -613,7 +613,7 @@ begin
   v_internal := case when v_is_admin then coalesce(p_internal, false) else false end;
 
   v_message := jsonb_build_object(
-    'id',         'msg-' || substr(encode(gen_random_bytes(6), 'hex'), 1, 12),
+    'id',         'msg-' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 12),
     'author',     v_name,
     'authorRole', case when v_role = 'client' then 'client' else 'admin' end,
     'body',       v_body,
@@ -682,7 +682,7 @@ create or replace function app_submit_enquiry(
   p_message text default null,
   p_plan text default null
 ) returns text
-  language plpgsql security definer set search_path = public as $$
+  language plpgsql security definer set search_path = public, extensions as $$
 declare
   v_name text;
   v_email text;
@@ -729,7 +729,7 @@ begin
     id, name, business_name, email, whatsapp, business_type,
     current_tools, bottleneck, monthly_enquiries, message, plan
   ) values (
-    coalesce(v_id, 'eq_' || substr(encode(gen_random_bytes(6), 'hex'), 1, 12)),
+    coalesce(v_id, 'eq_' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 12)),
     v_name,
     nullif(left(btrim(coalesce(p_business_name, '')), 200), ''),
     v_email,

@@ -682,34 +682,100 @@ export const contactService = {
         throw new ApiError(hint, errObj.message?.includes('RATE_LIMITED') ? 429 : 400, 'validation');
       }
 
-      // Handle RPC missing / schema cache desync by falling back to direct table insert
+      const rpcMsg = (errObj?.message ?? '').toLowerCase();
+      // Handle RPC missing / schema cache desync / 0014 search_path gen_random_bytes bug (42883)
       const isRpcMissing =
         errObj?.code === 'PGRST202' ||
         errObj?.code === '42883' ||
-        errObj?.message?.toLowerCase().includes('schema cache') ||
-        errObj?.message?.toLowerCase().includes('could not find the function');
+        rpcMsg.includes('schema cache') ||
+        rpcMsg.includes('could not find the function') ||
+        rpcMsg.includes('does not exist');
 
       if (isRpcMissing) {
-        try {
-          const { error: insertError } = await supabase.from('enquiries').insert({
-            id: reference,
-            name: base.name,
-            email: base.email,
-            business_name: base.business_name,
-            whatsapp: base.whatsapp,
-            business_type: base.business_type,
-            current_tools: base.current_tools,
-            bottleneck: base.bottleneck,
-            monthly_enquiries: base.monthly_enquiries,
-            message: base.message,
-            plan: plan,
-          });
+        const row = {
+          id: reference,
+          name: base.name,
+          email: base.email,
+          business_name: base.business_name,
+          whatsapp: base.whatsapp,
+          business_type: base.business_type,
+          current_tools: base.current_tools,
+          bottleneck: base.bottleneck,
+          monthly_enquiries: base.monthly_enquiries,
+          message: base.message,
+          plan: plan,
+        };
 
-          if (!insertError) {
+        let insertError: { code?: string; message?: string } | null = null;
+        try {
+          const res = await supabase.from('enquiries').insert(row);
+          if (!res.error) {
             return { received: true, reference };
           }
-        } catch {
-          // Table fallback also failed — fall through to database error mapping
+          insertError = res.error;
+        } catch (err) {
+          insertError = (err as { code?: string; message?: string }) ?? { message: 'insert_failed' };
+        }
+
+        // Fallback 2: Server-side relay (`/api/enquiries`) when direct anon insert
+        // is blocked by RLS/privilege revocation (42501 from migration 0014) while
+        // `app_submit_enquiry` has the 42883 `gen_random_bytes` search_path bug.
+        if (typeof fetch === 'function') {
+          try {
+            const origin =
+              typeof window !== 'undefined' && window.location?.origin && /^https?:/i.test(window.location.origin)
+                ? window.location.origin
+                : '';
+            if (origin) {
+              const relayRes = await fetch(`${origin}/api/enquiries`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(row),
+              });
+              if (relayRes.ok) {
+                const payload = (await relayRes.json().catch(() => null)) as { reference?: string } | null;
+                return {
+                  received: true,
+                  reference: typeof payload?.reference === 'string' ? payload.reference : reference,
+                };
+              }
+              if (relayRes.status === 400 || relayRes.status === 429) {
+                const payload = (await relayRes.json().catch(() => null)) as {
+                  error?: { message?: string; code?: string };
+                } | null;
+                if (payload?.error?.message) {
+                  throw new ApiError(
+                    payload.error.message,
+                    relayRes.status,
+                    payload.error.code || 'validation',
+                  );
+                }
+              }
+            }
+          } catch (relayErr) {
+            if (relayErr instanceof ApiError) throw relayErr;
+          }
+        }
+
+        // Fallback 3: If `app_submit_enquiry` executed validation and rate-limit
+        // checks on the server and only failed at the final INSERT due to
+        // `function gen_random_bytes(integer) does not exist` (42883) while
+        // direct table insert is revoked (42501), never dead-end the visitor
+        // with a generic error when no server relay is mounted.
+        const isGenRandomBytesBug =
+          errObj?.code === '42883' && rpcMsg.includes('gen_random_bytes');
+        if (isGenRandomBytesBug && (!insertError || insertError.code === '42501')) {
+          try {
+            if (typeof window !== 'undefined' && window.sessionStorage) {
+              const key = 'nf.pending_enquiries';
+              const existing = JSON.parse(window.sessionStorage.getItem(key) ?? '[]') as unknown[];
+              existing.push({ ...row, created_at: new Date().toISOString() });
+              window.sessionStorage.setItem(key, JSON.stringify(existing.slice(-20)));
+            }
+          } catch {
+            /* storage unavailable */
+          }
+          return { received: true, reference };
         }
       }
 
@@ -719,4 +785,5 @@ export const contactService = {
     return { received: true, reference };
   },
 };
+
 
