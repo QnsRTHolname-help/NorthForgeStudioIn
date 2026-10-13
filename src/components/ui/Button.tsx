@@ -7,23 +7,24 @@ type Variant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'subtl
 type Size = 'sm' | 'md' | 'lg';
 
 const BASE =
-  'relative inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded font-medium tracking-tight transition-[background-color,border-color,color,transform,box-shadow] duration-200 ease-forge focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:pointer-events-none disabled:opacity-45';
+  'relative inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-xl font-medium tracking-tight backdrop-blur-xl active:scale-[0.97] transition-[background-color,border-color,color,transform,box-shadow,backdrop-filter] duration-150 ease-forge focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:pointer-events-none disabled:opacity-45';
 
 const VARIANTS: Record<Variant, string> = {
-  // Brand blue with a violet sheen — used sparingly, one per view.
+  // Brand blue with a violet sheen — Apple liquid-glass rim light.
   primary:
-    'bg-brand text-white shadow-[0_1px_0_0_rgb(255_255_255/0.18)_inset,0_8px_24px_-12px_rgb(var(--nf-blue)/0.8)] hover:bg-[rgb(var(--nf-blue)/0.88)] hover:shadow-[0_1px_0_0_rgb(255_255_255/0.22)_inset,0_12px_28px_-12px_rgb(var(--nf-blue)/0.9)] active:translate-y-px',
-  secondary: 'border border-line-strong bg-elevated text-fg hover:border-brand/40 hover:bg-surface',
-  outline: 'border border-line bg-transparent text-fg hover:border-fg/30 hover:bg-surface',
-  ghost: 'bg-transparent text-muted hover:bg-sunken hover:text-fg',
-  subtle: 'bg-sunken text-fg hover:bg-elevated',
-  danger: 'bg-danger text-white hover:bg-[rgb(var(--nf-danger)/0.88)] active:translate-y-px',
+    'bg-brand text-white border border-white/15 shadow-[0_1px_0_0_rgb(255_255_255/0.2)_inset,0_8px_24px_-12px_rgb(var(--nf-blue)/0.8)] hover:bg-[rgb(var(--nf-blue)/0.88)] hover:shadow-[0_1px_0_0_rgb(255_255_255/0.24)_inset,0_12px_28px_-12px_rgb(var(--nf-blue)/0.9)]',
+  secondary:
+    'border border-white/30 bg-white/65 backdrop-blur-xl text-fg shadow-[0_4px_16px_-8px_rgb(31_38_135/0.12),0_1px_2px_rgb(0_0_0/0.05)] hover:bg-white/80 hover:border-white/40 hover:shadow-[0_8px_24px_-12px_rgb(31_38_135/0.14)]',
+  outline: 'border border-white/30 bg-white/40 backdrop-blur-xl text-fg hover:border-white/40 hover:bg-white/60',
+  ghost: 'bg-transparent text-muted hover:bg-white/40 hover:backdrop-blur-xl hover:text-fg',
+  subtle: 'bg-white/50 backdrop-blur-xl border border-white/20 text-fg hover:bg-white/70',
+  danger: 'bg-danger text-white border border-white/15 shadow-sm hover:bg-[rgb(var(--nf-danger)/0.88)]',
 };
 
 const SIZES: Record<Size, string> = {
-  sm: 'h-8 px-3 text-[13px]',
-  md: 'h-10 px-4 text-sm',
-  lg: 'h-12 px-6 text-[15px]',
+  sm: 'h-8 px-3 text-[13px] rounded-xl',
+  md: 'h-10 px-4 text-sm rounded-xl',
+  lg: 'h-12 px-6 text-[15px] rounded-xl',
 };
 
 interface CommonProps {

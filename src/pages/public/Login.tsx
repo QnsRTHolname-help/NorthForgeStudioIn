@@ -49,6 +49,7 @@ export default function Login() {
       return session;
     },
     {
+      silent: true,
       onSuccess: (session) => {
         const isAdmin = session.user.role === 'admin' || session.user.role === 'super_admin';
         toast.success(`Welcome back, ${session.user.name.split(' ')[0]}`);
@@ -77,6 +78,12 @@ export default function Login() {
       // screen. The user never browses at first-factor strength.
       if ((error as { code?: string }).code === 'AUTH_MFA_REQUIRED') {
         navigate('/mfa', { replace: true });
+        return;
+      }
+      // Email second factor: the first-factor session was dropped and a code
+      // emailed. The address travels in router state so it is never retyped.
+      if ((error as { code?: string }).code === 'AUTH_EMAIL_MFA_REQUIRED') {
+        navigate('/email-mfa', { replace: true, state: { email: email.trim() } });
         return;
       }
       const fields = (error as { fields?: Record<string, string> }).fields;

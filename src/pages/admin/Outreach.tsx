@@ -60,7 +60,7 @@ export default function Outreach() {
     },
   );
 
-  const growth = PLANS.find((plan) => plan.slug === 'convert');
+  const leadPlan = PLANS.find((plan) => plan.slug === 'lead');
 
   return (
     <div>
@@ -144,7 +144,7 @@ export default function Outreach() {
       <Panel className="mt-4" title="Reference">
         <p className="text-[13px] leading-relaxed text-muted">
           Plans billed every {BILLING_INTERVAL_DAYS} days
-          {growth ? `, starting at ₹${(growth.amount! / 100).toLocaleString('en-IN')} for Growth` : ''}. Hosting, SSL and a
+          {leadPlan ? `, starting at ₹${(leadPlan.amount! / 100).toLocaleString('en-IN')} for Lead` : ''}. Hosting, SSL and a
           custom domain are included on every plan.
         </p>
       </Panel>

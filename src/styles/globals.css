@@ -360,6 +360,91 @@
   .nf-focus:focus-visible {
     outline-color: var(--nf-focus-ring);
   }
+
+  /* ── Apple glass — frosted translucent surfaces ──────────────────
+     The auth shell lives on a soft gradient mesh; every card that
+     sits on it is a piece of frosted glass: translucent, blurred,
+     rim-lit. These utilities are the single implementation so the
+     glass reads the same from Login to ResetPassword.            ── */
+  .nf-glass {
+    background: rgb(255 255 255 / 0.68);
+    backdrop-filter: blur(24px) saturate(1.4);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+    border: 1px solid rgb(255 255 255 / 0.32);
+    box-shadow:
+      0 8px 32px rgb(31 38 135 / 0.07),
+      0 1px 2px rgb(0 0 0 / 0.06),
+      inset 0 1px 0 rgb(255 255 255 / 0.6);
+  }
+  [data-theme='dark'] .nf-glass {
+    background: rgb(255 255 255 / 0.07);
+    border-color: rgb(255 255 255 / 0.1);
+    box-shadow:
+      0 8px 32px rgb(0 0 0 / 0.36),
+      0 1px 0 rgb(255 255 255 / 0.06) inset;
+  }
+  .nf-glass-card {
+    background: rgb(255 255 255 / 0.72);
+    backdrop-filter: blur(28px) saturate(1.45);
+    -webkit-backdrop-filter: blur(28px) saturate(1.45);
+    border: 1px solid rgb(255 255 255 / 0.38);
+    border-radius: 24px;
+    box-shadow:
+      0 20px 60px -12px rgb(31 38 135 / 0.12),
+      0 4px 16px -4px rgb(0 0 0 / 0.07),
+      inset 0 1px 0 rgb(255 255 255 / 0.75);
+  }
+  [data-theme='dark'] .nf-glass-card {
+    background: rgb(22 24 32 / 0.62);
+    border-color: rgb(255 255 255 / 0.08);
+    box-shadow:
+      0 20px 60px -16px rgb(0 0 0 / 0.55),
+      0 8px 24px -8px rgb(0 0 0 / 0.4),
+      inset 0 1px 0 rgb(255 255 255 / 0.07);
+  }
+  .nf-auth-mesh {
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgb(124 92 255 / 0.14), transparent 60%),
+      radial-gradient(900px 500px at 95% 10%, rgb(59 130 255 / 0.13), transparent 60%),
+      radial-gradient(800px 600px at 50% 115%, rgb(124 92 255 / 0.08), transparent 60%),
+      linear-gradient(180deg, rgb(var(--nf-canvas)), rgb(var(--nf-canvas)));
+  }
+  [data-theme='dark'] .nf-auth-mesh {
+    background:
+      radial-gradient(1100px 600px at 15% -10%, rgb(124 92 255 / 0.18), transparent 62%),
+      radial-gradient(900px 600px at 90% 0%, rgb(59 130 255 / 0.16), transparent 60%),
+      radial-gradient(1000px 700px at 50% 120%, rgb(59 130 255 / 0.08), transparent 65%),
+      linear-gradient(180deg, rgb(8 9 12), rgb(12 14 20));
+  }
+  .nf-input-glass {
+    background: rgb(255 255 255 / 0.66) !important;
+    backdrop-filter: blur(16px) saturate(1.3);
+    -webkit-backdrop-filter: blur(16px) saturate(1.3);
+    border-color: rgb(255 255 255 / 0.42) !important;
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.04),
+      inset 0 1px 0 rgb(255 255 255 / 0.6);
+  }
+  [data-theme='dark'] .nf-input-glass {
+    background: rgb(255 255 255 / 0.06) !important;
+    border-color: rgb(255 255 255 / 0.09) !important;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.06);
+  }
+  .nf-input-glass:focus {
+    background: rgb(255 255 255 / 0.82) !important;
+    border-color: rgb(59 130 255 / 0.38) !important;
+    box-shadow:
+      0 0 0 3px rgb(59 130 255 / 0.12),
+      inset 0 1px 0 rgb(255 255 255 / 0.7);
+  }
+  [data-theme='dark'] .nf-input-glass:focus {
+    background: rgb(255 255 255 / 0.08) !important;
+    border-color: rgb(59 130 255 / 0.42) !important;
+    box-shadow:
+      0 0 0 3px rgb(59 130 255 / 0.16),
+      inset 0 1px 0 rgb(255 255 255 / 0.08);
+  }
 }
 
 @layer utilities {

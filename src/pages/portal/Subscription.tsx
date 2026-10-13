@@ -230,6 +230,27 @@ export default function Subscription() {
               </div>
             </div>
 
+            {/* Retention & Upgrade Incentives (R6) */}
+            <div className="rounded-xl border border-brand/20 bg-brand/[0.04] p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <span className="text-2xs font-semibold uppercase tracking-wider text-brand">Upgrade & Retention Incentives</span>
+                  <h4 className="text-sm font-semibold text-fg mt-0.5">Save 15% with Quarterly Commitment</h4>
+                  <p className="text-xs text-muted mt-0.5">
+                    Switch to a quarterly commitment to unlock a 15% upfront discount and an extra employee seat at no cost.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <span className="rounded-full border border-warning/30 bg-warning/[0.08] px-2.5 py-1 text-2xs font-medium text-fg">
+                    Only 3 onboarding spots left this month
+                  </span>
+                  <span className="rounded-full border border-brand/30 bg-brand/[0.08] px-2.5 py-1 text-2xs font-medium text-brand">
+                    Code: FOUNDER5K (Save ₹5,000 setup)
+                  </span>
+                </div>
+              </div>
+            </div>
+
             {plan ? (
               <div className="flex flex-wrap items-center gap-2">
                 {plans.data?.plans
@@ -456,16 +477,27 @@ function PlanChangeRequest({
   onDone: () => void;
 }) {
   const [planName, setPlanName] = useState('');
+  const [billingCycle, setBillingCycle] = useState('monthly');
+  const [promoCode, setPromoCode] = useState('');
   const [reason, setReason] = useState('');
 
   const mutation = useMutation(
-    () =>
-      requestsService.create({
-        title: `Plan change request: ${planName}`,
-        description: reason.trim() || `Requesting a change from ${currentPlan} to ${planName}.`,
+    () => {
+      const details = [
+        reason.trim(),
+        billingCycle === 'quarterly' ? 'Prefers Quarterly billing (15% discount + 1 extra seat)' : 'Prefers Monthly billing',
+        promoCode.trim() ? `Promo Code: ${promoCode.trim().toUpperCase()}` : null,
+      ]
+        .filter(Boolean)
+        .join(' | ');
+
+      return requestsService.create({
+        title: `Plan change request: ${planName} (${billingCycle})`,
+        description: details || `Requesting a change from ${currentPlan} to ${planName}.`,
         type: 'general',
         priority: 'medium',
-      }),
+      });
+    },
     { onSuccess: onDone },
   );
 
@@ -477,6 +509,19 @@ function PlanChangeRequest({
       }}
       className="space-y-4"
     >
+      <div className="rounded-lg border border-brand/20 bg-brand/[0.04] p-3 text-xs space-y-1">
+        <p className="font-semibold text-fg">Active Member Incentives & Offers</p>
+        <p className="text-muted">
+          • <strong className="text-brand">Founder Beta Pass:</strong> Save ₹5,000 on Setup with code <strong className="text-fg">FOUNDER5K</strong>.
+        </p>
+        <p className="text-muted">
+          • <strong className="text-success">Quarterly Retention:</strong> Save 15% + get 1 extra team seat included free.
+        </p>
+        <p className="text-muted">
+          • <strong className="text-warning">Capacity Note:</strong> Only 3 implementation spots left this month.
+        </p>
+      </div>
+
       <p className="text-[13px] leading-relaxed text-muted">
         Tell us which plan you would like. We will confirm the change and it takes effect from your next billing cycle.
       </p>
@@ -495,6 +540,22 @@ function PlanChangeRequest({
           })),
           { value: 'Custom', label: 'Custom / talk to us first' },
         ]}
+      />
+      <Select
+        label="Billing commitment"
+        value={billingCycle}
+        onChange={(event) => setBillingCycle(event.target.value)}
+        options={[
+          { value: 'monthly', label: 'Monthly billing' },
+          { value: 'quarterly', label: 'Quarterly commitment (Save 15% + 1 extra seat free)' },
+        ]}
+      />
+      <Input
+        label="Promo / Discount Code"
+        placeholder="e.g. FOUNDER5K"
+        value={promoCode}
+        onChange={(event) => setPromoCode(event.target.value)}
+        hint="Enter FOUNDER5K to save ₹5,000 on setup fees"
       />
       <Input
         label="Anything else?"

@@ -31,14 +31,14 @@ export default function Services() {
   const priced = SERVICES.filter((service) => service.priceFrom !== null);
 
   return (
-    <div>
+    <div className="space-y-6">
       <AdminHeader
         title="Service catalog"
         description="The one place every price in NorthForge comes from."
         crumbs={[{ label: 'Service catalog' }]}
       />
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="Services" value={SERVICES.length} />
         <KpiCard label="Groups" value={SERVICE_GROUPS.length} />
         <KpiCard label="Priced items" value={priced.length} />
@@ -65,24 +65,36 @@ export default function Services() {
       <Panel bodyClassName="p-0">
         <ul className="divide-y divide-line">
           {items.map((service) => (
-            <li key={service.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-              <span className="min-w-0 flex-1">
+            <li
+              key={service.id}
+              className="flex flex-col gap-2.5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 transition-colors hover:bg-elevated/40"
+            >
+              <div className="min-w-0 flex-1">
                 <span className="block truncate text-[13px] font-medium text-fg">{service.name}</span>
-                <span className="block line-clamp-1 text-2xs text-muted">{service.description}</span>
-              </span>
-              <Badge tone="neutral">{titleCase(service.group)}</Badge>
-              <Badge tone={service.unit === 'included' ? 'success' : service.unit === 'quoted' ? 'warning' : 'info'}>
-                {UNITS.includes(service.unit) ? titleCase(service.unit) : service.unit}
-              </Badge>
-              <span className="nf-num w-24 shrink-0 text-right text-[13px] font-semibold text-fg">
-                {service.unit === 'quoted' ? 'Quoted' : service.priceFrom === null ? 'Included' : formatMoney(service.priceFrom)}
-              </span>
+                <span className="block text-2xs text-muted sm:line-clamp-1">{service.description}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 sm:shrink-0 sm:justify-end">
+                <div className="flex items-center gap-2">
+                  <Badge tone="neutral">{titleCase(service.group)}</Badge>
+                  <Badge tone={service.unit === 'included' ? 'success' : service.unit === 'quoted' ? 'warning' : 'info'}>
+                    {UNITS.includes(service.unit) ? titleCase(service.unit) : service.unit}
+                  </Badge>
+                </div>
+                <span className="nf-num min-w-[5.5rem] text-right text-[13px] font-semibold text-fg">
+                  {service.unit === 'quoted' ? 'Quoted' : service.priceFrom === null ? 'Included' : formatMoney(service.priceFrom)}
+                </span>
+              </div>
             </li>
           ))}
+          {items.length === 0 && (
+            <li className="px-4 py-10 text-center text-sm text-muted">
+              No services match your filters.
+            </li>
+          )}
         </ul>
       </Panel>
 
-      <Panel className="mt-6" title="Why this is read-only">
+      <Panel title="Why this is read-only">
         <p className="text-[13px] leading-relaxed text-muted">
           Pricing lives in the shared catalog that the public website, the client portal, proposals and invoice
           generation all read from. Changing a number changes it everywhere at once — which is exactly why it is edited in

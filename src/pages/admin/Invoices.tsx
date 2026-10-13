@@ -15,7 +15,7 @@ import { usePageMeta } from '@/hooks/usePageMeta';
 import { useToast } from '@/app/providers/ToastProvider';
 import { billingService, clientsService } from '@/services';
 import { getPlanById, PLANS, planAmountLabel } from '@shared/catalog';
-import { GST_LABEL, billableLines, sumOwed, totalize, type InvoiceLine } from '@/lib/billing';
+import { billableLines, sumOwed, totalize, type InvoiceLine } from '@/lib/billing';
 import { formatDate, formatMoney, formatMoneyPrecise, titleCase } from '@/lib/format';
 import type { Invoice } from '@/types';
 
@@ -27,13 +27,16 @@ const DUE_OPTIONS = [
 ];
 
 /**
- * Invoices (spec §124).
+ * Invoices.
  *
  * Everything on this screen reconciles: the line items are the source of
- * truth, the subtotal is their sum, GST is 18% of that, and the total is
- * subtotal + tax (src/lib/billing.ts). The operator can raise an invoice,
- * include the one-time setup fee on a client's first bill, edit the lines,
- * reschedule the due date, settle it, or delete a mistake.
+ * truth, the subtotal is their sum, and the total is subtotal + tax
+ * (src/lib/billing.ts). NorthForge does not levy GST, so new invoices carry no
+ * tax — the total equals the line items. A tax row is still shown for older
+ * invoices that were raised with one, because their numbers must not change
+ * retroactively. The operator can raise an invoice, include the one-time setup
+ * fee on a client's first bill, edit the lines, reschedule the due date, settle
+ * it, or delete a mistake.
  */
 export default function Invoices() {
   usePageMeta({ title: 'Invoices', noIndex: true });
@@ -173,7 +176,7 @@ export default function Invoices() {
     <div>
       <AdminHeader
         title="Invoices"
-        description="GST invoices built from catalog pricing — setup fee, management cycle and 18% GST, always reconciled."
+        description="Invoices built from catalog pricing — setup fee and management cycle, always reconciled. No GST."
         crumbs={[{ label: 'Billing', to: '/app/invoices' }, { label: 'Invoices' }]}
         action={
           <Button size="md" iconLeft={<FilePlus2 className="h-3.5 w-3.5" />} onClick={() => setGenerating(true)}>
@@ -579,7 +582,7 @@ export default function Invoices() {
   );
 }
 
-/** Subtotal → GST → Total, in one place, from the line items. */
+/** Subtotal → tax (when one applies) → Total, in one place, from the line items. */
 function Totals({
   totals,
   compact,
@@ -590,7 +593,9 @@ function Totals({
   return (
     <div className={compact ? 'space-y-1' : 'space-y-1 rounded border border-line bg-sunken/30 p-4'}>
       <Row label="Subtotal" value={formatMoneyPrecise(totals.subtotal)} />
-      <Row label={GST_LABEL} value={formatMoneyPrecise(totals.tax)} />
+      {/* Only legacy invoices carry a tax figure; showing "Tax ₹0.00" on a
+          fresh invoice would imply a charge that is coming back. */}
+      {totals.tax !== 0 ? <Row label="Tax (legacy)" value={formatMoneyPrecise(totals.tax)} /> : null}
       <div className="border-t border-line pt-2">
         <Row label="Total" value={<span className="text-[15px] font-semibold">{formatMoneyPrecise(totals.total)}</span>} />
       </div>

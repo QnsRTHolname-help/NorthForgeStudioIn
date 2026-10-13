@@ -45,32 +45,32 @@ export const PLANS: Plan[] = [
     setupAmount: 1_500_000,
     currency: CURRENCY,
     intervalDays: BILLING_INTERVAL_DAYS,
-    tagline: 'Capture every opportunity.',
+    tagline: 'Capture and qualify every opportunity.',
     outcome: 'Capture, qualify and organize every opportunity.',
     description:
-      'Stop losing enquiries to slow replies and forgotten follow-ups. Lead capture, instant acknowledgement, basic qualification, a lightweight CRM, calendar booking and a daily owner dashboard — running without anyone watching it.',
+      'Stop losing enquiries to slow replies and forgotten follow-ups. Basic lead qualification, proper categorized CRM, basic calendar appointment scheduling, basic analytics, employee slot add-on (+₹600/employee/month), and Company Second Brain add-on tab (₹2,000/month).',
     features: [
       'Lead capture from your existing website, WhatsApp, form or chosen channel',
       'Automated enquiry acknowledgement',
       'Basic AI FAQ assistant using your business information',
-      'Basic lead qualification and lightweight CRM',
+      'Basic lead qualification and proper categorized CRM',
       'Lead notifications to the owner or team',
-      'Basic appointment scheduling and calendar view',
+      'Basic calendar appointment scheduling and calendar view',
       'Tasks, todo list and owner dashboard',
+      'Basic analytics and monthly monitoring',
       'Basic follow-up automation',
       'Up to 2 active workflows and 1 integration',
-      'Monthly monitoring, basic reporting and small workflow changes',
-      '3 included users; extra employee seats available',
-      'Company Second Brain available as an add-on',
+      '3 included users; employee slot add-on (+₹600/employee/month)',
+      'Company Second Brain add-on tab (₹2,000/month)',
     ],
     scope: {
       'Active workflows': '2',
       'AI assistant': 'Basic',
-      CRM: 'Basic + qualification',
+      CRM: 'Proper categorized CRM',
       'WhatsApp automation': 'Basic',
       'Follow-ups': 'Basic',
       Integrations: '1',
-      'Employee portal': '3 users, add-on seats',
+      'Employee portal': '3 users (+₹600/seat add-on)',
       'Daily OS': 'Tasks + calendar',
       'Second Brain': 'Add-on',
       'AI agents': '—',
@@ -94,28 +94,27 @@ export const PLANS: Plan[] = [
     tagline: 'Turn more enquiries into customers.',
     outcome: 'Turn more enquiries into customers.',
     description:
-      'Everything in LEAD, plus qualification and scoring, a real pipeline, multi-step follow-up sequences, appointment booking with reminders, and the analytics to see which enquiries actually convert.',
+      'Everything in LEAD, plus advanced AI customer assistant (email & WhatsApp), lead scoring & CRM pipeline, multi-step follow-up sequences, dedicated Employee Portal (up to 15 employees, password-based sub-portal with contribution tracking, +₹500/employee/month add-on), and Company Second Brain included.',
     features: [
       'Everything in LEAD',
-      'Advanced AI customer assistant',
-      'Lead qualification, scoring and segmentation',
-      'CRM pipeline: New Lead → Contacted → Interested → Follow-up → Converted',
+      'Advanced AI customer assistant (email & WhatsApp)',
+      'Lead scoring & CRM pipeline (New Lead → Contacted → Interested → Follow-up → Converted)',
       'Multi-step WhatsApp and email follow-up sequences',
-      'Appointment scheduling and reminders',
+      'Appointment scheduling and calendar reminders',
+      'Dedicated Employee Portal (up to 15 employees, password-based sub-portal with contribution tracking)',
+      'Employee slot add-on (+₹500/employee/month)',
       'Up to 5 active workflows and 3 integrations',
-      'Google Sheets or CRM integrations where suitable',
       'Conversion analytics and monthly optimisation',
-      'Employee portal with up to 15 users',
       'Company Second Brain included',
     ],
     scope: {
       'Active workflows': '5',
-      'AI assistant': 'Advanced',
-      CRM: 'Advanced',
+      'AI assistant': 'Advanced (email & WhatsApp)',
+      CRM: 'Lead scoring & pipeline',
       'WhatsApp automation': 'Advanced',
-      'Follow-ups': 'Multi-step',
+      'Follow-ups': 'Multi-step sequences',
       Integrations: 'Up to 3',
-      'Employee portal': '15 users',
+      'Employee portal': '15 users (+₹500/seat add-on)',
       'Daily OS': 'Tasks, calendar, projects',
       'Second Brain': 'Included',
       'AI agents': '1',
@@ -139,32 +138,30 @@ export const PLANS: Plan[] = [
     tagline: 'Automate the repetitive parts of the business.',
     outcome: 'Automate the repetitive parts of the business.',
     description:
-      'Everything in CONVERT, plus multiple AI agents, custom workflows across departments, an AI voice receptionist where it fits, customer onboarding automation, automated reporting and priority support.',
+      'Everything in CONVERT, plus custom AI workflows across multiple business processes, multiple AI agents, AI voice receptionist where suitable, custom customer onboarding automation, priority workflow request automation, dedicated Employee Portal (up to 30 employees, +₹500/employee/month add-on), and Company Second Brain included.',
     features: [
       'Everything in CONVERT',
       'Custom AI workflows across multiple business processes',
-      'Multiple AI agents where appropriate',
-      'Advanced WhatsApp automation',
+      'Multiple AI agents for specialized departmental tasks',
       'AI voice receptionist where suitable',
-      'Customer onboarding automation',
-      'Internal workflow and notification automation',
-      'Advanced CRM automation and custom integrations',
-      'Automated reports and owner dashboard',
-      '10+ active workflows, subject to discovery and infrastructure limits',
-      'Priority support, continuous optimisation and new workflow development within agreed scope',
-      'Employee portal with up to 30 users',
-      'Custom onboarding messages across WhatsApp and email',
+      'Custom customer onboarding automation',
+      'Priority workflow request automation',
+      'Dedicated Employee Portal (up to 30 employees, +₹500/employee/month add-on)',
+      'Advanced WhatsApp & email automation',
+      'Automated operational reports and owner command center',
+      '10+ active workflows with continuous optimisation and priority support',
+      'Company Second Brain included',
     ],
     scope: {
       'Active workflows': '10+',
       'AI assistant': 'Custom',
-      CRM: 'Custom',
+      CRM: 'Custom automation',
       'WhatsApp automation': 'Advanced',
       'Follow-ups': 'Multi-step / custom',
       Integrations: '5+',
-      'Employee portal': '30 users',
+      'Employee portal': '30 users (+₹500/seat add-on)',
       'Daily OS': 'Custom owner command center',
-      'Second Brain': 'Custom',
+      'Second Brain': 'Included',
       'AI agents': 'Multiple',
       'Voice AI': 'Included where suitable',
       Analytics: 'Custom',
@@ -224,16 +221,10 @@ export const PLANS: Plan[] = [
 /**
  * Employee seats and capabilities sold ON TOP of a plan.
  *
- * Seat *rules* are published here as `limits.users`, because the portal has to
- * show each client the allowance it is actually granted (LEAD 3, CONVERT 15,
- * AUTOPILOT 30). Seat and add-on *prices* are not published: no figure has been
- * agreed with a client yet, so `amount` stays null and the label reads
- * "Quoted". The surface lives in the catalog anyway so the pricing page, the
- * portal and a future invoice all learn an add-on from one place, and setting a
- * real figure later is a one-line change rather than a hunt through components.
- *
- * `availableOn` is not decoration: `catalog.test.ts` fails if an add-on is
- * offered on a plan whose scope matrix does not mark that capability as one.
+ * Seat allowances: LEAD 3, CONVERT 15, AUTOPILOT 30.
+ * Add-on rates:
+ * - Employee seats: +₹600/seat/mo on Lead, +₹500/seat/mo on Convert & Autopilot.
+ * - Second Brain: ₹2,000/mo add-on on Lead, included on Convert & Autopilot.
  */
 export const ADD_ONS: AddOn[] = [
   {
@@ -241,8 +232,8 @@ export const ADD_ONS: AddOn[] = [
     slug: 'extra-employee-seats',
     name: 'Extra Employee Seats',
     description:
-      'Add team members beyond the seats included in your plan. Each person gets their own login and sees only the work assigned to them.',
-    amount: null,
+      'Add dedicated team member seats beyond included allowance (+₹600/seat/mo for Lead, +₹500/seat/mo for Convert & Autopilot). Each member gets private password login and contribution tracking.',
+    amount: 50_000,
     unit: 'per seat / month',
     availableOn: ['lead', 'convert', 'autopilot'],
   },
@@ -251,8 +242,8 @@ export const ADD_ONS: AddOn[] = [
     slug: 'company-second-brain',
     name: 'Company Second Brain',
     description:
-      'A structured business memory for customer, project and sales context. Included with CONVERT and built to order with AUTOPILOT.',
-    amount: null,
+      'A structured business memory for customer, project and sales context. ₹2,000/month add-on for LEAD; included on CONVERT and AUTOPILOT.',
+    amount: 200_000,
     unit: 'per month',
     availableOn: ['lead'],
   },
@@ -501,10 +492,67 @@ export function planSeatLabel(plan: Plan) {
 export const addOnsForPlan = (slug: string) =>
   ADD_ONS.filter((addOn) => addOn.availableOn.includes(slug as Plan['slug']));
 
-/** "₹1,200 per seat / month", or "Quoted per seat / month" while undecided. */
-export function addOnAmountLabel(addOn: AddOn) {
-  if (addOn.amount === null) return `Quoted ${addOn.unit}`;
-  return `₹${(addOn.amount / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })} ${addOn.unit}`;
+export const EMPLOYEE_SEAT_RATES: Record<'lead' | 'convert' | 'autopilot', number> = {
+  lead: 60_000, // +₹600/seat/mo
+  convert: 50_000, // +₹500/seat/mo
+  autopilot: 50_000, // +₹500/seat/mo
+};
+
+export const SECOND_BRAIN_RATE = 200_000; // ₹2,000/mo on Lead
+
+/** Returns the add-on price in paise for a specific plan tier, or null if quoted/free */
+export function addOnAmountForPlan(addOnSlug: string, planSlug: Plan['slug'] | string): number | null {
+  if (addOnSlug === 'extra-employee-seats') {
+    if (planSlug === 'lead') return EMPLOYEE_SEAT_RATES.lead;
+    if (planSlug === 'convert') return EMPLOYEE_SEAT_RATES.convert;
+    if (planSlug === 'autopilot') return EMPLOYEE_SEAT_RATES.autopilot;
+    return 50_000;
+  }
+  if (addOnSlug === 'company-second-brain') {
+    if (planSlug === 'lead') return SECOND_BRAIN_RATE;
+    return 0; // included on convert and autopilot
+  }
+  const addOn = ADD_ONS.find((a) => a.slug === addOnSlug);
+  return addOn?.amount ?? null;
+}
+
+/** "₹500 per seat / month", or "Quoted per seat / month" while undecided. Supports optional planSlug for tier-aware pricing. */
+export function addOnAmountLabel(addOn: AddOn, planSlug?: Plan['slug'] | string) {
+  const amount = planSlug ? addOnAmountForPlan(addOn.slug, planSlug) : addOn.amount;
+  if (amount === null) return `Quoted ${addOn.unit}`;
+  return `₹${(amount / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })} ${addOn.unit}`;
+}
+
+/** Psychological pricing hooks and commercial incentives (R6) */
+export const PSYCHOLOGICAL_PRICING = {
+  founderDiscountPaise: 500_000, // ₹5,000 off setup fee for first-time partners
+  founderPromoCode: 'FOUNDER5K',
+  cohortMonth: 'October',
+  monthlyCohortSpotsRemaining: 3, // "Only 3 onboarding spots left this month"
+  rapidDeploymentHours: 48, // "48-Hour Rapid Workflow Deployment"
+  quarterlyDiscountPercent: 15, // 15% discount on quarterly commitment
+  quarterlyFreeSeats: 1, // 1 extra employee seat included for free
+  annualFreeMonths: 2, // 2 months free on annual commitment
+} as const;
+
+/** Calculate discounted setup fee with founder coupon */
+export function getDiscountedSetupAmount(plan: Plan, promoCode?: string): number | null {
+  if (plan.setupAmount === null) return null;
+  if (promoCode?.trim().toUpperCase() === PSYCHOLOGICAL_PRICING.founderPromoCode) {
+    return Math.max(0, plan.setupAmount - PSYCHOLOGICAL_PRICING.founderDiscountPaise);
+  }
+  return plan.setupAmount;
+}
+
+/** Calculate quarterly total in paise (3 months with 15% retention discount) */
+export function getQuarterlySavings(plan: Plan): { quarterlyTotal: number; savings: number } | null {
+  if (plan.amount === null) return null;
+  const threeMonths = plan.amount * 3;
+  const discounted = Math.round(threeMonths * (1 - PSYCHOLOGICAL_PRICING.quarterlyDiscountPercent / 100));
+  return {
+    quarterlyTotal: discounted,
+    savings: threeMonths - discounted,
+  };
 }
 
 /** Honest billing copy (spec §123–124): separates our price from third-party costs. */

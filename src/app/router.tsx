@@ -36,6 +36,7 @@ const RegisterPage = lazyPage(() => import('@/pages/public/Register'));
 const ForgotPasswordPage = lazyPage(() => import('@/pages/public/ForgotPassword'));
 const ResetPasswordPage = lazyPage(() => import('@/pages/public/ResetPassword'));
 const MfaVerifyPage = lazyPage(() => import('@/pages/public/MfaVerify'));
+const EmailMfaPage = lazyPage(() => import('@/pages/public/EmailMfa'));
 const AuthCallbackPage = lazyPage(() => import('@/pages/public/AuthCallback'));
 const PrivacyPage = lazyPage(() => import('@/pages/public/Legal'));
 const NotFoundPage = lazyPage(() => import('@/pages/errors/NotFound'));
@@ -63,6 +64,7 @@ const PortalSupport = lazyPage(() => import('@/pages/portal/Support'));
 const PortalAnnouncements = lazyPage(() => import('@/pages/portal/Announcements'));
 const PortalFiles = lazyPage(() => import('@/pages/portal/Files'));
 const PortalSettings = lazyPage(() => import('@/pages/portal/Settings'));
+const PortalServices = lazyPage(() => import('@/pages/portal/Services'));
 
 /* ── Admin operating system ────────────────────────────────────── */
 const AdminDashboard = lazyPage(() => import('@/pages/admin/Dashboard'));
@@ -142,6 +144,7 @@ export const AppRoutes: RouteDefinition[] = [
       { path: 'forgot-password', element: <ForgotPasswordPage /> },
       { path: 'reset-password', element: <ResetPasswordPage /> },
       { path: 'mfa', element: <MfaVerifyPage /> },
+      { path: 'email-mfa', element: <EmailMfaPage /> },
       { path: 'unauthorized', element: <UnauthorizedPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
@@ -176,6 +179,7 @@ export const AppRoutes: RouteDefinition[] = [
       { path: 'announcements', element: <PortalAnnouncements /> },
       { path: 'files', element: <PortalFiles /> },
       { path: 'settings', element: <PortalSettings /> },
+      { path: 'services', element: <PortalServices /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

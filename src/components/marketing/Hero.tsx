@@ -6,6 +6,7 @@ import { LinkButton, Button } from '@/components/ui/Button';
 import { Magnetic } from '@/components/motion';
 import { SplitText, CountUp } from '@/components/motion/primitives';
 import { GrowthSystem, GrowthChain } from './GrowthSystem';
+import { Hero3D } from './Hero3D';
 import { whatsappLink } from '@/data/site';
 import { useReducedMotion } from '@/hooks';
 import { trackEvent } from '@/lib/analytics';
@@ -138,6 +139,11 @@ export function Hero() {
 
           {/* ── System panel ───────────────────────────────────── */}
           <div data-hero-system className="relative">
+            {/* 3D Visual Layer - Behind the system panel */}
+            <div className="absolute inset-0 -z-10 pointer-events-none" aria-hidden="true">
+              <Hero3D className="w-full h-full" />
+            </div>
+
             <div className="relative overflow-hidden rounded-lg border border-line bg-surface/70 p-5 shadow-lift backdrop-blur-md sm:p-7">
               <div className="mb-5 flex items-center justify-between">
                 <span className="nf-eyebrow">Enquiry → customer, automated</span>

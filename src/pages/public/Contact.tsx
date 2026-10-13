@@ -333,6 +333,38 @@ export default function Contact() {
 
               <FormError message={mutation.error} />
 
+              {mutation.error ? (
+                <div
+                  className="rounded-lg border border-line bg-surface/60 p-4 text-xs text-muted"
+                  data-testid="emergency-contact-fallback"
+                >
+                  <p className="font-medium text-fg">Having trouble submitting?</p>
+                  <p className="mt-1">
+                    If our submission system is temporarily unreachable, you can contact our team directly via WhatsApp or email — we will receive your details immediately.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2.5">
+                    <a
+                      href={whatsappLink(
+                        `Hi NorthForge — my enquiry for ${values.businessName || 'my business'}: ${values.message || 'Please contact me.'}`,
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-md border border-line bg-surface px-3 py-1.5 text-xs font-medium text-fg transition-colors hover:border-brand/40 hover:text-brand"
+                    >
+                      <MessageCircle className="h-3.5 w-3.5 text-brand" />
+                      Message on WhatsApp ({CONTACT.whatsappDisplay})
+                    </a>
+                    <a
+                      href={emailLink(`Enquiry from ${values.name || 'visitor'} (${values.businessName || 'business'})`)}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-line bg-surface px-3 py-1.5 text-xs font-medium text-fg transition-colors hover:border-brand/40 hover:text-brand"
+                    >
+                      <Mail className="h-3.5 w-3.5 text-brand" />
+                      Email ({CONTACT.email})
+                    </a>
+                  </div>
+                </div>
+              ) : null}
+
               <div className="flex flex-wrap items-center gap-4 border-t border-line pt-5">
                 <Button type="submit" size="lg" loading={mutation.pending} arrow>
                   Find my automation opportunities

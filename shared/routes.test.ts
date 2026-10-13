@@ -65,7 +65,9 @@ describe('route manifest', () => {
   it('never rewrites a prerendered public route back to the SPA shell', () => {
     // If a public route were listed here it would shadow its own prerendered
     // file, and every crawler would get the empty shell again.
-    for (const route of ROUTES) {
+    // Only check INDEXABLE_ROUTES — private routes like /portal/* are behind auth
+    // and must be served by the SPA shell.
+    for (const route of INDEXABLE_ROUTES) {
       expect(SPA_REWRITES).not.toContain(route.path);
       expect(SPA_REWRITES).not.toContain(`${route.path}/(.*)`);
     }

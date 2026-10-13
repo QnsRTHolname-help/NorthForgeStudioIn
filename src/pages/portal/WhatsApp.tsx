@@ -26,7 +26,7 @@ export default function WhatsApp() {
   const data = status.data;
   const items = messages.data?.items ?? [];
 
-  const growthPlan = PLANS.find((plan) => plan.slug === 'convert');
+  const convertPlan = PLANS.find((plan) => plan.slug === 'convert');
 
   return (
     <div>
@@ -122,8 +122,8 @@ export default function WhatsApp() {
 
                 <Explain title="Want WhatsApp automation?">
                   Automated acknowledgements, follow-ups and reminders are part of{' '}
-                  <span className="font-medium text-fg">Growth</span> and above
-                  {growthPlan ? ` — ₹${(growthPlan.amount! / 100).toLocaleString('en-IN')} every ${growthPlan.intervalDays} days` : ''}. Raise a
+                  <span className="font-medium text-fg">Convert</span> and above
+                  {convertPlan ? ` — ₹${(convertPlan.amount! / 100).toLocaleString('en-IN')} every ${convertPlan.intervalDays} days` : ''}. Raise a
                   request and we will switch it on.
                 </Explain>
               </div>

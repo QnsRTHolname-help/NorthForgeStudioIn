@@ -25,3 +25,6 @@ tsconfig.tsbuildinfo
 
 # Supabase CLI local state (project link cache)
 supabase/.temp/
+
+# Agent framework workspace
+.agents/

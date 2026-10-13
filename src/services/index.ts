@@ -15,6 +15,7 @@
  * `@/services/public` directly instead — see that file for why.
  */
 export * from './public';
+export * from './emailMfa';
 
 import { loadProfile, sessionError } from './public';
 import { supabase, assertSupabaseConfigured } from '@/lib/supabase';
@@ -802,9 +803,9 @@ export const billingService = {
    * Raise an invoice from the catalog — the path that always works, with or
    * without a subscription record (a brand-new client usually has none).
    *
-   * The money is computed by `src/lib/billing.ts`: line items first, then
-   * 18% GST on the subtotal, then total = subtotal + tax. The optional
-   * one-time setup fee is a separate line rather than a silent surcharge.
+   * The money is computed by `src/lib/billing.ts`: line items first, then the
+   * total from those lines (no tax is added). The optional one-time setup fee
+   * is a separate line rather than a silent surcharge.
    */
   createInvoice: async (input: {
     clientId: string;
@@ -868,8 +869,8 @@ export const billingService = {
   },
   /**
    * Edit an invoice after it was raised: status, due date, line items and
-   * notes. Whenever line items change the subtotal, GST and total are
-   * recomputed together — three numbers that cannot drift apart.
+   * notes. Whenever line items change the subtotal and total are recomputed
+   * together — numbers that cannot drift apart.
    */
   updateInvoice: async (
     id: string,
@@ -1356,12 +1357,74 @@ export const ticketsService = {
     id: string,
     input: { body: string; internal?: boolean; status?: string },
   ): Promise<{ ticket: Ticket }> => {
+    const trimmed = input.body?.trim();
+    if (!trimmed) {
+      throw new ApiError('Write something before sending.', 400, 'validation');
+    }
+
     const { data, error } = await supabase.rpc('app_add_ticket_message', {
       p_ticket_id: id,
-      p_body: input.body,
+      p_body: trimmed,
       p_internal: Boolean(input.internal),
       p_status: input.status ?? null,
     });
+
+    if (!error && data) {
+      return { ticket: mapTicket(data as Record<string, unknown>) };
+    }
+
+    // Fallback if PostgreSQL 22P02 casting error (v_ticket assignment bug in earlier migrations)
+    // or RPC function missing (PGRST202 / 42883)
+    const isCastingBug = error?.code === '22P02' || /invalid_text_representation/i.test(error?.message ?? '');
+    const isMissingRpc =
+      error?.code === 'PGRST202' ||
+      error?.code === '42883' ||
+      /function .* does not exist/i.test(error?.message ?? '');
+
+    if (error && (isCastingBug || isMissingRpc)) {
+      try {
+        let role = 'admin';
+        let authorName = 'NorthForge';
+        try {
+          const session = await loadProfile();
+          if (session?.user) {
+            role = session.user.role ?? 'admin';
+            authorName = session.user.name || (role === 'client' ? 'Client' : 'NorthForge');
+          }
+        } catch {
+          // Use defaults
+        }
+        const isAdmin = role === 'admin' || role === 'super_admin';
+        const messageObj = {
+          id: `msg-${Date.now()}`,
+          author: authorName,
+          authorRole: role === 'client' ? 'client' : 'admin',
+          body: trimmed,
+          internal: isAdmin ? Boolean(input.internal) : false,
+          createdAt: new Date().toISOString(),
+        };
+
+        const existing = await supabase.from('tickets').select('*').eq('id', id).maybeSingle();
+        if (existing.data) {
+          const currentMessages = Array.isArray(existing.data.messages) ? existing.data.messages : [];
+          const updatedMessages = [...currentMessages, messageObj];
+          const updatePayload: Record<string, unknown> = {
+            messages: updatedMessages,
+            updated_at: new Date().toISOString(),
+          };
+          if (isAdmin && input.status) {
+            updatePayload.status = input.status;
+          }
+          const updated = await supabase.from('tickets').update(updatePayload).eq('id', id).select().maybeSingle();
+          if (updated.data) {
+            return { ticket: mapTicket(updated.data as Record<string, unknown>) };
+          }
+        }
+      } catch {
+        // Fallback failed, proceed to error mapping
+      }
+    }
+
     if (error) throw mapDatabaseError(error, 'tickets.message');
     if (!data) throw new ApiError("We couldn't update that ticket.", 400, 'update_failed');
     return { ticket: mapTicket(data as Record<string, unknown>) };
@@ -1389,6 +1452,14 @@ async function readTicketThreads(
   const missing =
     call.error.code === 'PGRST202' || call.error.code === '42883' || /function .* does not exist/i.test(call.error.message ?? '');
   if (missing) {
+    try {
+      let query = supabase.from('tickets').select('*');
+      if (ticketId) query = query.eq('id', ticketId);
+      const res = await query;
+      if (!res.error && res.data) return res.data as Record<string, unknown>[];
+    } catch {
+      // Fallback failed
+    }
     throw new ApiError(
       'Support is unavailable right now because the database is not fully migrated. Please try again shortly.',
       503,

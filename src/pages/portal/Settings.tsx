@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  AlertTriangle,
   Cookie as CookieIcon,
   Download,
   FileText,
@@ -15,8 +14,8 @@ import {
 } from 'lucide-react';
 import { Panel, Card } from '@/components/ui/Card';
 import { PortalHeader, MetricRow } from '@/components/portal/PortalHeader';
+import { DeleteAccountPanel } from '@/components/portal/DeleteAccountPanel';
 import { PasswordInput, Input, FormError, Switch, HiddenUsername } from '@/components/ui/Form';
-import { ConfirmPhrase } from '@/components/ui/ConfirmPhrase';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { usePageMeta } from '@/hooks/usePageMeta';
@@ -24,7 +23,7 @@ import { useAuth } from '@/app/providers/AuthProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { useTheme } from '@/app/providers/ThemeProvider';
 import { useAsync, useMutation } from '@/hooks/useAsync';
-import { authService, dataExportService, mfaService, preferencesService } from '@/services';
+import { authService, dataExportService, emailMfaService, mfaService, preferencesService } from '@/services';
 import { cn } from '@/lib/cn';
 import { formatDateTime } from '@/lib/format';
 import { applyAnalyticsConsent, analyticsConfigured } from '@/lib/analytics';
@@ -219,6 +218,8 @@ export default function Settings() {
 
       <TwoFactorPanel />
 
+      {isClient ? <EmailCodePanel /> : null}
+
       <Panel title="Session">
         <MetricRow label="Signed in as" value={session?.user.email ?? '—'} />
         <MetricRow label="Role" value={session?.user.role ?? '—'} />
@@ -239,7 +240,7 @@ export default function Settings() {
       </Panel>
 
       {isClient ? <PrivacyAndData /> : null}
-      {isClient ? <DangerZone /> : null}
+      {isClient ? <DeleteAccountPanel /> : null}
     </div>
   );
 }
@@ -381,101 +382,72 @@ function PrivacyAndData() {
   );
 }
 
-/**
- * Self-service account deletion (spec §47 erasure right).
- *
- * Placed last on Settings, visually distinct, and gated by typing the
- * business name — an irreversible action never sits behind a single tap.
- * The verification step itself (`ConfirmPhrase`) also states exactly what is
- * removed and what is kept, because the two are not the same thing here.
- *
- * The deletion is enforced server-side by the RPC: the client row (and every
- * business record that cascades from it) and the auth user are removed in one
- * transaction. Admins never see this panel — privileged accounts are
- * off-boarded by a super admin.
- */
-function DangerZone() {
-  const toast = useToast();
-  const { session, deleteAccount } = useAuth();
-  const businessName = session?.client?.businessName ?? '';
-  const [confirming, setConfirming] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const del = useMutation(() => deleteAccount(), {
-    onSuccess: () => {
-      toast.info(
-        'Account closed',
-        'Data eligible for deletion has been removed. Some records may be retained where the law, security or accounting rules require it.',
-      );
-      // AuthProvider has already reset state; the router lands on the
-      // public site via the unauthenticated redirect.
+/**
+ * Email one-time code as a second step at sign-in (migration 0016).
+ *
+ * The alternative to an authenticator app, for the owners who asked for it:
+ * sign in with the password, then enter a 6-digit code we email. Off unless
+ * switched on here, and the switch is per person — one row in
+ * `account_security`, scoped to this account by RLS.
+ *
+ * Turning it OFF is allowed without the password, unlike the TOTP panel: the
+ * code is emailed to the address that already receives every account notice, so
+ * removing it grants an attacker nothing they did not already have by holding
+ * the mailbox.
+ */
+export function EmailCodePanel() {
+  const toast = useToast();
+  const { session } = useAuth();
+  const status = useAsync(() => emailMfaService.status(), []);
+
+  const toggle = useMutation((next: boolean) => emailMfaService.setEnabled(next), {
+    onSuccess: (_data, next) => {
+      toast.success(next ? 'Email code required at sign-in' : 'Email code turned off');
+      void status.refetch().catch(() => undefined);
     },
   });
 
+  const enabled = status.data?.enabled ?? false;
+  const email = session?.user.email ?? 'your email address';
+
   return (
-    <Panel title="Danger zone" className="border-danger/30">
-      <div className="flex items-start gap-3">
-        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-danger" aria-hidden />
+    <Panel title="Email code at sign-in">
+      <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-[13px] font-medium text-fg">Delete this account permanently</p>
-          <p className="mt-1 text-[13px] leading-relaxed text-muted">
-            This permanently closes your NorthForge account. The next step lists exactly what is
-            removed and what has to be kept — they are not the same list.
+          <p className="text-[13px] text-muted">
+            After your password, we email a 6-digit code to <span className="text-fg">{email}</span> and ask for it
+            before the workspace opens.
           </p>
-          <p className="mt-2 text-[13px] leading-relaxed text-muted">
-            Closing your account is not the same as cancelling your plan. If your subscription is
-            still active,{' '}
-            <Link to="/portal/subscription" className="text-brand hover:underline">
-              cancel it first
-            </Link>{' '}
-            so billing stops cleanly.
+          <p className="mt-1 flex items-center gap-1.5 text-2xs text-faint">
+            <ShieldCheck className={enabled ? 'h-3 w-3 text-success' : 'h-3 w-3'} aria-hidden />
+            {enabled ? 'On — sign-ins need the emailed code.' : 'Currently off.'}
           </p>
         </div>
+        <Badge tone={enabled ? 'success' : 'neutral'}>{enabled ? 'On' : 'Off'}</Badge>
       </div>
 
-      {!confirming ? (
-        <div className="mt-4">
-          <Button
-            variant="secondary"
-            size="sm"
-            className="border-danger/40 text-danger hover:border-danger hover:text-danger"
-            onClick={() => setConfirming(true)}
-          >
-            Delete my account…
-          </Button>
-        </div>
-      ) : (
-        <div className="mt-4">
-          <ConfirmPhrase
-            phrase={businessName || 'DELETE'}
-            removed={[
-              'Your login, profile and phone number',
-              'Your business workspace and everything hanging off it',
-              'Leads, proposals, projects, milestones and tasks',
-              'Requests, support tickets and their messages',
-              'Uploaded files, and website analytics records',
-            ]}
-            kept={[
-              'Invoices and payments already issued or received',
-              'A short audit record that the account was closed',
-              'Backup copies, until they cycle out on their own schedule',
-            ]}
-            acknowledgement="I understand invoices and payments are kept as financial records, and that closing my account is not the same as cancelling my plan."
-            confirmLabel="Delete my account forever"
-            cancelLabel="Keep my account"
-            pending={del.pending}
-            error={error ?? del.error}
-            onCancel={() => {
-              setConfirming(false);
-              setError(null);
-            }}
-            onConfirm={() => {
-              setError(null);
-              del.mutate().catch(() => undefined);
-            }}
-          />
-        </div>
-      )}
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <Button
+          variant="secondary"
+          size="sm"
+          loading={toggle.pending}
+          disabled={status.loading}
+          onClick={() => toggle.mutate(!enabled).catch(() => undefined)}
+        >
+          {enabled ? 'Turn off email code' : 'Use an email code at sign-in'}
+        </Button>
+        {status.data?.updatedAt ? (
+          <span className="text-2xs text-faint">Last changed {formatDateTime(status.data.updatedAt)}</span>
+        ) : null}
+      </div>
+
+      {toggle.error ? <p className="mt-2 text-xs text-danger">{toggle.error}</p> : null}
+      {status.error ? <p className="mt-2 text-xs text-danger">{status.error}</p> : null}
+
+      <p className="mt-4 text-xs leading-relaxed text-faint">
+        Keep an authenticator app if you want the stronger option — you can have both, and the app is asked for first.
+      </p>
     </Panel>
   );
 }

@@ -1,25 +1,24 @@
 import { BILLING_INTERVAL_DAYS } from '@shared/catalog';
 
 /**
- * BILLING MATH (spec §123–124) — one place, integer paise, unit-tested.
+ * BILLING MATH — one place, integer paise, unit-tested.
  *
  * Why this file exists: invoices were assembled inside the service layer from
  * whatever number happened to be on hand. The plan's MONTHLY fee was billed as
  * the whole invoice — the one-time setup fee in the catalog was never charged,
- * and Subtotal/GST/Total were three numbers that could drift apart from the
+ * and Subtotal/Tax/Total were three numbers that could drift apart from the
  * line items shown on the same page.
  *
  * Rules enforced here:
  *   1. Every invoice is built from LINE ITEMS. Subtotal is their sum.
- *   2. GST is 18% of the subtotal, rounded ONCE, in paise.
+ *   2. Tax is 0. NorthForge does not levy GST on these invoices, so nothing is
+ *      added on top — the total the client sees is exactly the price in the
+ *      catalog. The `tax` field is still returned (and still stored) because
+ *      invoices raised before this change carry a real GST line; it is read
+ *      back for those rows and never recomputed.
  *   3. Total is always subtotal + tax — never an independently supplied number.
  *   4. Money is integer paise throughout; only the UI divides by 100.
  */
-
-/** Indian GST on services (9% CGST + 9% SGST for intra-state supply). */
-export const GST_RATE = 0.18;
-
-export const GST_LABEL = 'GST @ 18%';
 
 export interface InvoiceLine {
   label: string;
@@ -32,6 +31,13 @@ export interface InvoiceTotals {
   tax: number;
   total: number;
 }
+
+/**
+ * Tax applied to new invoices. Zero by design: NorthForge is not charging GST,
+ * and a "0%" line presented as tax invites the reader to assume it will come
+ * back. Historical invoices that carry a non-zero tax keep it (rule 3 above).
+ */
+export const TAX_RATE = 0;
 
 /** Minimal shape needed to price an invoice from the catalog. */
 export interface BillablePlan {
@@ -82,8 +88,8 @@ export function billableLines(
   return lines;
 }
 
-/** Subtotal + 18% GST = total. Always computed from the lines. */
-export function totalize(lines: InvoiceLine[], taxRate = GST_RATE): InvoiceTotals {
+/** Subtotal + tax = total. Always computed from the lines, never supplied. */
+export function totalize(lines: InvoiceLine[], taxRate = TAX_RATE): InvoiceTotals {
   const subtotal = lines.reduce((sum, line) => sum + Math.round(line.amount), 0);
   const tax = Math.round(subtotal * taxRate);
   return { subtotal, tax, total: subtotal + tax };

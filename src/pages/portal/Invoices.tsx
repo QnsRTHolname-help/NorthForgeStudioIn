@@ -12,7 +12,7 @@ import { billingService } from '@/services';
 import { formatMoney, formatMoneyPrecise, formatDate, titleCase } from '@/lib/format';
 import type { Invoice } from '@/types';
 
-/** Invoices (spec §124): amounts, GST and payment state, in rupees. */
+/** Invoices: amounts and payment state, in rupees. NorthForge adds no GST. */
 export default function Invoices() {
   usePageMeta({ title: 'Invoices', noIndex: true });
   const [filter, setFilter] = useState<'all' | 'unpaid' | 'paid'>('all');
@@ -164,7 +164,9 @@ export default function Invoices() {
 
             <div>
               <MetricRow label="Subtotal" value={formatMoneyPrecise(detail.amount)} />
-              <MetricRow label="GST" value={formatMoneyPrecise(detail.tax)} />
+              {/* Only invoices raised before tax was dropped carry a figure
+                  here. A fresh invoice's total is exactly its line items. */}
+              {detail.tax ? <MetricRow label="Tax (legacy)" value={formatMoneyPrecise(detail.tax)} /> : null}
               <MetricRow label="Total" value={formatMoneyPrecise(detail.total)} />
               <MetricRow label="Due" value={formatDate(detail.dueAt)} />
               {detail.paidAt ? <MetricRow label="Paid" value={formatDate(detail.paidAt)} tone="success" /> : null}
@@ -181,10 +183,10 @@ export default function Invoices() {
         ) : null}
       </Drawer>
 
-      <Panel className="mt-6" title="About GST">
+      <Panel className="mt-6" title="How these amounts are calculated">
         <p className="text-[13px] leading-relaxed text-muted">
-          Invoices show GST as a separate line. Amounts are stored in paise so nothing is rounded twice — what you see
-          here is exactly what the ledger holds.
+          The total is the sum of the line items above — NorthForge adds no tax or processing fee on top. Amounts are
+          stored in paise so nothing is rounded twice, which means what you see here is exactly what the ledger holds.
         </p>
       </Panel>
     </div>

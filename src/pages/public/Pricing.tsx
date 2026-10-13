@@ -29,6 +29,18 @@ export default function Pricing() {
             title="Simple plans. No surprise line items."
             description="Hosting, SSL and a custom domain come with every plan. Third-party costs are passed through at cost and always shown separately."
           />
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-warning/30 bg-warning/[0.08] px-3 py-1 text-xs font-semibold text-fg">
+              <span className="h-2 w-2 rounded-full bg-warning animate-pulse" />
+              Only 3 onboarding spots left this month
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/[0.08] px-3 py-1 text-xs font-semibold text-fg">
+              Founder Beta Pass: Save ₹5,000 on Setup with code FOUNDER5K
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success/[0.08] px-3 py-1 text-xs font-semibold text-fg">
+              Quarterly Commitment: 15% discount + 1 complimentary seat
+            </span>
+          </div>
         </div>
       </section>
 

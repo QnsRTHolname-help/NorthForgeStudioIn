@@ -1,10 +1,13 @@
-import { Check, Minus } from 'lucide-react';
+import { useState } from 'react';
+import { Check, Flame, Gift, Minus, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
   PLANS,
   PLAN_SCOPE_ROWS,
   THIRD_PARTY_COSTS,
   BILLING_FACTS,
+  PSYCHOLOGICAL_PRICING,
+  getQuarterlySavings,
   planAmountLabel,
   planSetupLabel,
 } from '@shared/catalog';
@@ -16,13 +19,16 @@ import { Reveal } from '@/components/motion';
 import { SectionHeader } from '@/components/ui/Card';
 
 /**
- * Pricing (spec §14) — every figure comes from the shared catalog.
+ * Pricing (spec §14, R6) — every figure comes from the shared catalog.
  *
- * The commercial model is stated twice on purpose: a one-time setup fee and a
- * monthly subscription. Nothing is buried, and third-party costs are listed
- * separately rather than folded into the headline price.
+ * Implements psychological pricing hooks:
+ * - First-time welcome discount: ₹5,000 off setup fee (Code: FOUNDER5K)
+ * - Monthly scarcity: Only 3 onboarding spots left this month
+ * - Weekly velocity: 48-Hour rapid workflow deployment
+ * - Retention incentives: 15% quarterly savings + 1 extra seat free
  */
 export function PricingTable({ showHeading = true, showDetail = true }: { showHeading?: boolean; showDetail?: boolean }) {
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'quarterly'>('monthly');
   const priced = PLANS.filter((plan) => plan.amount !== null);
 
   return (
@@ -35,10 +41,65 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
         />
       ) : null}
 
-      <div className={cn('grid gap-4 lg:grid-cols-4', showHeading && 'mt-14')}>
+      {/* Psychological scarcity & velocity banners */}
+      <div className={cn('flex flex-wrap items-center justify-center gap-3', showHeading ? 'mt-10' : 'mt-4')}>
+        <div className="inline-flex items-center gap-2 rounded-full border border-warning/30 bg-warning/[0.08] px-3.5 py-1 text-xs font-medium text-fg">
+          <Flame className="h-3.5 w-3.5 text-warning shrink-0" aria-hidden />
+          <span>Only {PSYCHOLOGICAL_PRICING.monthlyCohortSpotsRemaining} onboarding spots left this month</span>
+        </div>
+        <div className="inline-flex items-center gap-2 rounded-full border border-brand/30 bg-brand/[0.08] px-3.5 py-1 text-xs font-medium text-fg">
+          <Gift className="h-3.5 w-3.5 text-brand shrink-0" aria-hidden />
+          <span>Founder Beta Pass: Save ₹5,000 on Setup with code <strong className="font-semibold text-brand">{PSYCHOLOGICAL_PRICING.founderPromoCode}</strong></span>
+        </div>
+        <div className="inline-flex items-center gap-2 rounded-full border border-success/30 bg-success/[0.08] px-3.5 py-1 text-xs font-medium text-fg">
+          <Zap className="h-3.5 w-3.5 text-success shrink-0" aria-hidden />
+          <span>{PSYCHOLOGICAL_PRICING.rapidDeploymentHours}-Hour Rapid Workflow Deployment</span>
+        </div>
+      </div>
+
+      {/* Billing cycle toggle with retention hook */}
+      <div className="mt-8 flex flex-col items-center justify-center gap-2">
+        <div className="inline-flex rounded-xl border border-line bg-surface/80 p-1 shadow-sm backdrop-blur-md">
+          <button
+            type="button"
+            onClick={() => setBillingCycle('monthly')}
+            className={cn(
+              'rounded-lg px-4 py-1.5 text-xs font-semibold transition-all duration-200',
+              billingCycle === 'monthly'
+                ? 'bg-brand text-white shadow-sm'
+                : 'text-muted hover:text-fg',
+            )}
+          >
+            Monthly Billing
+          </button>
+          <button
+            type="button"
+            onClick={() => setBillingCycle('quarterly')}
+            className={cn(
+              'flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-semibold transition-all duration-200',
+              billingCycle === 'quarterly'
+                ? 'bg-brand text-white shadow-sm'
+                : 'text-muted hover:text-fg',
+            )}
+          >
+            <span>Quarterly Commitment</span>
+            <span className="rounded-full bg-success/20 px-1.5 py-0.2 text-2xs font-bold text-success">
+              Save 15%
+            </span>
+          </button>
+        </div>
+        {billingCycle === 'quarterly' ? (
+          <p className="text-2xs font-medium text-success animate-fade-in">
+            ✓ 15% upfront discount + 1 extra team seat included free on all plans
+          </p>
+        ) : null}
+      </div>
+
+      <div className="mt-8 grid gap-4 lg:grid-cols-4">
         {PLANS.map((plan) => {
           const recommended = plan.recommended;
           const custom = plan.amount === null;
+          const savings = getQuarterlySavings(plan);
 
           return (
             <Reveal key={plan.id} className="h-full">
@@ -63,11 +124,31 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
                   <div className="mt-6">
                     <div className="flex items-baseline gap-1.5">
                       <span className="nf-num text-[32px] font-semibold leading-none tracking-tight text-fg">
-                        {planAmountLabel(plan)}
+                        {!custom && billingCycle === 'quarterly' && savings
+                          ? `₹${Math.round(savings.quarterlyTotal / 3 / 100).toLocaleString('en-IN')}`
+                          : planAmountLabel(plan)}
                       </span>
-                      {!custom ? <span className="text-[13px] text-faint">/ month</span> : null}
+                      {!custom ? (
+                        <span className="text-[13px] text-faint">
+                          {billingCycle === 'quarterly' ? '/ mo (billed quarterly)' : '/ month'}
+                        </span>
+                      ) : null}
                     </div>
-                    <p className="nf-num mt-2 text-[13px] text-muted">{planSetupLabel(plan)}</p>
+
+                    {!custom && billingCycle === 'quarterly' && savings ? (
+                      <p className="mt-1 text-2xs font-medium text-success">
+                        Save ₹{(savings.savings / 100).toLocaleString('en-IN')} / quarter + free seat
+                      </p>
+                    ) : null}
+
+                    <div className="mt-2 flex items-center justify-between text-[13px] text-muted">
+                      <span className="nf-num">{planSetupLabel(plan)}</span>
+                      {!custom ? (
+                        <span className="text-2xs font-semibold text-brand">
+                          -₹5,000 w/ code
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
 
                   <p className="mt-5 text-[13px] leading-relaxed text-muted">{plan.description}</p>
@@ -191,6 +272,38 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
           </ul>
         </div>
       </div>
+      ) : null}
+
+      {/* Psychological retention incentives */}
+      {showDetail ? (
+        <div className="mt-8 rounded-xl border border-brand/20 bg-brand/[0.04] p-6 backdrop-blur-md">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <span className="text-2xs font-semibold uppercase tracking-wider text-brand">Retention & Growth Incentives</span>
+              <h4 className="mt-1 text-base font-semibold text-fg">Long-term alignment without lock-in contracts</h4>
+              <p className="mt-1 text-xs text-muted">
+                Choose quarterly or annual commitments for compounding savings and dedicated engineering support.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 shrink-0">
+              <div className="rounded-lg border border-line bg-surface/80 p-3 text-center">
+                <span className="text-2xs font-bold text-success uppercase">Quarterly Upfront</span>
+                <p className="text-xs font-semibold text-fg mt-0.5">15% Savings</p>
+                <span className="text-3xs text-muted">+1 free employee seat</span>
+              </div>
+              <div className="rounded-lg border border-line bg-surface/80 p-3 text-center">
+                <span className="text-2xs font-bold text-brand uppercase">Annual Commit</span>
+                <p className="text-xs font-semibold text-fg mt-0.5">2 Months Free</p>
+                <span className="text-3xs text-muted">Priority WhatsApp builder</span>
+              </div>
+              <div className="rounded-lg border border-line bg-surface/80 p-3 text-center">
+                <span className="text-2xs font-bold text-fg uppercase">Risk-Free Handover</span>
+                <p className="text-xs font-semibold text-fg mt-0.5">Full Data Export</p>
+                <span className="text-3xs text-muted">Source code handover anytime</span>
+              </div>
+            </div>
+          </div>
+        </div>
       ) : null}
 
       <div className="mt-12 flex flex-col items-center gap-4 border-t border-line pt-12 text-center">

@@ -1,4 +1,4 @@
-﻿import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authService, type AuthSession } from '@/services/public';
 import { logAuthEvent } from '@/lib/auth-errors';
@@ -53,10 +53,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /**
    * Full session verification: Supabase session → application profile.
    * `silent` swallows the harmless "no session" case at bootstrap.
+   * Enforces a bounded 7-second timeout during bootstrap so users never get
+   * stuck indefinitely on <Booting /> when Supabase stalls.
    */
   const refresh = useCallback(async (options: { silent?: boolean } = {}): Promise<AuthSession | null> => {
     try {
-      const data = await authService.me();
+      const fetchPromise = authService.me();
+      let data: AuthSession | null = null;
+
+      if (options.silent) {
+        let timeoutId: ReturnType<typeof setTimeout> | undefined;
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(() => {
+            reject(new ApiError("We couldn't reach the authentication service. Please try again.", 0, 'network'));
+          }, 7000);
+        });
+
+        try {
+          data = await Promise.race([fetchPromise, timeoutPromise]);
+        } finally {
+          if (timeoutId) clearTimeout(timeoutId);
+        }
+      } else {
+        data = await fetchPromise;
+      }
+
       if (!data) {
         setSession(null);
         setStatus('unauthenticated');

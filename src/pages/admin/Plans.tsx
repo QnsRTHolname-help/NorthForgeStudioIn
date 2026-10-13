@@ -93,7 +93,7 @@ export default function Plans() {
             <li>· Billed every {BILLING_INTERVAL_DAYS} days, in advance.</li>
             <li>· Amounts stored in paise; formatted only for display.</li>
             <li>· Plan changes apply from the next cycle, never mid-cycle.</li>
-            <li>· GST is shown as a separate line on every invoice.</li>
+            <li>· 0% GST: invoices carry no tax line.</li>
           </ul>
         </Panel>
 

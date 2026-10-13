@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { CheckCircle2, Circle, ListTodo, Plus, TimerReset } from 'lucide-react';
+import { CheckCircle2, Circle, ListTodo, Plus, Sparkles, TimerReset, Trophy } from 'lucide-react';
 import { KpiCard, Panel } from '@/components/ui/Card';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
 import { Badge } from '@/components/ui/Badge';
@@ -26,12 +26,17 @@ export default function Tasks() {
   const { session } = useAuth();
   const [status, setStatus] = useState<'open' | Task['status']>('open');
   const [creating, setCreating] = useState(false);
+  const [animatingId, setAnimatingId] = useState<string | null>(null);
 
   const state = useAsync(() => tasksService.list(), []);
+  const allTasks = state.data?.items ?? [];
+  const completedTasks = allTasks.filter((task) => task.status === 'done');
+  const totalTasks = allTasks.length;
+  const completionPercent = totalTasks > 0 ? Math.round((completedTasks.length / totalTasks) * 100) : 0;
+
   const items = useMemo(() => {
-    const all = state.data?.items ?? [];
-    return status === 'open' ? all.filter((task) => task.status !== 'done') : all.filter((task) => task.status === status);
-  }, [state.data?.items, status]);
+    return status === 'open' ? allTasks.filter((task) => task.status !== 'done') : allTasks.filter((task) => task.status === status);
+  }, [allTasks, status]);
 
   const toggle = useMutation(
     (task: Task) => tasksService.update(task.id, { status: task.status === 'done' ? 'todo' : 'done' }),
@@ -42,7 +47,17 @@ export default function Tasks() {
     },
   );
 
-  const openTasks = (state.data?.items ?? []).filter((task) => task.status !== 'done');
+  const handleToggleTask = async (task: Task) => {
+    const willComplete = task.status !== 'done';
+    setAnimatingId(task.id);
+    setTimeout(() => setAnimatingId(null), 600);
+    if (willComplete) {
+      toast.success('Task completed! Great momentum.');
+    }
+    await toggle.mutate(task).catch(() => undefined);
+  };
+
+  const openTasks = allTasks.filter((task) => task.status !== 'done');
   const dueSoon = openTasks.filter((task) => task.dueDate && new Date(task.dueDate) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
 
   return (
@@ -69,9 +84,40 @@ export default function Tasks() {
           <div className="grid min-w-full gap-3 sm:grid-cols-3 lg:min-w-[480px]">
             <KpiCard label="Open tasks" value={openTasks.length} hint="Everything not marked done" icon={<ListTodo className="h-4 w-4" />} />
             <KpiCard label="Due soon" value={dueSoon.length} hint="Due in the next 7 days" icon={<TimerReset className="h-4 w-4" />} />
-            <KpiCard label="Completed" value={(state.data?.items ?? []).filter((task) => task.status === 'done').length} icon={<CheckCircle2 className="h-4 w-4" />} />
+            <KpiCard label="Completed" value={completedTasks.length} icon={<CheckCircle2 className="h-4 w-4" />} />
           </div>
         </div>
+
+        {/* Dopamine progress celebration bar */}
+        {totalTasks > 0 ? (
+          <div className="mt-5 border-t border-line/60 pt-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                {completionPercent === 100 ? (
+                  <Trophy className="h-4 w-4 text-warning animate-bounce" />
+                ) : (
+                  <Sparkles className="h-4 w-4 text-brand" />
+                )}
+                <span className="text-[13px] font-semibold text-fg">
+                  Daily Momentum: {completionPercent}% completed ({completedTasks.length}/{totalTasks})
+                </span>
+              </div>
+              <span className="text-xs text-muted">
+                {completionPercent === 100
+                  ? 'All tasks completed! Day is won.'
+                  : completionPercent >= 50
+                    ? 'Over halfway through! Exceptional execution today.'
+                    : 'Start and end your day with clean, focused progress.'}
+              </span>
+            </div>
+            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-sunken/60">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-brand to-success transition-all duration-500 ease-out"
+                style={{ width: `${completionPercent}%` }}
+              />
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -97,15 +143,33 @@ export default function Tasks() {
                   <button
                     type="button"
                     onClick={() => {
-                      void toggle.mutate(task).catch(() => undefined);
+                      void handleToggleTask(task);
                     }}
-                    className="nf-os-icon mt-0.5 h-8 w-8 shrink-0 text-faint transition-colors hover:text-brand"
+                    className={cn(
+                      'nf-os-icon relative mt-0.5 h-8 w-8 shrink-0 text-faint transition-all duration-300 hover:text-brand active:scale-95',
+                      animatingId === task.id && 'text-success',
+                    )}
                     aria-label={task.status === 'done' ? 'Mark task open' : 'Mark task done'}
                   >
-                    {task.status === 'done' ? <CheckCircle2 className="h-4 w-4 text-success" /> : <Circle className="h-4 w-4" />}
+                    {/* Ripple pulse on click */}
+                    {animatingId === task.id ? (
+                      <span className="absolute inset-0 rounded-full bg-success/25 animate-ping pointer-events-none" />
+                    ) : null}
+                    <span
+                      className={cn(
+                        'inline-flex items-center justify-center transition-transform duration-300 ease-out',
+                        animatingId === task.id ? 'scale-125' : 'hover:scale-110',
+                      )}
+                    >
+                      {task.status === 'done' ? (
+                        <CheckCircle2 className="h-4 w-4 text-success transition-colors" />
+                      ) : (
+                        <Circle className="h-4 w-4 transition-colors" />
+                      )}
+                    </span>
                   </button>
                   <div className="min-w-0 flex-1">
-                    <p className={cn('text-[13px] font-medium', task.status === 'done' ? 'text-faint line-through' : 'text-fg')}>
+                    <p className={cn('text-[13px] font-medium transition-all duration-200', task.status === 'done' ? 'text-faint line-through' : 'text-fg')}>
                       {task.title}
                     </p>
                     {task.description ? <p className="mt-0.5 line-clamp-2 text-xs text-muted">{task.description}</p> : null}

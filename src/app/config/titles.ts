@@ -9,6 +9,7 @@ export const TITLES: Record<string, string> = {
   '/register': 'Create your account',
   '/forgot-password': 'Reset password',
   '/reset-password': 'Set a new password',
+  '/email-mfa': 'Confirm your email code',
   '/privacy': 'Privacy policy',
   '/terms': 'Terms of service',
 

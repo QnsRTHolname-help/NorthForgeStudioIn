@@ -39,8 +39,17 @@ export default function Support() {
     (input: { id: string; body: string; internal: boolean; status?: string }) =>
       ticketsService.message(input.id, { body: input.body, internal: input.internal, status: input.status }),
     {
-      onSuccess: async () => {
+      onSuccess: async (data) => {
         toast.success('Reply sent');
+        if (data?.ticket) {
+          state.setData((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              items: prev.items.map((t) => (t.id === data.ticket.id ? data.ticket : t)),
+            };
+          });
+        }
         await state.refetch().catch(() => undefined);
       },
     },
@@ -147,21 +156,49 @@ export default function Support() {
                 const form = event.currentTarget;
                 const data = new FormData(form);
                 const body = String(data.get('body') ?? '').trim();
-                if (!body) return;
-                await reply
-                  .mutate({
+                if (!body || !detail) return;
+                const internal = data.get('internal') === 'on';
+                const statusInput = String(data.get('status') ?? '') || undefined;
+
+                const previousDetail = detail;
+                const optimisticMessage = {
+                  id: `optimistic-${Date.now()}`,
+                  author: 'NorthForge',
+                  authorRole: 'admin' as const,
+                  body,
+                  internal,
+                  createdAt: new Date().toISOString(),
+                };
+
+                // Optimistically update ticket thread state
+                setDetail({
+                  ...detail,
+                  status: (statusInput as Ticket['status']) || detail.status,
+                  messages: [...detail.messages, optimisticMessage],
+                });
+
+                try {
+                  const res = await reply.mutate({
                     id: detail.id,
                     body,
-                    internal: data.get('internal') === 'on',
-                    status: String(data.get('status') ?? '') || undefined,
-                  })
-                  .catch(() => undefined);
-                form.reset();
-                // Re-open the drawer with the fresh ticket so the reply and
-                // status appear immediately (no stale content).
-                const fresh = await state.refetch().catch(() => undefined);
-                const updated = fresh?.items.find((ticket) => ticket.id === detail.id);
-                if (updated) setDetail(updated);
+                    internal,
+                    status: statusInput,
+                  });
+                  if (res?.ticket) {
+                    setDetail(res.ticket);
+                    state.setData((prev) => {
+                      if (!prev) return prev;
+                      return {
+                        ...prev,
+                        items: prev.items.map((ticket) => (ticket.id === res.ticket.id ? res.ticket : ticket)),
+                      };
+                    });
+                  }
+                  form.reset();
+                } catch {
+                  // Revert optimistic update on failure, keeping typed message in form
+                  setDetail(previousDetail);
+                }
               }}
             >
               <Textarea name="body" rows={3} placeholder="Write a reply…" aria-label="Reply" required />

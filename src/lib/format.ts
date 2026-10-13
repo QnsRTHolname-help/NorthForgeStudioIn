@@ -8,32 +8,59 @@
 const inr = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
 const inrPaise = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+/**
+ * Currency thresholds, in PAISE.
+ *
+ * Money is stored in paise (₹1 = 100), so the Indian-grouping boundaries are
+ * 100× the rupee figure everyone quotes:
+ *
+ *   ₹1 lakh   = 1,00,000        rupees = 1e5         rupees = 1e7   paise
+ *   ₹1 crore  = 1,00,00,000     rupees = 1e7         rupees = 1e9   paise
+ *
+ * Getting this wrong is not cosmetic. The compact formatter previously tested
+ * `paise >= 100000` for lakhs and divided by 1e5 — so ₹1,000 rendered as
+ * "₹1.00 L", and ₹1,00,000 (a lakh) rendered as "₹1.00 Cr". Every compact
+ * revenue figure on the admin dashboard was wrong by a factor of 100 and
+ * labelled with the wrong unit.
+ */
+const PAISE_PER_LAKH = 10_000_000; // 1e7 paise = ₹1,00,000
+const PAISE_PER_CRORE = 1_000_000_000; // 1e9 paise = ₹1,00,00,000
+
 export function formatMoney(paise: number | null | undefined, opts: { compact?: boolean } = {}) {
   if (paise === null || paise === undefined) return '—';
-  if (opts.compact && paise >= 10000000) {
-    return `₹${(paise / 10000000).toFixed(2)} Cr`;
+  const sign = paise < 0 ? '-' : '';
+  const absPaise = Math.abs(paise);
+  if (opts.compact && absPaise >= PAISE_PER_CRORE) {
+    return `${sign}₹${(absPaise / PAISE_PER_CRORE).toFixed(2)} Cr`;
   }
-  if (opts.compact && paise >= 100000) {
-    return `₹${(paise / 100000).toFixed(2)} L`;
+  if (opts.compact && absPaise >= PAISE_PER_LAKH) {
+    return `${sign}₹${(absPaise / PAISE_PER_LAKH).toFixed(2)} L`;
   }
-  return `₹${inr.format(Math.round(paise / 100))}`;
+  return `${sign}₹${inr.format(Math.round(absPaise / 100))}`;
 }
 
 export function formatMoneyPrecise(paise: number | null | undefined) {
   if (paise === null || paise === undefined) return '—';
-  return `₹${inrPaise.format(paise / 100)}`;
+  const sign = paise < 0 ? '-' : '';
+  const absPaise = Math.abs(paise);
+  return `${sign}₹${inrPaise.format(absPaise / 100)}`;
 }
 
 export function formatNumber(value: number | null | undefined) {
   if (value === null || value === undefined) return '—';
-  return inr.format(value);
+  const sign = value < 0 ? '-' : '';
+  const abs = Math.abs(value);
+  return `${sign}${inr.format(abs)}`;
 }
 
 export function formatCompact(value: number | null | undefined) {
   if (value === null || value === undefined) return '—';
-  if (value >= 100000) return `${(value / 100000).toFixed(1)}L`;
-  if (value >= 1000) return `${(value / 1000).toFixed(1)}k`;
-  return String(value);
+  const sign = value < 0 ? '-' : '';
+  const abs = Math.abs(value);
+  if (abs >= 10_000_000) return `${sign}${(abs / 10_000_000).toFixed(1)}Cr`;
+  if (abs >= 100_000) return `${sign}${(abs / 100_000).toFixed(1)}L`;
+  if (abs >= 1_000) return `${sign}${(abs / 1_000).toFixed(1)}k`;
+  return `${sign}${abs}`;
 }
 
 export function formatPercent(value: number | null | undefined, digits = 1) {

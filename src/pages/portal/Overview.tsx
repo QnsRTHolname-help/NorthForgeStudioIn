@@ -5,6 +5,7 @@ import { AsyncBoundary, EmptyState } from '@/components/ui/States';
 import { LinkButton } from '@/components/ui/Button';
 import { StatusIndicator } from '@/components/ui/Badge';
 import { PortalHeader, Explain } from '@/components/portal/PortalHeader';
+import { DeleteAccountPanel } from '@/components/portal/DeleteAccountPanel';
 import { AreaChart } from '@/components/charts/AreaChart';
 import { Timeline } from '@/components/ui/Data';
 import { useAsync } from '@/hooks/useAsync';
@@ -349,6 +350,11 @@ export default function Overview() {
                 automatically.
               </p>
             ) : null}
+
+            {/* Account deletion lives at the very bottom of the dashboard on
+                purpose: it is reachable without a hunt, and it is never the
+                thing your eye lands on first. */}
+            <DeleteAccountPanel />
           </>
         ) : null}
       </AsyncBoundary>

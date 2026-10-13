@@ -573,6 +573,12 @@ declare
   v_body text;
   v_message jsonb;
   v_ticket jsonb;
+  -- The rows this UPDATE touches. MUST be a separate variable: the previous
+  -- version wrote `returning t.id into v_ticket`, and `t.id` is text while
+  -- `v_ticket` is jsonb. plpgsql then tried to cast 'tk_ab12cd34ef56' to json,
+  -- which raises 22P02 (invalid_text_representation) and rolls back the whole
+  -- function — so NO reply could be sent, by an admin or a client.
+  v_ticket_id text;
 begin
   v_uid := auth.uid();
   if v_uid is null then
@@ -622,11 +628,15 @@ begin
            else t.status
          end
    where t.id = p_ticket_id
-   returning t.id into v_ticket;
+   returning t.id into v_ticket_id;
 
   select thread into v_ticket
     from app_ticket_threads(p_ticket_id) as thread
    limit 1;
+
+  if v_ticket is null then
+    raise exception 'TICKET_NOT_FOUND' using hint = 'That ticket is not on your account.';
+  end if;
 
   return v_ticket;
 end $$;

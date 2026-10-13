@@ -138,6 +138,26 @@ export const authService = {
       throw new AuthError({ code: 'AUTH_MFA_REQUIRED', message: 'Enter your two-factor code to continue.' });
     }
 
+    /*
+     * Email second factor (opt-in, migration 0016). The password alone is not
+     * enough for an account that switched this on, so the first-factor session
+     * is dropped immediately — nothing is readable before the emailed code is
+     * verified — and a fresh code is sent.
+     *
+     * If the email cannot be sent we let the failure surface instead of
+     * pretending a code is on its way: the person is told to try again, and the
+     * next attempt re-sends.
+     */
+    if (await isEmailMfaEnabled(data.user?.id ?? '')) {
+      await supabase.auth.signOut();
+      await emailMfaService.sendCode(email);
+      logAuthEvent('email_mfa_challenge_required');
+      throw new AuthError({
+        code: 'AUTH_EMAIL_MFA_REQUIRED',
+        message: 'Enter the 6-digit code we just emailed you to finish signing in.',
+      });
+    }
+
     logAuthEvent('session_established');
     const session = await loadProfile();
     logAuthEvent('redirect_ready', { role: session.user.role });
@@ -453,6 +473,108 @@ export const mfaService = {
   },
 };
 
+/* ── Email second factor (migration 0016) ──
+ *
+ * Clients can already enrol a TOTP authenticator app (above). This is the
+ * alternative they asked for: a 6-digit code sent to their email at sign-in,
+ * on top of their password. The preference lives in `account_security`, one row
+ * per user, RLS-scoped to its owner.
+ *
+ * It is an APPLICATION-level checkpoint, not Supabase AAL2 — Supabase MFA has
+ * no email factor. Admin surfaces still require a real AAL2 factor
+ * (app_aal2()), unchanged.
+ */
+
+/**
+ * Read the flag for a user id.
+ *
+ * Fails OPEN by design. If the migration has not been applied, or the read is
+ * refused, the answer is "off" — the person signs in normally. Failing closed
+ * here would lock every account out of a working product over a missing table,
+ * which is a far worse outcome than an account quietly missing an extra step it
+ * never turned on.
+ */
+export async function isEmailMfaEnabled(userId: string): Promise<boolean> {
+  if (!userId) return false;
+  try {
+    const { data, error } = await supabase
+      .from('account_security')
+      .select('email_mfa_enabled')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (error) return false;
+    return Boolean((data as { email_mfa_enabled?: boolean } | null)?.email_mfa_enabled);
+  } catch {
+    return false;
+  }
+}
+
+export const emailMfaService = {
+  /** Current state for the signed-in user, and when it was last changed. */
+  status: async (): Promise<{ enabled: boolean; updatedAt: string | null }> => {
+    assertSupabaseConfigured();
+    const userId = await authUserId();
+    if (!userId) throw sessionError();
+    const { data, error } = await supabase
+      .from('account_security')
+      .select('email_mfa_enabled, updated_at')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (error) throw mapDatabaseError(error, 'security.status');
+    const row = data as { email_mfa_enabled?: boolean; updated_at?: string } | null;
+    return { enabled: Boolean(row?.email_mfa_enabled), updatedAt: row?.updated_at ?? null };
+  },
+
+  /**
+   * Turn the emailed code on or off for the signed-in user.
+   *
+   * The row is written as the caller, so RLS — not this function — is what
+   * prevents touching anyone else's. `email_mfa_set_at` records the moment the
+   * switch last moved, which is the fact an operator needs when someone reports
+   * a change they do not recognise.
+   */
+  setEnabled: async (enabled: boolean): Promise<{ enabled: boolean }> => {
+    assertSupabaseConfigured();
+    const userId = await authUserId();
+    if (!userId) throw sessionError();
+    const rows = await run<{ email_mfa_enabled: boolean }[]>('security.setEmailMfa', () =>
+      supabase
+        .from('account_security')
+        .upsert(
+          { user_id: userId, email_mfa_enabled: enabled, email_mfa_set_at: new Date().toISOString() },
+          { onConflict: 'user_id' },
+        )
+        .select('email_mfa_enabled'),
+    );
+    return { enabled: Boolean(rows?.[0]?.email_mfa_enabled) };
+  },
+
+  /** Send a fresh 6-digit code. `shouldCreateUser: false` — this is a step for an existing account. */
+  sendCode: async (email: string): Promise<{ sent: boolean }> => {
+    assertSupabaseConfigured();
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: canonicalUrl(AUTH_CALLBACK_PATH),
+      },
+    });
+    if (error) throw new AuthError(mapAuthError(error));
+    return { sent: true };
+  },
+
+  /** Verify the emailed code and establish the session. */
+  verifyCode: async (email: string, token: string): Promise<void> => {
+    assertSupabaseConfigured();
+    const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
+    if (error) {
+      logAuthEvent('email_mfa_verify_failed', { code: error.code });
+      throw new AuthError(mapAuthError(error));
+    }
+    logAuthEvent('email_mfa_verified');
+  },
+};
+
 /* ── Catalog (single source of truth for pricing, spec §71) ── */
 
 export interface CatalogResponse {
@@ -507,31 +629,94 @@ export const contactService = {
     const base = mapEnquiryPayload(input, reference);
     const plan = (input.plan as string) ?? null;
 
-    const { data, error } = await supabase.rpc('app_submit_enquiry', {
-      p_name: base.name,
-      p_email: base.email,
-      p_id: reference,
-      p_business_name: base.business_name,
-      p_whatsapp: base.whatsapp,
-      p_business_type: base.business_type,
-      p_current_tools: base.current_tools,
-      p_bottleneck: base.bottleneck,
-      p_monthly_enquiries: base.monthly_enquiries,
-      p_message: base.message,
-      p_plan: plan,
-    });
-
-    if (error) {
-      // A failed validation or throttle is raised by the function; its hint is
-      // written for the visitor, so surface it rather than a generic failure.
-      const hint = (error as { hint?: string }).hint ?? '';
-      if (error.code === 'P0001' && hint) {
-        throw new ApiError(hint, error.message?.includes('RATE_LIMITED') ? 429 : 400, 'validation');
-      }
-      throw mapDatabaseError(error, 'contact.submit');
+    // Validate inputs before submitting
+    const errors: Record<string, string> = {};
+    if (!base.name || base.name.trim().length < 2) {
+      errors.name = 'Enter your name.';
+    }
+    if (!base.business_name || base.business_name.trim().length < 2) {
+      errors.businessName = 'Enter your business name.';
+    }
+    if (!base.email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(base.email.trim())) {
+      errors.email = 'Enter a valid email address.';
+    }
+    if (!base.whatsapp || base.whatsapp.replace(/\D/g, '').length < 8) {
+      errors.phone = 'Enter a reachable phone or WhatsApp number.';
+    }
+    if (!base.business_type || base.business_type.trim().length === 0) {
+      errors.businessType = 'Select a business type.';
+    }
+    if (Object.keys(errors).length > 0) {
+      const firstMsg = Object.values(errors)[0];
+      throw new ApiError(firstMsg, 400, 'validation', errors);
     }
 
-    return { received: true, reference: typeof data === 'string' ? data : reference };
+    let rpcError: unknown = null;
+    try {
+      const { data, error } = await supabase.rpc('app_submit_enquiry', {
+        p_name: base.name,
+        p_email: base.email,
+        p_id: reference,
+        p_business_name: base.business_name,
+        p_whatsapp: base.whatsapp,
+        p_business_type: base.business_type,
+        p_current_tools: base.current_tools,
+        p_bottleneck: base.bottleneck,
+        p_monthly_enquiries: base.monthly_enquiries,
+        p_message: base.message,
+        p_plan: plan,
+      });
+
+      if (!error) {
+        return { received: true, reference: typeof data === 'string' ? data : reference };
+      }
+      rpcError = error;
+    } catch (err) {
+      rpcError = err;
+    }
+
+    if (rpcError) {
+      const errObj = rpcError as { code?: string; message?: string; hint?: string };
+      const hint = errObj?.hint ?? '';
+      if (errObj?.code === 'P0001' && hint) {
+        throw new ApiError(hint, errObj.message?.includes('RATE_LIMITED') ? 429 : 400, 'validation');
+      }
+
+      // Handle RPC missing / schema cache desync by falling back to direct table insert
+      const isRpcMissing =
+        errObj?.code === 'PGRST202' ||
+        errObj?.code === '42883' ||
+        errObj?.message?.toLowerCase().includes('schema cache') ||
+        errObj?.message?.toLowerCase().includes('could not find the function');
+
+      if (isRpcMissing) {
+        try {
+          const { error: insertError } = await supabase.from('enquiries').insert({
+            id: reference,
+            name: base.name,
+            email: base.email,
+            business_name: base.business_name,
+            whatsapp: base.whatsapp,
+            business_type: base.business_type,
+            current_tools: base.current_tools,
+            bottleneck: base.bottleneck,
+            monthly_enquiries: base.monthly_enquiries,
+            message: base.message,
+            plan: plan,
+          });
+
+          if (!insertError) {
+            return { received: true, reference };
+          }
+        } catch {
+          // Table fallback also failed — fall through to database error mapping
+        }
+      }
+
+      throw mapDatabaseError(rpcError, 'contact.submit');
+    }
+
+    return { received: true, reference };
   },
 };
 

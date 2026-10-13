@@ -21,6 +21,7 @@ export type AuthErrorCode =
   | 'AUTH_SERVER_ERROR'
   | 'AUTH_SESSION_ERROR'
   | 'AUTH_MFA_REQUIRED'
+  | 'AUTH_EMAIL_MFA_REQUIRED'
   | 'AUTH_PROFILE_MISSING'
   | 'AUTH_ROLE_ERROR'
   | 'AUTH_WEAK_PASSWORD'
@@ -62,6 +63,9 @@ const KNOWN_CODES = new Set([
   'user_banned',
   'refresh_token_not_found',
   'session_expired',
+  /* OTP verification failures (the email second-factor step). */
+  'otp_expired',
+  'otp_disabled',
 ]);
 
 export function mapAuthError(error: unknown): MappedAuthError {
@@ -113,6 +117,17 @@ export function mapAuthError(error: unknown): MappedAuthError {
       case 'session_expired':
       case 'user_banned':
         return { code: 'AUTH_SESSION_ERROR', message: 'Your session could not be restored. Please sign in again.' };
+      /* Email second-factor step: the code, not the account, is wrong. */
+      case 'otp_expired':
+        return {
+          code: 'AUTH_VALIDATION',
+          message: 'That code has expired. Request a new one — codes are short-lived on purpose.',
+        };
+      case 'otp_disabled':
+        return {
+          code: 'AUTH_MFA_REQUIRED',
+          message: 'Email sign-in codes are not enabled for this project. Please contact NorthForge support.',
+        };
       default:
         break;
     }
@@ -150,6 +165,12 @@ export function mapAuthError(error: unknown): MappedAuthError {
     return {
       code: 'AUTH_NETWORK_ERROR',
       message: "We couldn't connect to NorthForge. Check your internet connection and try again.",
+    };
+  }
+  if (message.includes('token has expired') || message.includes('invalid token') || message.includes('otp')) {
+    return {
+      code: 'AUTH_VALIDATION',
+      message: 'That code is not right, or it has expired. Request a new one and try again.',
     };
   }
 
