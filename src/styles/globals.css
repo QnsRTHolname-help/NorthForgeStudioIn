@@ -20,6 +20,8 @@
     --nf-warning: 240 176 32;
     --nf-danger: 240 106 116;
     --nf-info: 59 130 255;
+    --nf-cyan: 14 165 233;
+    --nf-amber: 245 158 11;
 
     --nf-grid-line: rgb(255 255 255 / 0.07);
     --nf-header: rgb(9 10 13 / 0.72);
@@ -73,6 +75,8 @@
     --nf-warning: 240 176 32;
     --nf-danger: 240 106 116;
     --nf-info: 59 130 255;
+    --nf-cyan: 56 189 248;
+    --nf-amber: 251 191 36;
 
     --nf-grid-line: rgb(255 255 255 / 0.07);
     --nf-header: rgb(10 11 15 / 0.82);
@@ -129,6 +133,8 @@
     --nf-warning: 176 110 8; /* Not in master prompt but keeping for compatibility */
     --nf-danger: 203 58 74; /* Not in master prompt but keeping for compatibility */
     --nf-info: 36 88 197; /* matches the accessible blue above */
+    --nf-cyan: 2 132 199;
+    --nf-amber: 217 119 6;
 
     /* Ink, not white: a white grid on cream is invisible — the texture
        never rendered on the public site. */
@@ -367,40 +373,40 @@
      rim-lit. These utilities are the single implementation so the
      glass reads the same from Login to ResetPassword.            ── */
   .nf-glass {
-    background: rgb(255 255 255 / 0.68);
+    background: rgb(255 255 255 / 0.72);
     backdrop-filter: blur(24px) saturate(1.4);
     -webkit-backdrop-filter: blur(24px) saturate(1.4);
-    border: 1px solid rgb(255 255 255 / 0.32);
+    border: 1px solid rgb(255 255 255 / 0.55);
     box-shadow:
-      0 8px 32px rgb(31 38 135 / 0.07),
-      0 1px 2px rgb(0 0 0 / 0.06),
-      inset 0 1px 0 rgb(255 255 255 / 0.6);
+      0 8px 32px rgb(60 48 32 / 0.06),
+      0 1px 2px rgb(60 48 32 / 0.04),
+      inset 0 1px 0 rgb(255 255 255 / 0.85);
   }
   [data-theme='dark'] .nf-glass {
-    background: rgb(255 255 255 / 0.07);
+    background: rgb(20 23 30 / 0.72);
     border-color: rgb(255 255 255 / 0.1);
     box-shadow:
       0 8px 32px rgb(0 0 0 / 0.36),
       0 1px 0 rgb(255 255 255 / 0.06) inset;
   }
   .nf-glass-card {
-    background: rgb(255 255 255 / 0.72);
+    background: rgb(255 255 255 / 0.76);
     backdrop-filter: blur(28px) saturate(1.45);
     -webkit-backdrop-filter: blur(28px) saturate(1.45);
-    border: 1px solid rgb(255 255 255 / 0.38);
+    border: 1px solid rgb(255 255 255 / 0.65);
     border-radius: 24px;
     box-shadow:
-      0 20px 60px -12px rgb(31 38 135 / 0.12),
-      0 4px 16px -4px rgb(0 0 0 / 0.07),
-      inset 0 1px 0 rgb(255 255 255 / 0.75);
+      0 20px 48px -12px rgb(60 48 32 / 0.10),
+      0 4px 16px -4px rgb(60 48 32 / 0.05),
+      inset 0 1px 0 rgb(255 255 255 / 0.9);
   }
   [data-theme='dark'] .nf-glass-card {
-    background: rgb(22 24 32 / 0.62);
-    border-color: rgb(255 255 255 / 0.08);
+    background: rgb(22 24 32 / 0.65);
+    border-color: rgb(255 255 255 / 0.1);
     box-shadow:
       0 20px 60px -16px rgb(0 0 0 / 0.55),
       0 8px 24px -8px rgb(0 0 0 / 0.4),
-      inset 0 1px 0 rgb(255 255 255 / 0.07);
+      inset 0 1px 0 rgb(255 255 255 / 0.08);
   }
   .nf-auth-mesh {
     background:
@@ -444,6 +450,111 @@
     box-shadow:
       0 0 0 3px rgb(59 130 255 / 0.16),
       inset 0 1px 0 rgb(255 255 255 / 0.08);
+  }
+
+  /* ── Apple-inspired Refined Glass UI ─────────────────────────────
+     Tactile, restrained frosted glass that complements the warm
+     editorial cream theme without neon glare or poor legibility.   ── */
+  .nf-glass-pill {
+    background: rgb(255 255 255 / 0.8);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border: 1px solid rgb(255 255 255 / 0.7);
+    box-shadow:
+      0 2px 8px -2px rgb(60 48 32 / 0.06),
+      inset 0 1px 0 rgb(255 255 255 / 0.92);
+  }
+  [data-theme='dark'] .nf-glass-pill {
+    background: rgb(255 255 255 / 0.09);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-color: rgb(255 255 255 / 0.14);
+    box-shadow:
+      0 4px 16px -4px rgb(0 0 0 / 0.45),
+      inset 0 1px 0 rgb(255 255 255 / 0.09);
+  }
+
+  .nf-glass-subtle {
+    background: rgb(255 255 255 / 0.6);
+    backdrop-filter: blur(18px) saturate(1.35);
+    -webkit-backdrop-filter: blur(18px) saturate(1.35);
+    border: 1px solid rgb(255 255 255 / 0.52);
+    box-shadow:
+      0 4px 16px -6px rgb(60 48 32 / 0.05),
+      inset 0 1px 0 rgb(255 255 255 / 0.8);
+  }
+  [data-theme='dark'] .nf-glass-subtle {
+    background: rgb(20 23 30 / 0.65);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-color: rgb(255 255 255 / 0.08);
+    box-shadow:
+      0 6px 20px -8px rgb(0 0 0 / 0.4),
+      inset 0 1px 0 rgb(255 255 255 / 0.06);
+  }
+
+  .nf-glass-elevated {
+    background: rgb(255 255 255 / 0.86);
+    backdrop-filter: blur(28px) saturate(1.5);
+    -webkit-backdrop-filter: blur(28px) saturate(1.5);
+    border: 1px solid rgb(255 255 255 / 0.78);
+    box-shadow:
+      0 20px 48px -16px rgb(60 48 32 / 0.14),
+      0 2px 6px rgb(60 48 32 / 0.04),
+      inset 0 1px 0 rgb(255 255 255 / 0.98);
+  }
+  [data-theme='dark'] .nf-glass-elevated {
+    background: rgb(22 25 34 / 0.85);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border-color: rgb(255 255 255 / 0.14);
+    box-shadow:
+      0 24px 56px -16px rgb(0 0 0 / 0.65),
+      inset 0 1px 0 rgb(255 255 255 / 0.12);
+  }
+
+  .nf-glass-interactive {
+    transition:
+      transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 280ms cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 280ms cubic-bezier(0.16, 1, 0.3, 1),
+      background-color 280ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .nf-glass-interactive:hover {
+    transform: translateY(-2px);
+    border-color: rgb(var(--nf-blue) / 0.35);
+    box-shadow:
+      0 16px 36px -12px rgb(60 48 32 / 0.12),
+      0 0 0 1px rgb(var(--nf-blue) / 0.18),
+      inset 0 1px 0 rgb(255 255 255 / 0.95);
+  }
+  [data-theme='dark'] .nf-glass-interactive:hover {
+    border-color: rgb(var(--nf-blue) / 0.45);
+    box-shadow:
+      0 20px 48px -14px rgb(0 0 0 / 0.7),
+      0 0 0 1px rgb(var(--nf-blue) / 0.3),
+      inset 0 1px 0 rgb(255 255 255 / 0.12);
+  }
+
+  /* ── Apple Glowing Border & CTA Utility ─────────────────────── */
+  .nf-glass-glow {
+    position: relative;
+    box-shadow:
+      0 0 0 1px rgb(var(--nf-blue) / 0.28),
+      0 8px 24px -6px rgb(var(--nf-blue) / 0.28),
+      inset 0 1px 0 rgb(255 255 255 / 0.85);
+  }
+  .nf-glass-glow:hover {
+    box-shadow:
+      0 0 0 1px rgb(var(--nf-blue) / 0.48),
+      0 12px 32px -6px rgb(var(--nf-blue) / 0.38),
+      inset 0 1px 0 rgb(255 255 255 / 0.95);
+  }
+  [data-theme='dark'] .nf-glass-glow {
+    box-shadow:
+      0 0 0 1px rgb(var(--nf-blue) / 0.4),
+      0 8px 28px -6px rgb(var(--nf-blue) / 0.5),
+      inset 0 1px 0 rgb(255 255 255 / 0.15);
   }
 }
 

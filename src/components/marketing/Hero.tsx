@@ -20,14 +20,10 @@ const PROOF = [
 /**
  * Public hero — editorial and typography-led.
  *
- * Left: the statement, set large enough to be the design. Right: the
- * NorthForge system, drawn as a believable operating flow rather than a
- * decorative network. No stock imagery, no gradient wash — cream canvas,
- * ink type, and the NorthForge blue used only as a signal.
+ * Left: the statement, set large enough to be the design. Right: Apple-grade
+ * studio system panel with frosted glass finish and live connected operating flow.
  *
- * Motion is one controlled timeline (eyebrow → headline → copy → actions →
- * system → metrics) and collapses to a plain reveal under
- * prefers-reduced-motion.
+ * Bottom: 3 frosted glass KPI proof cards with tabular number counting.
  */
 export function Hero() {
   const root = useRef<HTMLDivElement>(null);
@@ -41,17 +37,11 @@ export function Hero() {
       const timeline = gsap.timeline({ defaults: { ease: 'power3.out' } });
 
       timeline
-        // The headline is the largest text on the page, which makes it the
-        // Largest Contentful Paint element. It used to start at opacity 0 and
-        // stay hidden until 0.7s after boot, so the paint was delayed by the
-        // animation rather than by anything being slow to load. SplitText's
-        // masked line slide already carries the reveal, so the block itself
-        // now moves on transform alone and never touches opacity.
         .fromTo('[data-hero-copy]', { y: 14 }, { y: 0, duration: 0.7 }, 0)
         .fromTo('[data-hero-eyebrow]', { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5 }, 0.1)
         .fromTo('[data-hero-actions] > *', { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.6, stagger: 0.08 }, 0.82)
         .fromTo('[data-hero-system]', { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 1.1, ease: 'expo.out' }, 0.75)
-        .fromTo('[data-hero-meta]', { opacity: 0 }, { opacity: 1, duration: 0.6 }, 1.25);
+        .fromTo('[data-hero-meta] > *', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6, stagger: 0.1 }, 1.1);
     }, node);
 
     return () => ctx.revert();
@@ -70,27 +60,23 @@ export function Hero() {
       />
 
       <div className="nf-shell relative pb-16 pt-24 sm:pt-28 lg:pb-24 lg:pt-32">
-        <div className="grid items-center gap-14 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:gap-16">
+        <div className="grid items-center gap-14 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-16">
           {/* ── Statement ─────────────────────────────────────── */}
           <div>
             <div data-hero-eyebrow className="flex items-center gap-2">
-              <span className="nf-eyebrow">WEB · AUTOMATION · AI · GROWTH</span>
-              <span className="relative flex h-1.5 w-1.5" aria-hidden>
-                <span className="absolute inline-flex h-full w-full animate-pulse-ring rounded-full bg-brand" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-brand" />
+              <span className="nf-glass-pill inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-2xs font-semibold uppercase tracking-wider text-brand shadow-2xs">
+                <span className="relative flex h-1.5 w-1.5" aria-hidden>
+                  <span className="absolute inline-flex h-full w-full animate-pulse-ring rounded-full bg-brand" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-brand" />
+                </span>
+                WEB · AUTOMATION · AI · GROWTH
               </span>
             </div>
 
-            {/* Type scaled to its COLUMN, not the viewport.
-                `text-hero` (up to 7.25rem) is sized for a full-bleed statement;
-                inside a two-column hero it forced "WE BUILD DIGITAL SYSTEMS"
-                into a ragged word-per-line stack and pushed the hero to almost
-                two screens — the CTA fell below the fold. Same words, same
-                editorial weight, fitted to the space it actually has. */}
+            {/* Type scaled to its COLUMN, not the viewport. */}
             <h1
               data-hero-copy
-              className="mt-8 text-[clamp(2.35rem,4.7vw,4.35rem)] font-semibold leading-[0.98] tracking-[-0.035em] text-fg"
-              style={{ maxWidth: '20ch' }}
+              className="mt-8 max-w-2xl text-[clamp(2.15rem,4.4vw,4.25rem)] font-semibold leading-[1.04] sm:leading-[1.0] tracking-[-0.035em] text-fg [text-wrap:balance]"
             >
               <SplitText
                 text={'WE BUILD DIGITAL SYSTEMS\nTHAT MOVE YOUR BUSINESS FORWARD.'}
@@ -107,33 +93,46 @@ export function Hero() {
               business grow.
             </p>
 
+            {/* Action CTA Row with magnetic hover physics and refined Apple glass styling */}
             <div data-hero-actions className="mt-9 flex flex-wrap items-center gap-3">
               <Magnetic>
                 <LinkButton
                   to="/contact"
                   size="lg"
                   arrow
+                  className="nf-glass-glow shadow-md transition-all duration-200"
                   onClick={() => trackEvent('get_started_click', { location: 'hero' })}
                 >
                   Start a project
                 </LinkButton>
               </Magnetic>
+
               <Magnetic>
-                <LinkButton to="/how-it-works" variant="secondary" size="lg" iconLeft={<ArrowRight className="h-4 w-4 rotate-90" />}>
+                <LinkButton
+                  to="/how-it-works"
+                  variant="secondary"
+                  size="lg"
+                  className="border-white/60 bg-white/70 shadow-xs backdrop-blur-md hover:border-brand/40 hover:bg-white hover:text-fg transition-all duration-200"
+                  iconLeft={<ArrowRight className="h-4 w-4 rotate-90" />}
+                >
                   See how it works
                 </LinkButton>
               </Magnetic>
-              <Button
-                variant="ghost"
-                size="lg"
-                iconLeft={<MessageCircle className="h-4 w-4" />}
-                onClick={() => {
-                  trackEvent('whatsapp_click', { context: 'general', location: 'hero' });
-                  window.open(whatsappLink('Hi NorthForge — I would like to know more.'), '_blank', 'noopener');
-                }}
-              >
-                Talk on WhatsApp
-              </Button>
+
+              <Magnetic>
+                <Button
+                  variant="ghost"
+                  size="lg"
+                  iconLeft={<MessageCircle className="h-4 w-4 text-success" />}
+                  className="border border-white/60 bg-white/50 text-fg shadow-2xs backdrop-blur-md hover:border-brand/30 hover:bg-white hover:text-fg transition-all duration-200"
+                  onClick={() => {
+                    trackEvent('whatsapp_click', { context: 'general', location: 'hero' });
+                    window.open(whatsappLink('Hi NorthForge — I would like to know more.'), '_blank', 'noopener');
+                  }}
+                >
+                  Talk on WhatsApp
+                </Button>
+              </Magnetic>
             </div>
           </div>
 
@@ -144,8 +143,18 @@ export function Hero() {
               <Hero3D className="w-full h-full" />
             </div>
 
-            <div className="relative overflow-hidden rounded-lg border border-line bg-surface/70 p-5 shadow-lift backdrop-blur-md sm:p-7">
-              <div className="mb-5 flex items-center justify-between">
+            {/* Apple-grade frosted glass console with connected operating flow */}
+            <div
+              className="nf-glass-card relative overflow-hidden rounded-2xl border border-white/65 bg-white/80 p-6 shadow-panel backdrop-blur-2xl transition-all duration-300 sm:p-7"
+              style={{
+                boxShadow:
+                  '0 28px 72px -16px rgb(60 48 32 / 0.14), 0 4px 16px -4px rgb(60 48 32 / 0.05), inset 0 1px 0 rgb(255 255 255 / 0.95)',
+              }}
+            >
+              {/* Subtle top rim highlight */}
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent" aria-hidden />
+
+              <div className="mb-5 flex items-center justify-between border-b border-line/60 pb-3">
                 <span className="nf-eyebrow">Enquiry → customer, automated</span>
                 <span className="flex items-center gap-1.5 font-mono text-2xs uppercase tracking-wider text-success">
                   <span className="relative flex h-1.5 w-1.5">
@@ -163,32 +172,43 @@ export function Hero() {
                 <GrowthChain />
               </div>
 
-              <p className="mt-5 border-t border-line pt-4 text-[13px] leading-relaxed text-muted">
+              <p className="mt-5 border-t border-line/60 pt-4 text-[13px] leading-relaxed text-muted">
                 Every step is connected. Nothing depends on someone remembering to check a spreadsheet.
               </p>
             </div>
           </div>
         </div>
 
+        {/* ── Executive Frosted Glass KPI Proof Cards ─────────── */}
         <dl
           data-hero-meta
-          className="mt-14 grid max-w-2xl grid-cols-3 gap-6 border-t border-line pt-8 sm:gap-10"
+          className="mt-14 grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6"
         >
           {PROOF.map((item) => (
-            <div key={item.label} className="sm:border-l sm:border-line sm:pl-6 sm:first:border-l-0 sm:first:pl-0">
-              <dd className="nf-num text-2xl font-semibold tracking-tight text-fg sm:text-3xl">
+            <div
+              key={item.label}
+              className="nf-glass-card nf-glass-interactive group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/60 bg-white/70 p-5 shadow-2xs backdrop-blur-md transition-all duration-300 sm:p-6"
+              style={{
+                boxShadow:
+                  '0 12px 32px -8px rgb(60 48 32 / 0.08), inset 0 1px 0 rgb(255 255 255 / 0.95)',
+              }}
+            >
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent" aria-hidden />
+              <dd className="nf-num text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
                 <CountUp value={item.value} format={(value) => `${Math.round(value)}${item.suffix}`} />
               </dd>
-              <dt className="mt-2 text-2xs uppercase tracking-eyebrow text-faint">{item.label}</dt>
+              <dt className="mt-3 border-t border-line/50 pt-2.5 text-2xs uppercase tracking-eyebrow text-faint">
+                {item.label}
+              </dt>
             </div>
           ))}
         </dl>
 
-        {/* Scroll cue: the same prompt, given a real tap target (was a 20px
-            tall text link) and a downward motion hint. */}
+        {/* Scroll cue: tactile frosted glass pill */}
         <Link
           to="/#services"
-          className="nf-focus mt-12 inline-flex min-h-11 items-center gap-2 rounded-full border border-line bg-surface/60 px-4 text-[13px] text-muted transition-colors hover:border-line-strong hover:text-fg"
+          className="nf-focus nf-glass-pill mt-12 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/60 bg-white/70 px-4 text-[13px] text-muted shadow-2xs backdrop-blur-md transition-all hover:border-brand/40 hover:bg-white hover:text-fg"
+          style={{ boxShadow: '0 2px 8px -2px rgb(60 48 32 / 0.06), inset 0 1px 0 rgb(255 255 255 / 0.85)' }}
         >
           See what we build
           <ArrowRight className="h-3.5 w-3.5 rotate-90 text-brand" aria-hidden />

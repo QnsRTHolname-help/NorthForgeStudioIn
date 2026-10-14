@@ -191,13 +191,13 @@ export function AutomationShowcase() {
                   >
                     <span data-step-dot className="h-1.5 w-1.5 rounded-full bg-brand" />
                   </span>
-                  <div className="flex items-center gap-4 rounded border border-line bg-surface px-4 py-3 transition-colors duration-300 hover:border-line-strong">
+                  <div className="flex items-center gap-4 rounded-xl border border-white/60 bg-white/75 px-4 py-3.5 shadow-2xs backdrop-blur-md transition-all duration-200 hover:border-brand/40 hover:bg-white hover:shadow-xs">
                     <span className="nf-num shrink-0 font-mono text-2xs text-faint">
                       {String(index + 1).padStart(2, '0')}
                     </span>
                     <span className="text-[13px] font-medium text-fg">{step}</span>
                     {index === 2 || index === 3 ? (
-                      <span className="ml-auto shrink-0 rounded border border-brand-violet/30 bg-brand-violet/10 px-1.5 py-0.5 text-2xs uppercase tracking-wide text-brand-violet">
+                      <span className="ml-auto shrink-0 rounded-full border border-brand-violet/30 bg-brand-violet/10 px-2 py-0.5 text-3xs font-semibold uppercase tracking-wider text-brand-violet">
                         AI
                       </span>
                     ) : null}
@@ -236,8 +236,17 @@ export function SystemMonitor({ className }: { className?: string }) {
   }, [reduced]);
 
   return (
-    <div className={cn('overflow-hidden rounded-lg border border-line bg-surface', className)}>
-      <header className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5">
+    <div
+      className={cn(
+        'overflow-hidden rounded-2xl border border-white/60 bg-white/80 shadow-panel backdrop-blur-xl',
+        className,
+      )}
+      style={{
+        boxShadow:
+          '0 24px 60px -16px rgb(60 48 32 / 0.12), 0 4px 16px -4px rgb(60 48 32 / 0.04), inset 0 1px 0 rgb(255 255 255 / 0.95)',
+      }}
+    >
+      <header className="flex items-center justify-between gap-3 border-b border-line/60 bg-white/40 px-5 py-3.5 backdrop-blur-md">
         <div className="flex items-center gap-2.5">
           <StatusIndicator status="active" tone="success" pulse />
           <span className="text-[13px] font-semibold text-fg">NorthForge System</span>
@@ -245,7 +254,7 @@ export function SystemMonitor({ className }: { className?: string }) {
         <span className="font-mono text-2xs uppercase tracking-wider text-success">Active</span>
       </header>
 
-      <dl className="grid grid-cols-3 divide-x divide-line border-b border-line">
+      <dl className="grid grid-cols-3 divide-x divide-line/60 border-b border-line/60">
         {MONITOR_METRICS.slice(0, 3).map((metric) => (
           <div key={metric.label} className="px-4 py-3.5">
             <dt className="text-2xs uppercase tracking-wider text-faint">{metric.label}</dt>
@@ -254,7 +263,7 @@ export function SystemMonitor({ className }: { className?: string }) {
         ))}
       </dl>
 
-      <div className="border-b border-line px-5 py-4">
+      <div className="border-b border-line/60 px-5 py-4">
         <p className="nf-eyebrow mb-3">Live activity</p>
         <ul className="space-y-2" aria-live="polite">
           {events.map((event, index) => (
@@ -270,7 +279,7 @@ export function SystemMonitor({ className }: { className?: string }) {
         </ul>
       </div>
 
-      <dl className="grid grid-cols-3 divide-x divide-line">
+      <dl className="grid grid-cols-3 divide-x divide-line/60">
         {MONITOR_METRICS.slice(3).map((metric) => (
           <div key={metric.label} className="px-4 py-3.5">
             <dt className="text-2xs uppercase tracking-wider text-faint">{metric.label}</dt>
@@ -279,7 +288,7 @@ export function SystemMonitor({ className }: { className?: string }) {
         ))}
       </dl>
 
-      <footer className="flex items-center justify-between gap-3 bg-sunken/40 px-5 py-3">
+      <footer className="flex items-center justify-between gap-3 border-t border-line/50 bg-sunken/40 px-5 py-3">
         <DemoBadge />
         <span className="text-2xs text-faint">Illustrative sample · not client data</span>
       </footer>

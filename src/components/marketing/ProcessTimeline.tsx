@@ -112,43 +112,51 @@ export function ProcessTimeline() {
           ref={trackRef}
           className="nf-scroll-x flex gap-5 px-5 pb-6 sm:px-8 lg:h-screen lg:items-center lg:gap-7 lg:px-12 lg:pb-0 lg:overflow-visible"
         >
-          {PROCESS_STEPS.map((step, index) => (
-            <article
-              key={step.number}
-              data-step
-              className={cn(
-                'group relative flex min-h-[300px] w-[300px] shrink-0 flex-col justify-between rounded-lg border border-line bg-surface p-6',
-                'sm:w-[340px] lg:h-[62vh] lg:max-h-[460px] lg:w-[380px] lg:p-8',
-              )}
-            >
-              <div>
-                <div className="flex items-baseline justify-between">
-                  <span className="nf-num text-[13px] font-medium text-brand">{step.number}</span>
-                  <span className="font-mono text-2xs uppercase tracking-eyebrow text-faint">
-                    {index === PROCESS_STEPS.length - 1 ? 'Ongoing' : `Stage ${index + 1}`}
-                  </span>
+          {PROCESS_STEPS.map((step, index) => {
+            const isLast = index === PROCESS_STEPS.length - 1;
+
+            return (
+              <article
+                key={step.number}
+                data-step
+                className={cn(
+                  'nf-glass-card nf-glass-interactive group relative flex min-h-[300px] w-[300px] shrink-0 flex-col justify-between rounded-2xl border border-white/60 bg-white/70 p-6 shadow-2xs backdrop-blur-md transition-all duration-300 hover:shadow-md',
+                  'sm:w-[340px] lg:h-[62vh] lg:max-h-[460px] lg:w-[380px] lg:p-8',
+                )}
+                style={{
+                  boxShadow: '0 12px 32px -8px rgb(60 48 32 / 0.08), inset 0 1px 0 rgb(255 255 255 / 0.95)',
+                }}
+              >
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="nf-num font-mono text-sm font-semibold text-brand">{step.number}</span>
+                    <span className="nf-glass-pill inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-2xs font-semibold uppercase tracking-wider text-muted shadow-2xs">
+                      <span className={cn('h-1.5 w-1.5 rounded-full', isLast ? 'bg-success animate-pulse' : 'bg-brand')} aria-hidden />
+                      {isLast ? 'Ongoing' : `Stage ${index + 1}`}
+                    </span>
+                  </div>
+                  <h3 className="mt-6 text-[clamp(1.4rem,2vw,1.75rem)] font-semibold tracking-[-0.02em] text-fg transition-colors duration-300 group-hover:text-brand">
+                    {step.title}
+                  </h3>
+                  <p className="mt-3 text-[13px] leading-relaxed text-muted">{step.body}</p>
                 </div>
-                <h3 className="mt-6 text-[clamp(1.4rem,2vw,1.75rem)] font-semibold tracking-[-0.02em] text-fg">
-                  {step.title}
-                </h3>
-                <p className="mt-3 text-[13px] leading-relaxed text-muted">{step.body}</p>
-              </div>
 
-              <ul className="mt-8 space-y-1.5 border-t border-line pt-5">
-                {step.detail.map((detail) => (
-                  <li key={detail} className="flex items-center gap-2 text-xs text-faint">
-                    <span className="h-1 w-1 shrink-0 rounded-full bg-brand/60" aria-hidden />
-                    {detail}
-                  </li>
-                ))}
-              </ul>
+                <ul className="mt-8 space-y-2 border-t border-line/60 pt-5">
+                  {step.detail.map((detail) => (
+                    <li key={detail} className="flex items-center gap-2 text-xs text-muted">
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand/70" aria-hidden />
+                      <span className="font-medium text-fg/90">{detail}</span>
+                    </li>
+                  ))}
+                </ul>
 
-              <span
-                className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-brand/40 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-                aria-hidden
-              />
-            </article>
-          ))}
+                <span
+                  className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-brand/40 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                  aria-hidden
+                />
+              </article>
+            );
+          })}
         </div>
       </div>
     </section>

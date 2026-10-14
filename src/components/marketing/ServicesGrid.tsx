@@ -34,7 +34,7 @@ export function ServicesGrid({ compact = false }: { compact?: boolean }) {
             <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
               <div className="lg:sticky lg:top-24 lg:self-start">
                 <div className="flex items-center gap-3">
-                  <span className="flex h-9 w-9 items-center justify-center rounded border border-line bg-surface">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/60 bg-white/70 shadow-2xs backdrop-blur-md">
                     <svg viewBox="0 0 24 24" className="h-4 w-4 text-brand" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
                       <path d={GROUP_ICONS[group.key] ?? GROUP_ICONS.web} strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
@@ -48,10 +48,10 @@ export function ServicesGrid({ compact = false }: { compact?: boolean }) {
                 {services.map((service) => (
                   <StaggerItem key={service.id}>
                     <SpotlightCard className="h-full">
-                      <div className="p-5">
+                      <div className="nf-glass-card nf-glass-interactive h-full rounded-xl p-5 border border-white/60 shadow-2xs transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
                         <div className="flex items-start justify-between gap-3">
-                          <h4 className="text-[14px] font-medium text-fg">{service.name}</h4>
-                          <span className="shrink-0 rounded border border-line px-1.5 py-0.5 text-2xs uppercase tracking-wide text-faint">
+                          <h4 className="text-[14px] font-semibold tracking-tight text-fg">{service.name}</h4>
+                          <span className="nf-glass-pill shrink-0 rounded-full px-2 py-0.5 text-3xs font-semibold uppercase tracking-wider text-muted shadow-2xs">
                             {service.unit === 'quoted' ? 'Quoted' : service.unit === 'included' ? 'Included' : 'Monthly'}
                           </span>
                         </div>
@@ -95,9 +95,9 @@ function GroupIcon({ groupKey }: { groupKey: GroupKey }) {
 function ServiceLines({ groupKey }: { groupKey: GroupKey }) {
   const services = SERVICES.filter((service) => service.group === groupKey && service.active);
   return (
-    <ul className="mt-5 space-y-1.5">
+    <ul className="mt-5 flex flex-wrap gap-2">
       {services.slice(0, 6).map((service) => (
-        <li key={service.id} className="flex items-center gap-2.5 text-[13px] text-muted">
+        <li key={service.id} className="nf-glass-pill inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-2xs font-medium text-muted shadow-2xs">
           <span className="h-1 w-1 shrink-0 rounded-full bg-brand/70" aria-hidden />
           {service.name}
         </li>
@@ -224,13 +224,14 @@ export function ServiceRows() {
               <p className="max-w-md text-[14px] leading-relaxed text-muted sm:pt-2">{group.blurb}</p>
 
               {/* Detail: revealed on hover/focus, always shown without hover. */}
-              <ul className="flex flex-wrap gap-2 sm:pt-2">
+              <ul className="flex flex-wrap gap-2.5 sm:pt-2">
                 {services.map((service) => (
                   <li key={service.id}>
                     <span
                       title={service.description}
-                      className="inline-flex items-center rounded-full border border-line bg-surface/60 px-3 py-1.5 text-[13px] text-muted transition-all duration-500 ease-forge group-hover:border-line-strong group-hover:text-fg"
+                      className="nf-glass-pill inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium text-muted transition-all duration-300 ease-forge hover:border-white/90 hover:text-fg hover:shadow-2xs group-hover:text-fg shadow-2xs"
                     >
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand/70" aria-hidden />
                       {service.name}
                     </span>
                   </li>

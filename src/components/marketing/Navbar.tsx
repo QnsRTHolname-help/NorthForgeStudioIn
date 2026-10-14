@@ -119,13 +119,18 @@ export function Navbar() {
         <div className="nf-shell">
           <div
             className={cn(
-              'flex items-center justify-between gap-4 rounded-full border px-3 py-2 transition-[background-color,border-color,box-shadow,padding] duration-500 ease-forge sm:px-4',
+              'flex items-center justify-between gap-4 rounded-full border px-3 py-2 transition-all duration-500 ease-forge sm:px-4',
               scrolled
-                ? 'border-line bg-[rgb(var(--nf-canvas)/0.78)] shadow-lift backdrop-blur-xl supports-[backdrop-filter]:bg-[rgb(var(--nf-canvas)/0.62)]'
-                : 'border-transparent bg-transparent',
+                ? 'border-white/60 bg-[rgb(255_255_255/0.82)] shadow-lift backdrop-blur-2xl'
+                : 'border-white/45 bg-[rgb(255_255_255/0.58)] shadow-soft backdrop-blur-xl',
             )}
+            style={{
+              boxShadow: scrolled
+                ? '0 18px 44px -20px rgb(60 48 32 / 0.14), inset 0 1px 0 rgb(255 255 255 / 0.9)'
+                : '0 4px 16px -4px rgb(60 48 32 / 0.06), inset 0 1px 0 rgb(255 255 255 / 0.75)',
+            }}
           >
-            <Link to="/" className="nf-focus shrink-0 rounded-full pl-1" aria-label="NorthForge home">
+            <Link to="/" className="nf-focus shrink-0 rounded-full pl-1 transition-transform duration-200 hover:scale-[1.02]" aria-label="NorthForge home">
               <Logo />
             </Link>
 
@@ -135,7 +140,7 @@ export function Navbar() {
                 <span
                   ref={indicatorRef}
                   aria-hidden
-                  className="absolute left-0 top-0 h-full rounded-full bg-elevated opacity-0"
+                  className="absolute left-0 top-0 h-full rounded-full nf-glass-pill opacity-0"
                   style={{ width: 0, transform: 'translateX(0)' }}
                 />
                 {PUBLIC_NAV.map((item) => {
@@ -147,19 +152,13 @@ export function Navbar() {
                       data-nav-id={item.id}
                       aria-current={isActive ? 'location' : undefined}
                       onClick={(event) => {
-                        // On the homepage these are in-page jumps. Keep the
-                        // href a real URL and only take over the scroll when
-                        // the section actually exists — a <Link> nested in a
-                        // <button> shrank the hit area, behaved differently in
-                        // Firefox/Safari, and left the nav uncrawlable because
-                        // the homepage rendered buttons with no href.
                         if (location.pathname !== '/') return;
                         if (!document.getElementById(item.id)) return;
                         event.preventDefault();
                         goToSection(item.id);
                       }}
                       className={cn(
-                        'relative rounded-full px-3.5 py-1.5 text-[13px] transition-colors duration-300',
+                        'relative rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors duration-200',
                         isActive ? 'text-fg' : 'text-muted hover:text-fg',
                       )}
                     >
@@ -170,21 +169,27 @@ export function Navbar() {
               </div>
             </nav>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <a
                 href={whatsappLink('Hi NorthForge — I would like to know more.')}
                 target="_blank"
                 rel="noreferrer noopener"
                 onClick={() => trackEvent('whatsapp_click', { context: 'general', location: 'navbar' })}
-                className="nf-focus hidden h-9 items-center gap-2 rounded-full px-3 text-[13px] text-muted transition-colors hover:bg-elevated hover:text-fg sm:inline-flex"
+                className="nf-focus hidden h-9 items-center gap-2 rounded-full border border-white/50 bg-white/40 px-3 text-[13px] font-medium text-muted transition-all duration-200 hover:border-brand/40 hover:bg-white/80 hover:text-fg shadow-xs sm:inline-flex"
+                style={{ boxShadow: 'inset 0 1px 0 rgb(255 255 255 / 0.75)' }}
               >
-                <MessageCircle className="h-4 w-4" aria-hidden />
+                <span className="relative flex h-2 w-2" aria-hidden>
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
+                </span>
+                <MessageCircle className="h-4 w-4 text-success" aria-hidden />
                 WhatsApp
               </a>
 
               <Link
                 to="/login"
-                className="nf-focus hidden h-9 items-center rounded-full border border-line bg-surface/60 px-3.5 text-[13px] font-medium text-fg transition-colors hover:border-line-strong hover:bg-elevated sm:inline-flex"
+                className="nf-focus hidden h-9 items-center rounded-full border border-white/60 bg-white/60 px-3.5 text-[13px] font-medium text-fg shadow-xs transition-all duration-200 hover:border-brand/30 hover:bg-white/95 hover:shadow-soft sm:inline-flex"
+                style={{ boxShadow: 'inset 0 1px 0 rgb(255 255 255 / 0.85)' }}
               >
                 Client login
               </Link>
@@ -192,7 +197,7 @@ export function Navbar() {
               <LinkButton
                 to="/contact"
                 size="sm"
-                className="hidden sm:inline-flex"
+                className="hidden nf-glass-glow shadow-sm hover:shadow-glow transition-all duration-200 sm:inline-flex"
                 onClick={() => trackEvent('get_started_click', { location: 'navbar' })}
               >
                 Get started
@@ -229,7 +234,10 @@ export function Navbar() {
             role="dialog"
             aria-modal="true"
             aria-label="Navigation"
-            className="absolute inset-x-3 top-[4.75rem] overflow-hidden rounded-2xl border border-line bg-surface p-5 shadow-panel"
+            className="absolute inset-x-3 top-[4.75rem] overflow-hidden rounded-3xl border border-white/60 bg-[rgb(255_255_255/0.94)] p-6 shadow-panel backdrop-blur-2xl"
+            style={{
+              boxShadow: '0 24px 64px -16px rgb(60 48 32 / 0.18), inset 0 1px 0 rgb(255 255 255 / 0.95)',
+            }}
           >
             <StaggerMenu open={menuOpen}>
               <nav aria-label="Mobile" className="flex flex-col">
@@ -244,7 +252,7 @@ export function Navbar() {
                         event.preventDefault();
                         goToSection(item.id);
                       }}
-                      className="flex w-full items-center justify-between border-b border-line py-3.5 text-left text-[15px] text-fg"
+                      className="flex w-full items-center justify-between border-b border-line/70 py-3.5 text-left text-[15px] font-medium text-fg transition-colors hover:text-brand"
                     >
                       {item.label}
                       <ArrowUpRight className="h-4 w-4 text-faint" aria-hidden />
@@ -253,7 +261,7 @@ export function Navbar() {
                 ))}
               </nav>
 
-              <StaggerItem className="mt-5">
+              <StaggerItem className="mt-6">
                 <LinkButton
                   to="/contact"
                   fullWidth
@@ -264,15 +272,15 @@ export function Navbar() {
                 </LinkButton>
               </StaggerItem>
 
-              <StaggerItem className="mt-2.5">
+              <StaggerItem className="mt-3">
                 <a
                   href={whatsappLink('Hi NorthForge — I would like to know more.')}
                   target="_blank"
                   rel="noreferrer noopener"
                   onClick={() => trackEvent('whatsapp_click', { context: 'general', location: 'mobile_menu' })}
-                  className="nf-focus flex h-11 w-full items-center justify-center gap-2 rounded-md border border-line text-[13px] font-medium text-fg transition-colors hover:bg-elevated"
+                  className="nf-focus flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-line/70 bg-surface/60 text-[13px] font-medium text-fg shadow-xs transition-colors hover:bg-surface"
                 >
-                  <MessageCircle className="h-4 w-4" aria-hidden />
+                  <MessageCircle className="h-4 w-4 text-success" aria-hidden />
                   Talk on WhatsApp
                 </a>
               </StaggerItem>
@@ -280,7 +288,7 @@ export function Navbar() {
               <StaggerItem className="mt-2.5">
                 <Link
                   to="/login"
-                  className="nf-focus flex h-11 w-full items-center justify-center rounded-md border border-line text-[13px] font-medium text-fg transition-colors hover:bg-elevated"
+                  className="nf-focus flex h-11 w-full items-center justify-center rounded-xl border border-line/70 bg-surface/60 text-[13px] font-medium text-fg shadow-xs transition-colors hover:bg-surface"
                 >
                   Client login
                 </Link>

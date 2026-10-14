@@ -43,15 +43,15 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
 
       {/* Psychological scarcity & velocity banners */}
       <div className={cn('flex flex-wrap items-center justify-center gap-3', showHeading ? 'mt-10' : 'mt-4')}>
-        <div className="inline-flex items-center gap-2 rounded-full border border-warning/30 bg-warning/[0.08] px-3.5 py-1 text-xs font-medium text-fg">
+        <div className="nf-glass-pill inline-flex items-center gap-2 rounded-full border border-warning/30 bg-warning/[0.08] px-3.5 py-1 text-xs font-medium text-fg shadow-2xs">
           <Flame className="h-3.5 w-3.5 text-warning shrink-0" aria-hidden />
           <span>Only {PSYCHOLOGICAL_PRICING.monthlyCohortSpotsRemaining} onboarding spots left this month</span>
         </div>
-        <div className="inline-flex items-center gap-2 rounded-full border border-brand/30 bg-brand/[0.08] px-3.5 py-1 text-xs font-medium text-fg">
+        <div className="nf-glass-pill inline-flex items-center gap-2 rounded-full border border-brand/30 bg-brand/[0.08] px-3.5 py-1 text-xs font-medium text-fg shadow-2xs">
           <Gift className="h-3.5 w-3.5 text-brand shrink-0" aria-hidden />
           <span>Founder Beta Pass: Save ₹5,000 on Setup with code <strong className="font-semibold text-brand">{PSYCHOLOGICAL_PRICING.founderPromoCode}</strong></span>
         </div>
-        <div className="inline-flex items-center gap-2 rounded-full border border-success/30 bg-success/[0.08] px-3.5 py-1 text-xs font-medium text-fg">
+        <div className="nf-glass-pill inline-flex items-center gap-2 rounded-full border border-success/30 bg-success/[0.08] px-3.5 py-1 text-xs font-medium text-fg shadow-2xs">
           <Zap className="h-3.5 w-3.5 text-success shrink-0" aria-hidden />
           <span>{PSYCHOLOGICAL_PRICING.rapidDeploymentHours}-Hour Rapid Workflow Deployment</span>
         </div>
@@ -59,7 +59,7 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
 
       {/* Billing cycle toggle with retention hook */}
       <div className="mt-8 flex flex-col items-center justify-center gap-2">
-        <div className="inline-flex rounded-xl border border-line bg-surface/80 p-1 shadow-sm backdrop-blur-md">
+        <div className="nf-glass-card inline-flex rounded-xl border border-white/60 p-1 shadow-2xs backdrop-blur-md">
           <button
             type="button"
             onClick={() => setBillingCycle('monthly')}
@@ -95,7 +95,7 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
         ) : null}
       </div>
 
-      <div className="mt-8 grid gap-4 lg:grid-cols-4">
+      <div className="mt-8 grid gap-5 lg:grid-cols-4">
         {PLANS.map((plan) => {
           const recommended = plan.recommended;
           const custom = plan.amount === null;
@@ -106,19 +106,24 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
               <TiltCard max={recommended ? 5 : 3} className="h-full">
                 <div
                   className={cn(
-                    'group relative flex h-full flex-col rounded-lg border bg-surface p-6 transition-[border-color,box-shadow,transform] duration-500 ease-forge hover:-translate-y-1',
+                    'nf-glass-card nf-glass-interactive group relative flex h-full flex-col rounded-2xl p-6 transition-all duration-500 ease-forge hover:-translate-y-1 shadow-2xs',
                     recommended
-                      ? 'border-brand/50 shadow-[0_28px_70px_-36px_rgb(var(--nf-blue)/0.6)] lg:-translate-y-2 lg:hover:-translate-y-3'
-                      : 'border-line hover:border-line-strong',
+                      ? 'nf-glass-elevated border-brand/60 ring-1 ring-brand/30 shadow-[0_28px_70px_-32px_rgb(var(--nf-blue)/0.55)] lg:-translate-y-2 lg:hover:-translate-y-3'
+                      : 'border-white/60 hover:border-white/90',
                   )}
                 >
+                  {/* Featured illumination glow for Convert plan */}
                   {recommended ? (
-                    <span className="absolute -top-2.5 left-6 rounded-full border border-brand/40 bg-brand px-2 py-0.5 text-2xs font-medium uppercase tracking-wider text-white">
+                    <div className="pointer-events-none absolute -top-12 -right-12 h-36 w-36 rounded-full bg-brand/15 blur-2xl" aria-hidden />
+                  ) : null}
+
+                  {recommended ? (
+                    <span className="nf-glass-pill absolute -top-3 left-6 inline-flex items-center gap-1 rounded-full bg-brand px-3 py-0.5 text-2xs font-semibold uppercase tracking-wider text-white shadow-sm ring-2 ring-white/80">
                       Most chosen
                     </span>
                   ) : null}
 
-                  <h3 className="text-[13px] font-semibold uppercase tracking-[0.12em] text-fg">{plan.name}</h3>
+                  <h3 className="text-[13px] font-bold uppercase tracking-[0.12em] text-fg">{plan.name}</h3>
                   <p className="mt-2 text-[13px] font-medium text-brand">{plan.outcome}</p>
 
                   <div className="mt-6">
@@ -141,10 +146,10 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
                       </p>
                     ) : null}
 
-                    <div className="mt-2 flex items-center justify-between text-[13px] text-muted">
+                    <div className="mt-2.5 flex items-center justify-between text-[13px] text-muted">
                       <span className="nf-num">{planSetupLabel(plan)}</span>
                       {!custom ? (
-                        <span className="text-2xs font-semibold text-brand">
+                        <span className="rounded bg-brand/10 px-1.5 py-0.5 text-2xs font-semibold text-brand">
                           -₹5,000 w/ code
                         </span>
                       ) : null}
@@ -167,6 +172,7 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
                       to={`/contact?plan=${plan.slug}`}
                       fullWidth
                       variant={recommended ? 'primary' : 'secondary'}
+                      className={recommended ? 'nf-glass-glow shadow-md' : ''}
                     >
                       {custom ? 'Request a quote' : `Choose ${plan.name.toLowerCase()}`}
                     </LinkButton>
@@ -276,27 +282,29 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
 
       {/* Psychological retention incentives */}
       {showDetail ? (
-        <div className="mt-8 rounded-xl border border-brand/20 bg-brand/[0.04] p-6 backdrop-blur-md">
+        <div className="nf-glass-card mt-8 rounded-2xl border border-brand/20 bg-brand/[0.04] p-6 backdrop-blur-md shadow-2xs">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <span className="text-2xs font-semibold uppercase tracking-wider text-brand">Retention & Growth Incentives</span>
-              <h4 className="mt-1 text-base font-semibold text-fg">Long-term alignment without lock-in contracts</h4>
+              <span className="nf-glass-pill inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-3xs font-semibold uppercase tracking-wider text-brand shadow-2xs">
+                Retention & Growth Incentives
+              </span>
+              <h4 className="mt-2 text-base font-semibold text-fg">Long-term alignment without lock-in contracts</h4>
               <p className="mt-1 text-xs text-muted">
                 Choose quarterly or annual commitments for compounding savings and dedicated engineering support.
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 shrink-0">
-              <div className="rounded-lg border border-line bg-surface/80 p-3 text-center">
+              <div className="nf-glass-card rounded-xl border border-white/60 p-3 text-center shadow-2xs">
                 <span className="text-2xs font-bold text-success uppercase">Quarterly Upfront</span>
                 <p className="text-xs font-semibold text-fg mt-0.5">15% Savings</p>
                 <span className="text-3xs text-muted">+1 free employee seat</span>
               </div>
-              <div className="rounded-lg border border-line bg-surface/80 p-3 text-center">
+              <div className="nf-glass-card rounded-xl border border-white/60 p-3 text-center shadow-2xs">
                 <span className="text-2xs font-bold text-brand uppercase">Annual Commit</span>
                 <p className="text-xs font-semibold text-fg mt-0.5">2 Months Free</p>
                 <span className="text-3xs text-muted">Priority WhatsApp builder</span>
               </div>
-              <div className="rounded-lg border border-line bg-surface/80 p-3 text-center">
+              <div className="nf-glass-card rounded-xl border border-white/60 p-3 text-center shadow-2xs">
                 <span className="text-2xs font-bold text-fg uppercase">Risk-Free Handover</span>
                 <p className="text-xs font-semibold text-fg mt-0.5">Full Data Export</p>
                 <span className="text-3xs text-muted">Source code handover anytime</span>

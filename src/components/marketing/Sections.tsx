@@ -183,32 +183,53 @@ export function FinalCta({
         </Marquee>
       </div>
 
-      <div className="nf-shell relative text-center">
-        <Reveal>
-          <span className="nf-eyebrow">{eyebrow}</span>
-          <h2 className="mx-auto mt-6 max-w-3xl text-display-sm font-semibold text-fg">
-            <SplitText text={title} stagger={0.045} />
-          </h2>
-          <p className="mx-auto mt-6 max-w-xl text-[15px] leading-relaxed text-muted">{description}</p>
+      <div className="nf-shell relative">
+        <div className="nf-glass-card nf-glass-elevated relative mx-auto max-w-4xl overflow-hidden rounded-3xl border border-white/70 p-8 sm:p-12 lg:p-16 text-center shadow-lg backdrop-blur-2xl">
+          {/* Subtle illumination halo */}
+          <div
+            className="pointer-events-none absolute left-1/2 -top-24 h-72 w-[500px] -translate-x-1/2 rounded-full opacity-25 blur-[90px]"
+            style={{ background: 'radial-gradient(ellipse, rgb(var(--nf-blue)), transparent 70%)' }}
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute right-4 -bottom-16 h-48 w-48 rounded-full opacity-15 blur-[60px]"
+            style={{ background: 'radial-gradient(ellipse, #F59E0B, transparent 70%)' }}
+            aria-hidden
+          />
 
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-            <Magnetic>
-              <LinkButton to="/contact" size="lg" arrow>
-                Get a free automation review
-              </LinkButton>
-            </Magnetic>
-            <Button
-              variant="secondary"
-              size="lg"
-              iconLeft={<MessageCircle className="h-4 w-4" />}
-              onClick={() => window.open(whatsappLink('Hi NorthForge — I would like to know more.'), '_blank', 'noopener')}
-            >
-              Talk on WhatsApp
-            </Button>
-          </div>
+          <Reveal>
+            <span className="nf-glass-pill inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-2xs font-semibold uppercase tracking-wider text-brand shadow-2xs">
+              <span className="h-1.5 w-1.5 rounded-full bg-brand" />
+              {eyebrow}
+            </span>
+            <h2 className="mx-auto mt-6 max-w-2xl text-display-sm font-semibold tracking-tight text-fg">
+              <SplitText text={title} stagger={0.035} />
+            </h2>
+            <p className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-muted">{description}</p>
 
-          <p className="mt-8 text-xs text-faint">No obligation. We reply within one business day.</p>
-        </Reveal>
+            {/* Magnetic action buttons */}
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+              <Magnetic>
+                <LinkButton to="/contact" size="lg" arrow className="nf-glass-glow shadow-md">
+                  Get a free automation review
+                </LinkButton>
+              </Magnetic>
+              <Magnetic>
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  iconLeft={<MessageCircle className="h-4 w-4 text-success" />}
+                  onClick={() => window.open(whatsappLink('Hi NorthForge — I would like to know more.'), '_blank', 'noopener')}
+                  className="nf-glass-pill hover:border-white/80"
+                >
+                  Talk on WhatsApp
+                </Button>
+              </Magnetic>
+            </div>
+
+            <p className="mt-8 text-xs text-faint">No obligation. We reply within one business day.</p>
+          </Reveal>
+        </div>
       </div>
     </section>
   );
