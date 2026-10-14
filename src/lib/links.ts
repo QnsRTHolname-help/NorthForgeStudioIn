@@ -14,7 +14,7 @@
  * otherwise use the origin the app is actually served from.
  */
 
-export const CANONICAL_SITE_URL = 'https://northforgestudio.vercel.app';
+export const CANONICAL_SITE_URL = 'https://northforgestudioin.vercel.app';
 
 const CONFIGURED = (import.meta.env.VITE_SITE_URL as string | undefined)?.trim() ?? '';
 

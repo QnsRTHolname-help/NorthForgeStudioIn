@@ -139,28 +139,32 @@ backfilled into leads (guarded by email so re-running never duplicates).
 | --- | --- |
 | Provider | Email (password) |
 | Confirm email | ON (recommended for production) |
-| Site URL | `https://your-production-domain.com` — **never localhost in production** |
-| Redirect URLs | `https://your-production-domain.com/**`, `https://your-production-domain.com/auth/callback`, `https://*-your-team.vercel.app/**`, `http://localhost:5173/**` |
+| Site URL | `https://northforgestudioin.vercel.app` — **never localhost in production** |
+| Redirect URLs | `https://northforgestudioin.vercel.app/**`, `https://northforgestudioin.vercel.app/auth/callback`, `https://northforgestudio.vercel.app/**`, `https://*-your-team.vercel.app/**`, `http://localhost:5173/**` |
 | Password min length | 8 |
 
 ### Confirmation links must open on the customer's domain, not localhost
 
 If a new client receives a verification email whose link points at
-`http://localhost:5173`, the cause is ALWAYS one of these two:
+`http://localhost:3000` or `http://localhost:5173`, the cause is ALWAYS one of these two in the Supabase Dashboard:
 
-1. **Dashboard → Site URL is still `http://localhost:5173`.** Supabase uses
-   Site URL whenever it does not recognise the `emailRedirectTo` we send.
-   Set it to the production domain.
+1. **Dashboard → Authentication → URL Configuration → Site URL is still `http://localhost:3000` or `http://localhost:5173`.**
+   Supabase uses Site URL whenever it does not recognise the `emailRedirectTo` we send.
+   Set Site URL to `https://northforgestudioin.vercel.app`.
 2. **The redirect URL is not allow-listed.** Supabase silently discards an
    unknown `redirect_to` and falls back to Site URL. Add
-   `https://your-domain.com/auth/callback` (and the preview wildcard) under
+   `https://northforgestudioin.vercel.app/**` and
+   `https://northforgestudioin.vercel.app/auth/callback` under
    **Authentication → URL Configuration → Redirect URLs**.
 
 The app does its part (`src/lib/links.ts`): every emailed link is built from
-`VITE_SITE_URL` — never from `window.location.origin` — so signing up from a
-local dev machine can no longer email a localhost link to a real customer.
-Set `VITE_SITE_URL=https://your-domain.com` in Vercel → Settings →
-Environment Variables, then redeploy.
+`CANONICAL_SITE_URL` (`https://northforgestudioin.vercel.app`) / `VITE_SITE_URL` —
+never from `window.location.origin` — so signing up from a local dev machine can no
+longer email a localhost link to a real customer.
+
+Also, the registration screen now includes a **direct OTP confirmation code input**
+so users can enter their 6-digit code from the email directly on the website even if
+their email client mangles the redirect link.
 
 Five-minute check: register a test account, open the email, and look at the
 link's host. If it is localhost, the two dashboard settings above are still

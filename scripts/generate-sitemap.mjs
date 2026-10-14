@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dist = path.join(root, 'dist');
 
-const SITE_URL = (process.env.SITE_URL ?? 'https://northforgestudio.vercel.app').replace(/\/$/, '');
+const SITE_URL = (process.env.SITE_URL ?? 'https://northforgestudioin.vercel.app').replace(/\/$/, '');
 
 const metaPath = path.join(dist, 'route-meta.json');
 if (!fs.existsSync(metaPath)) {

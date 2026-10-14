@@ -18,7 +18,7 @@ export default function Register() {
   usePageMeta({ title: 'Create your account', description: 'Create a NorthForge client account.', noIndex: true });
 
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const { register, refresh } = useAuth();
   const toast = useToast();
 
   const [values, setValues] = useState({
@@ -33,6 +33,8 @@ export default function Register() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   /** Email confirmation is enabled: the account exists but needs verifying. */
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpError, setOtpError] = useState<string | null>(null);
   /**
    * Age eligibility (spec §10–§11).
    *
@@ -69,6 +71,24 @@ export default function Register() {
   // A short, visible wait: repeated resends burn the provider's per-address
   // allowance and make the NEXT attempt slower, so we pace it ourselves.
   const cooldown = useCooldown(45);
+
+  const verifyOtp = useMutation(
+    async (code: string) => {
+      setOtpError(null);
+      const session = await authService.verifySignupOtp(values.email, code);
+      await refresh();
+      return session;
+    },
+    {
+      onSuccess: () => {
+        toast.success('Email confirmed!', 'Welcome to your NorthForge workspace.');
+        navigate('/portal', { replace: true });
+      },
+      onError: (err) => {
+        setOtpError((err as Error).message || 'Invalid or expired confirmation code.');
+      },
+    },
+  );
 
   const set = (key: keyof typeof values) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setValues((prev) => ({ ...prev, [key]: event.target.value }));
@@ -128,7 +148,49 @@ export default function Register() {
             Not seeing it? Check your <span className="font-medium">spam/junk folder</span> and mark the sender as
             trusted — new senders are often filtered. It can take a couple of minutes to arrive.
           </p>
-          <div className="mt-8 space-y-3">
+
+          {/* Direct OTP confirmation box */}
+          <div className="mt-6 rounded-2xl border border-line/70 bg-surface/80 p-5 text-left shadow-xs backdrop-blur-md">
+            <label htmlFor="reg-otp" className="block text-xs font-semibold text-fg">
+              Have the code? Confirm here directly
+            </label>
+            <p className="mt-1 text-2xs text-muted">
+              Enter the numeric code sent in your confirmation email to open your workspace immediately:
+            </p>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (otpCode.trim()) verifyOtp.mutate(otpCode.trim());
+              }}
+              className="mt-3 flex gap-2"
+            >
+              <input
+                id="reg-otp"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={8}
+                value={otpCode}
+                onChange={(e) => {
+                  setOtpCode(e.target.value);
+                  setOtpError(null);
+                }}
+                placeholder="Enter 6-digit code"
+                className="w-full rounded-lg border border-line bg-canvas px-3 py-2 text-center font-mono text-base tracking-widest text-fg focus:border-brand focus:outline-none"
+              />
+              <Button
+                type="submit"
+                size="sm"
+                loading={verifyOtp.pending}
+                disabled={!otpCode.trim() || verifyOtp.pending}
+              >
+                Verify
+              </Button>
+            </form>
+            {otpError ? <p className="mt-2 text-xs text-danger">{otpError}</p> : null}
+          </div>
+
+          <div className="mt-6 space-y-3">
             <Button
               variant="secondary"
               size="sm"

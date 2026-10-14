@@ -144,6 +144,43 @@ describe('Adversarial Challenge: NorthForge OS Ecosystem (R1-R6)', () => {
       expect(canonicalUrl('/auth/callback')).toBe(`${CANONICAL_SITE_URL}/auth/callback`);
       expect(canonicalUrl('/reset-password')).toBe(`${CANONICAL_SITE_URL}/reset-password`);
     });
+
+    it('verifies authService.verifySignupOtp invokes supabase.auth.verifyOtp with type "signup"', async () => {
+      const { authService } = await import('@/services/public');
+      const { supabase } = await import('@/lib/supabase');
+
+      const verifySpy = vi.spyOn(supabase.auth, 'verifyOtp').mockResolvedValueOnce({
+        data: {
+          user: { id: 'usr-123', email: 'test@studio.in' } as any,
+          session: { access_token: 'fake', refresh_token: 'fake' } as any,
+        },
+        error: null,
+      });
+
+      vi.spyOn(supabase.auth, 'getUser').mockResolvedValueOnce({
+        data: { user: { id: 'usr-123' } as any },
+        error: null,
+      });
+
+      vi.spyOn(supabase, 'from').mockReturnValueOnce({
+        select: () => ({
+          eq: () => ({
+            limit: () => Promise.resolve({
+              data: [{ id: 'usr-123', email: 'test@studio.in', name: 'Tester', role: 'client', client: null }],
+              error: null,
+            }),
+          }),
+        }),
+      } as any);
+
+      const session = await authService.verifySignupOtp('test@studio.in', '123456');
+      expect(verifySpy).toHaveBeenCalledWith({
+        email: 'test@studio.in',
+        token: '123456',
+        type: 'signup',
+      });
+      expect(session.user.email).toBe('test@studio.in');
+    });
   });
 
   /* ═══════════════════════════════════════════════════════════════════════

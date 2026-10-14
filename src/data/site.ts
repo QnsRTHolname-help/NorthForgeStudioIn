@@ -19,7 +19,7 @@ export const SITE = {
   discipline: 'WEB · AUTOMATION · AI · GROWTH',
   description:
     'NorthForge is a premium digital systems studio. We design premium websites and connect them to AI, lead capture, WhatsApp, automation and analytics — turning your digital presence into a system that helps your business grow.',
-  url: (import.meta.env.VITE_SITE_URL as string) || 'https://northforgestudio.vercel.app',
+  url: (import.meta.env.VITE_SITE_URL as string) || 'https://northforgestudioin.vercel.app',
   locale: 'en_IN',
 } as const;
 

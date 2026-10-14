@@ -258,6 +258,28 @@ export const authService = {
     return { sent: true };
   },
 
+  /**
+   * Verify signup using the 6-digit confirmation code / token from the email.
+   * Allows instant confirmation on the website even if the email link host was
+   * misconfigured in Supabase or blocked by the user's browser.
+   */
+  verifySignupOtp: async (email: string, token: string): Promise<AuthSession> => {
+    assertSupabaseConfigured();
+    logAuthEvent('verify_signup_otp_started');
+    const { error } = await supabase.auth.verifyOtp({
+      email: email.trim(),
+      token: token.trim(),
+      type: 'signup',
+    });
+    if (error) {
+      const mapped = mapAuthError(error);
+      logAuthEvent('verify_signup_otp_failed', { code: mapped.code });
+      throw new AuthError(mapped);
+    }
+    logAuthEvent('verify_signup_otp_succeeded');
+    return loadProfile();
+  },
+
   updateProfile: async (input: { name?: string; phone?: string }): Promise<AuthSession> => {
     const userId = await authUserId();
     if (!userId) throw sessionError();

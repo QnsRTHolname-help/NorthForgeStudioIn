@@ -22,7 +22,7 @@ describe('links & canonical URL generation', () => {
     });
 
     it('rejects public and production hostnames', () => {
-      expect(isLocalHost('https://northforgestudio.vercel.app')).toBe(false);
+      expect(isLocalHost('https://northforgestudioin.vercel.app')).toBe(false);
       expect(isLocalHost('https://customdomain.com')).toBe(false);
       expect(isLocalHost('https://staging.northforge.in')).toBe(false);
       expect(isLocalHost('')).toBe(false);
@@ -31,9 +31,9 @@ describe('links & canonical URL generation', () => {
 
   describe('normalizeOrigin', () => {
     it('strips trailing slashes from origin', () => {
-      expect(normalizeOrigin('https://northforgestudio.vercel.app/')).toBe('https://northforgestudio.vercel.app');
-      expect(normalizeOrigin('https://northforgestudio.vercel.app///')).toBe('https://northforgestudio.vercel.app');
-      expect(normalizeOrigin('https://northforgestudio.vercel.app')).toBe('https://northforgestudio.vercel.app');
+      expect(normalizeOrigin('https://northforgestudioin.vercel.app/')).toBe('https://northforgestudioin.vercel.app');
+      expect(normalizeOrigin('https://northforgestudioin.vercel.app///')).toBe('https://northforgestudioin.vercel.app');
+      expect(normalizeOrigin('https://northforgestudioin.vercel.app')).toBe('https://northforgestudioin.vercel.app');
     });
   });
 
@@ -62,7 +62,7 @@ describe('links & canonical URL generation', () => {
     });
 
     it('prefers configured production origin over preview browser origin', () => {
-      const configured = 'https://northforgestudio.vercel.app';
+      const configured = 'https://northforgestudioin.vercel.app';
       const preview = 'https://preview-12345.vercel.app';
       expect(resolvePublicOrigin(configured, preview)).toBe(configured);
     });

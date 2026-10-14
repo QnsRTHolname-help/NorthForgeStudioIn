@@ -8,9 +8,8 @@ environment variable. Nothing requires code changes.
 If confirmation emails open `http://localhost:3000/?error=access_denied&error_code=otp_expired`:
 
 1. Supabase dashboard → **Authentication → URL Configuration**
-   - **Site URL**: `https://your-production-domain.com`
-   - **Redirect URLs**: add your production domain, `https://*-your-team.vercel.app`,
-     `http://localhost:5173`
+   - **Site URL**: `https://northforgestudioin.vercel.app`
+   - **Redirect URLs**: add `https://northforgestudioin.vercel.app/**`, `https://northforgestudioin.vercel.app/auth/callback`, `https://northforgestudio.vercel.app/**`, `http://localhost:5173/**`
 2. **Authentication → Emails → templates**: keep `{{ .ConfirmationURL }}` as the
    action link in the confirmation template.
 3. Redeploy and register again — links will now open your domain.
