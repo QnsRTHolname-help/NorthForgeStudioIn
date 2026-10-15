@@ -673,6 +673,42 @@
   [data-theme='dark'] .nf-glow-halo::before {
     background: radial-gradient(600px 300px at 50% 0%, rgb(var(--nf-blue) / 0.16), transparent 70%);
   }
+
+  /* ── Hero decorative motion (CSS, not GSAP) ────────────────────
+     The cube spin, floating shapes and particles are pure CSS. That keeps
+     the hero out of the JS thread entirely once it has mounted — the only
+     GSAP work left is the one-shot entrance and the pointer parallax.
+     The global reduced-motion rule at the bottom of this file suppresses
+     these animations automatically. */
+  @keyframes nf-hero-spin {
+    from { transform: rotateY(0deg); }
+    to { transform: rotateY(360deg); }
+  }
+  @keyframes nf-hero-float {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    50% { transform: translate(14px, -18px) rotate(180deg); }
+  }
+  @keyframes nf-hero-particle {
+    0%, 100% { transform: translate(0, 0); opacity: 0.35; }
+    50% { transform: translate(-16px, 24px); opacity: 0.6; }
+  }
+  .hero-cube-spin {
+    animation: nf-hero-spin 22s linear infinite;
+    transform-origin: center center;
+    will-change: transform;
+  }
+  .hero-shape {
+    animation: nf-hero-float 6s ease-in-out infinite;
+    will-change: transform;
+  }
+  .hero-shape:nth-child(2n) { animation-duration: 7.5s; animation-delay: -1.5s; }
+  .hero-shape:nth-child(3n) { animation-duration: 5s; animation-delay: -3s; }
+  .hero-particle {
+    animation: nf-hero-particle 5s ease-in-out infinite;
+    will-change: transform, opacity;
+  }
+  .hero-particle:nth-child(3n+1) { animation-duration: 6.5s; animation-delay: -2s; }
+  .hero-particle:nth-child(5n+2) { animation-duration: 4s; animation-delay: -1s; }
 }
 
 /* ═══════════════════════════════════════════════════════════════

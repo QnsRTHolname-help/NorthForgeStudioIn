@@ -10,6 +10,7 @@ import { Hero3D } from './Hero3D';
 import { whatsappLink } from '@/data/site';
 import { useReducedMotion } from '@/hooks';
 import { trackEvent } from '@/lib/analytics';
+import { DURATION, DISTANCE, EASE, STAGGER } from '@/components/motion/constants';
 
 const PROOF = [
   { value: 4, suffix: ' weeks', label: 'Typical time to go live' },
@@ -34,14 +35,63 @@ export function Hero() {
     if (!node || reduced) return;
 
     const ctx = gsap.context(() => {
-      const timeline = gsap.timeline({ defaults: { ease: 'power3.out' } });
+      const timeline = gsap.timeline({ defaults: { ease: EASE.entrance } });
 
+      // Eyebrow first — the small signal that anchors the statement.
       timeline
-        .fromTo('[data-hero-copy]', { y: 14 }, { y: 0, duration: 0.7 }, 0)
-        .fromTo('[data-hero-eyebrow]', { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5 }, 0.1)
-        .fromTo('[data-hero-actions] > *', { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.6, stagger: 0.08 }, 0.82)
-        .fromTo('[data-hero-system]', { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 1.1, ease: 'expo.out' }, 0.75)
-        .fromTo('[data-hero-meta] > *', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6, stagger: 0.1 }, 1.1);
+        .fromTo(
+          '[data-hero-eyebrow]',
+          { opacity: 0, y: DISTANCE.micro },
+          { opacity: 1, y: 0, duration: DURATION.ui },
+          0.05,
+        )
+        // Statement + subcopy together — the headline is the design.
+        .fromTo(
+          '[data-hero-copy]',
+          { y: DISTANCE.ui },
+          { y: 0, duration: DURATION.slow },
+          0.1,
+        )
+        // System panel — the most expensive element, so it arrives last and
+        // carries the longest, most expressive ease.
+        .fromTo(
+          '[data-hero-system]',
+          { opacity: 0, y: DISTANCE.section },
+          { opacity: 1, y: 0, duration: DURATION.panel, ease: EASE.expressive },
+          0.55,
+        )
+        // Actions stagger in right after the panel starts its rise.
+        .fromTo(
+          '[data-hero-actions] > *',
+          { opacity: 0, y: DISTANCE.ui },
+          { opacity: 1, y: 0, duration: DURATION.ui, stagger: STAGGER.standard },
+          0.95,
+        )
+        // KPI cards — last, so the eye lands on them as the resolution.
+        .fromTo(
+          '[data-hero-meta] > *',
+          { opacity: 0, y: DISTANCE.ui },
+          { opacity: 1, y: 0, duration: DURATION.ui, stagger: STAGGER.proof },
+          1.25,
+        );
+
+      // Scroll-linked depth: the system panel and its ambient glow drift
+      // slightly as the user scrolls out of the hero, giving the panel a
+      // sense of physical space rather than a flat sticker.
+      const panel = node.querySelector<HTMLElement>('[data-hero-system]');
+      const glow = node.querySelector<HTMLElement>('[data-hero-glow]');
+      if (panel || glow) {
+        gsap.to([panel, glow].filter(Boolean), {
+          y: 28,
+          ease: EASE.scrub,
+          scrollTrigger: {
+            trigger: node,
+            start: 'top top',
+            end: 'bottom top',
+            scrub: true,
+          },
+        });
+      }
     }, node);
 
     return () => ctx.revert();
@@ -54,6 +104,7 @@ export function Hero() {
 
       {/* Soft light behind the system panel — depth without decoration. */}
       <div
+        data-hero-glow
         className="pointer-events-none absolute right-0 top-24 h-[520px] w-[620px] translate-x-1/4 rounded-full opacity-[0.10] blur-[130px]"
         style={{ background: 'radial-gradient(circle, rgb(var(--nf-blue)), transparent 70%)' }}
         aria-hidden

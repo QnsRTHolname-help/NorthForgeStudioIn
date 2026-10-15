@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode }
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { cn } from '@/lib/cn';
-import { useReducedMotion, useIsTouch } from '@/hooks';
+import { useReducedMotion, useIsTouch, useScrollProgress } from '@/hooks';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -388,23 +388,13 @@ export function SpotlightCard({ children, className }: { children: ReactNode; cl
 
 export function ScrollProgress({ className }: { className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
+  const { progress } = useScrollProgress();
 
   useIsomorphicLayoutEffect(() => {
     const node = ref.current;
     if (!node) return;
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        node,
-        { scaleX: 0 },
-        {
-          scaleX: 1,
-          ease: 'none',
-          scrollTrigger: { trigger: document.documentElement, start: 'top top', end: 'bottom bottom', scrub: 0.3 },
-        },
-      );
-    });
-    return () => ctx.revert();
-  }, []);
+    node.style.transform = `scaleX(${progress})`;
+  }, [progress]);
 
   return (
     <div className={cn('fixed inset-x-0 top-0 z-[70] h-px bg-transparent', className)} aria-hidden>

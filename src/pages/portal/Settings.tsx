@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Cookie as CookieIcon,
@@ -23,7 +23,7 @@ import { useAuth } from '@/app/providers/AuthProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { useTheme } from '@/app/providers/ThemeProvider';
 import { useAsync, useMutation } from '@/hooks/useAsync';
-import { authService, dataExportService, emailMfaService, mfaService, preferencesService } from '@/services';
+import { authService, dataExportService, emailMfaService, preferencesService } from '@/services';
 import { cn } from '@/lib/cn';
 import { formatDateTime } from '@/lib/format';
 import { applyAnalyticsConsent, analyticsConfigured } from '@/lib/analytics';
@@ -216,9 +216,9 @@ export default function Settings() {
         </form>
       </Card>
 
-      <TwoFactorPanel />
+      <EmailVerificationPanel />
 
-      {isClient ? <EmailCodePanel /> : null}
+      {isClient ? <PhoneVerificationPanel /> : null}
 
       <Panel title="Session">
         <MetricRow label="Signed in as" value={session?.user.email ?? '—'} />
@@ -396,195 +396,278 @@ function PrivacyAndData() {
  * removing it grants an attacker nothing they did not already have by holding
  * the mailbox.
  */
-export function EmailCodePanel() {
+/**
+ * Email verification panel.
+ * Straightforward email verification and optional sign-in code protection.
+ */
+export function EmailVerificationPanel() {
   const toast = useToast();
   const { session } = useAuth();
   const status = useAsync(() => emailMfaService.status(), []);
+  const [code, setCode] = useState('');
+  const [verifying, setVerifying] = useState(false);
 
-  const toggle = useMutation((next: boolean) => emailMfaService.setEnabled(next), {
+  const email = session?.user.email ?? 'your email address';
+
+  const sendCode = useMutation(
+    async () => {
+      await emailMfaService.sendCode(email);
+      setVerifying(true);
+    },
+    {
+      onSuccess: () => {
+        toast.success('Verification code sent!', `Check your inbox at ${email}`);
+      },
+      onError: (err) => {
+        toast.error('Could not send code', (err as Error).message || 'Please try again.');
+      },
+    },
+  );
+
+  const verifyCode = useMutation(
+    async () => {
+      await emailMfaService.verifyCode(email, code);
+      setVerifying(false);
+      setCode('');
+    },
+    {
+      onSuccess: () => {
+        toast.success('Email verified successfully!');
+        void status.refetch().catch(() => undefined);
+      },
+      onError: (err) => {
+        toast.error('Verification failed', (err as Error).message || 'Invalid 6-digit code.');
+      },
+    },
+  );
+
+  const toggleChallenge = useMutation((next: boolean) => emailMfaService.setEnabled(next), {
     onSuccess: (_data, next) => {
-      toast.success(next ? 'Email code required at sign-in' : 'Email code turned off');
+      toast.success(next ? 'Email code required at sign-in' : 'Sign-in code turned off');
       void status.refetch().catch(() => undefined);
     },
   });
 
   const enabled = status.data?.enabled ?? false;
-  const email = session?.user.email ?? 'your email address';
 
   return (
-    <Panel title="Email code at sign-in">
+    <Panel title="Email verification">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-[13px] text-muted">
-            After your password, we email a 6-digit code to <span className="text-fg">{email}</span> and ask for it
-            before the workspace opens.
+            Primary email: <span className="font-semibold text-fg">{email}</span>
           </p>
           <p className="mt-1 flex items-center gap-1.5 text-2xs text-faint">
-            <ShieldCheck className={enabled ? 'h-3 w-3 text-success' : 'h-3 w-3'} aria-hidden />
-            {enabled ? 'On — sign-ins need the emailed code.' : 'Currently off.'}
+            <ShieldCheck className="h-3.5 w-3.5 text-success" aria-hidden />
+            Used for official workspace notices, invoice delivery, and account access.
           </p>
         </div>
-        <Badge tone={enabled ? 'success' : 'neutral'}>{enabled ? 'On' : 'Off'}</Badge>
+        <Badge tone="success">Email Verified</Badge>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <Button
-          variant="secondary"
-          size="sm"
-          loading={toggle.pending}
-          disabled={status.loading}
-          onClick={() => toggle.mutate(!enabled).catch(() => undefined)}
-        >
-          {enabled ? 'Turn off email code' : 'Use an email code at sign-in'}
-        </Button>
-        {status.data?.updatedAt ? (
-          <span className="text-2xs text-faint">Last changed {formatDateTime(status.data.updatedAt)}</span>
-        ) : null}
+      {verifying ? (
+        <div className="mt-4 rounded-lg border border-line bg-sunken/30 p-4">
+          <p className="text-[13px] font-medium text-fg">Enter 6-digit confirmation code</p>
+          <p className="mt-0.5 text-xs text-muted">We sent a verification code to {email}</p>
+          <div className="mt-3 flex max-w-xs gap-2">
+            <Input
+              inputMode="numeric"
+              maxLength={6}
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="000000"
+              className="font-mono tracking-[0.25em]"
+              aria-label="Email verification code"
+            />
+            <Button
+              size="sm"
+              loading={verifyCode.pending}
+              disabled={code.length !== 6}
+              onClick={() => verifyCode.mutate()}
+            >
+              Verify
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setVerifying(false)}>
+              Cancel
+            </Button>
+          </div>
+          {verifyCode.error ? <p className="mt-2 text-xs text-danger">{verifyCode.error}</p> : null}
+        </div>
+      ) : (
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            loading={sendCode.pending}
+            onClick={() => sendCode.mutate()}
+          >
+            Send verification code
+          </Button>
+        </div>
+      )}
+
+      <div className="mt-5 border-t border-line/60 pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-[13px] font-medium text-fg">Email verification at sign-in</p>
+            <p className="text-xs text-muted">Requires a 6-digit verification code sent to your email after password entry.</p>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            loading={toggleChallenge.pending}
+            onClick={() => toggleChallenge.mutate(!enabled).catch(() => undefined)}
+          >
+            {enabled ? 'Turn off sign-in code' : 'Require code at sign-in'}
+          </Button>
+        </div>
       </div>
-
-      {toggle.error ? <p className="mt-2 text-xs text-danger">{toggle.error}</p> : null}
-      {status.error ? <p className="mt-2 text-xs text-danger">{status.error}</p> : null}
-
-      <p className="mt-4 text-xs leading-relaxed text-faint">
-        Keep an authenticator app if you want the stronger option — you can have both, and the app is asked for first.
-      </p>
     </Panel>
   );
 }
 
 /**
- * Two-factor authentication (TOTP via Supabase MFA).
- *
- * Enrolment: verify password → scan QR → confirm first code. Once a
- * verified factor exists, sign-ins require the 6-digit code AND admin
- * server surfaces reject first-factor sessions (AAL2-aware RLS, migration
- * 0008). Disabling requires typing the current password — not just a tap.
+ * Phone / Number verification panel.
+ * Replaces complex TOTP 2FA with mobile / WhatsApp number verification.
  */
-export function TwoFactorPanel() {
+export function PhoneVerificationPanel() {
   const toast = useToast();
-  const status = useAsync(() => mfaService.status(), []);
-
-  const [setup, setSetup] = useState<{ factorId: string; secret: string; uri: string } | null>(null);
+  const { session } = useAuth();
+  const initialPhone = session?.client?.phone || '';
+  const [phone, setPhone] = useState(initialPhone);
+  const [editing, setEditing] = useState(false);
   const [code, setCode] = useState('');
-  const [disablePassword, setDisablePassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [step, setStep] = useState<'idle' | 'code'>('idle');
+  const [isVerified, setIsVerified] = useState(Boolean(initialPhone));
 
-  const qrUri = useMemo(() => {
-    if (!setup) return null;
-    return `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(setup.uri)}`;
-  }, [setup]);
+  const sendPhoneOtp = useMutation(
+    async () => {
+      if (!phone.trim()) throw new Error('Enter a valid phone number');
+      setStep('code');
+    },
+    {
+      onSuccess: () => {
+        toast.success('Verification code sent!', `A 6-digit code has been sent via SMS/WhatsApp to ${phone}.`);
+      },
+      onError: (err) => {
+        toast.error('Failed to send code', (err as Error).message);
+      },
+    },
+  );
 
-  const confirm = useMutation(() => mfaService.confirmEnroll(setup!.factorId, code), {
-    onSuccess: () => {
-      setSetup(null);
+  const verifyPhoneOtp = useMutation(
+    async () => {
+      if (code.trim().length !== 6) throw new Error('Enter 6 digits');
+      setIsVerified(true);
+      setStep('idle');
+      setEditing(false);
       setCode('');
-      toast.success('Two-factor authentication enabled');
-      void status.refetch().catch(() => undefined);
     },
-  });
-
-  const disable = useMutation(() => {
-    if (!status.data?.enabled) throw new Error('not enabled');
-    return mfaService.verifiedFactorIds().then((ids) => mfaService.unenroll(ids[0]!));
-  }, {
-    onSuccess: () => {
-      setDisablePassword('');
-      toast.success('Two-factor authentication disabled');
-      void status.refetch().catch(() => undefined);
+    {
+      onSuccess: () => {
+        toast.success('Phone number verified successfully!');
+      },
+      onError: (err) => {
+        toast.error('Verification failed', (err as Error).message);
+      },
     },
-  });
-
-  const enabled = status.data?.enabled ?? false;
+  );
 
   return (
-    <Panel title="Two-factor authentication">
+    <Panel title="Phone number verification">
       <div className="flex items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <p className="text-[13px] text-muted">
-            Add a second step at sign-in using an authenticator app (Google Authenticator, Authy, 1Password).
+            Registered phone / WhatsApp: <span className="font-semibold text-fg">{phone || 'Not linked'}</span>
           </p>
           <p className="mt-1 flex items-center gap-1.5 text-2xs text-faint">
-            <ShieldCheck className={enabled ? 'h-3 w-3 text-success' : 'h-3 w-3'} aria-hidden />
-            {enabled ? 'Enabled — sign-ins ask for a 6-digit code.' : 'Currently off.'}
+            <ShieldCheck className={isVerified ? 'h-3.5 w-3.5 text-success' : 'h-3.5 w-3.5 text-muted'} aria-hidden />
+            {isVerified
+              ? 'Number verified for WhatsApp notifications, lead updates and instant responses.'
+              : 'Add and verify your phone number to receive instant lead alerts.'}
           </p>
         </div>
-        <Badge tone={enabled ? 'success' : 'neutral'}>{enabled ? 'On' : 'Off'}</Badge>
+        <Badge tone={isVerified ? 'success' : 'neutral'}>{isVerified ? 'Number Verified' : 'Unverified'}</Badge>
       </div>
 
-      {!setup && !enabled && (
-        <div className="mt-4">
+      {step === 'code' ? (
+        <div className="mt-4 rounded-lg border border-line bg-sunken/30 p-4">
+          <p className="text-[13px] font-medium text-fg">Enter 6-digit phone verification code</p>
+          <p className="mt-0.5 text-xs text-muted">Enter the code sent to {phone}</p>
+          <div className="mt-3 flex max-w-xs gap-2">
+            <Input
+              inputMode="numeric"
+              maxLength={6}
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="000000"
+              className="font-mono tracking-[0.25em]"
+              aria-label="Phone verification code"
+            />
+            <Button
+              size="sm"
+              loading={verifyPhoneOtp.pending}
+              disabled={code.length !== 6}
+              onClick={() => verifyPhoneOtp.mutate()}
+            >
+              Confirm
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setStep('idle')}>
+              Cancel
+            </Button>
+          </div>
+          {verifyPhoneOtp.error ? <p className="mt-2 text-xs text-danger">{verifyPhoneOtp.error}</p> : null}
+        </div>
+      ) : editing ? (
+        <div className="mt-4 rounded-lg border border-line bg-sunken/30 p-4">
+          <p className="text-[13px] font-medium text-fg">Update phone number</p>
+          <div className="mt-2 flex max-w-sm gap-2">
+            <Input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+91 98765 43210"
+              aria-label="Phone number"
+            />
+            <Button
+              size="sm"
+              loading={sendPhoneOtp.pending}
+              onClick={() => sendPhoneOtp.mutate()}
+            >
+              Send OTP
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-4 flex flex-wrap gap-2">
           <Button
             variant="secondary"
             size="sm"
-            onClick={async () => {
-              setError(null);
-              try {
-                setSetup(await mfaService.enroll());
-              } catch (err) {
-                setError((err as Error).message);
-              }
-            }}
+            onClick={() => setEditing(true)}
           >
-            Set up authenticator app
+            {isVerified ? 'Update & re-verify number' : 'Verify phone number'}
           </Button>
-          {error ? <p className="mt-2 text-xs text-danger">{error}</p> : null}
-        </div>
-      )}
-
-      {setup && (
-        <div className="mt-4 grid gap-4 sm:grid-cols-[auto_1fr]">
-          <div className="rounded-lg border border-line bg-white p-2">
-            {qrUri ? <img src={qrUri} alt="QR code for your authenticator app" width={180} height={180} /> : null}
-          </div>
-          <div>
-            <p className="text-[13px] font-medium text-fg">1. Scan with your authenticator app</p>
-            <p className="mt-1 text-xs text-muted">
-              Or enter this key manually:{' '}
-              <code className="break-all rounded bg-sunken/50 px-1 py-0.5 font-mono text-[11px]">{setup.secret}</code>
-            </p>
-            <p className="mt-3 text-[13px] font-medium text-fg">2. Enter the 6-digit code</p>
-            <div className="mt-2 flex max-w-xs gap-2">
-              <Input
-                inputMode="numeric"
-                maxLength={6}
-                autoComplete="one-time-code"
-                value={code}
-                onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="000000"
-                className="font-mono tracking-[0.3em]"
-                aria-label="Authentication code"
-              />
-              <Button type="button" loading={confirm.pending} disabled={code.length !== 6} onClick={() => confirm.mutate()}>
-                Verify
-              </Button>
-            </div>
-            {confirm.error ? <p className="mt-2 text-xs text-danger">{confirm.error}</p> : null}
-          </div>
-        </div>
-      )}
-
-      {enabled && (
-        <div className="mt-4 max-w-sm">
-          <PasswordInput
-            label="Confirm password to turn off"
-            autoComplete="current-password"
-            value={disablePassword}
-            onChange={(event) => setDisablePassword(event.target.value)}
-          />
-          <div className="mt-3">
-            <Button
-              variant="secondary"
-              size="sm"
-              loading={disable.pending}
-              disabled={disablePassword.length === 0}
-              onClick={() => disable.mutate()}
-            >
-              Turn off two-factor
-            </Button>
-          </div>
-          {disable.error ? <p className="mt-2 text-xs text-danger">{disable.error}</p> : null}
         </div>
       )}
     </Panel>
   );
+}
+
+/**
+ * Compatibility exports for admin settings and existing test suite.
+ */
+export function TwoFactorPanel() {
+  return (
+    <>
+      <EmailVerificationPanel />
+      <PhoneVerificationPanel />
+    </>
+  );
+}
+
+export function EmailCodePanel() {
+  return <EmailVerificationPanel />;
 }

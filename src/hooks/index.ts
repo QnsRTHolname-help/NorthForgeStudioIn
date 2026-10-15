@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { subscribeScrollProgress, setScrollProgress } from './scrollProgress';
 
 /* ── Media queries ────────────────────────────────────────────── */
 
@@ -191,6 +192,42 @@ export function useScrolled(threshold = 12) {
     return () => window.removeEventListener('scroll', onScroll);
   }, [threshold]);
   return scrolled;
+}
+
+/**
+ * Scroll progress (0-1) and direction. Reads from the shared scroll-progress
+ * store, which Lenis updates when active and falls back to native scroll
+ * otherwise. Use this for scroll-linked effects that need a single progress
+ * value rather than a ScrollTrigger.
+ */
+export function useScrollProgress() {
+  const [progress, setProgress] = useState(0);
+  const [direction, setDirection] = useState<'down' | 'up'>('down');
+  const last = useRef(0);
+
+  useEffect(() => {
+    const unsub = subscribeScrollProgress((p) => {
+      setDirection(p >= last.current ? 'down' : 'up');
+      last.current = p;
+      setProgress(p);
+    });
+
+    // Routes without the Lenis provider (admin, portal) never publish to the
+    // store — fall back to native scroll so the hook stays useful there.
+    const total = () => document.documentElement.scrollHeight - window.innerHeight;
+    const onScroll = () => {
+      const p = total() > 0 ? window.scrollY / total() : 0;
+      setScrollProgress(p);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      unsub();
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, []);
+
+  return { progress, direction };
 }
 
 /** Reveals an element once when it enters the viewport. */

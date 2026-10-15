@@ -106,8 +106,12 @@ export default function Employees() {
             </div>
             <div className="flex shrink-0 items-center gap-2 sm:flex-col sm:items-end">
               <Badge tone={addOn.amount === null ? 'neutral' : 'success'}>{addOnAmountLabel(addOn)}</Badge>
-              <LinkButton to="/portal/requests" variant="secondary" size="sm">
-                Request
+              <LinkButton
+                to={`/portal/requests?new=1&action=activation&type=automation&title=${encodeURIComponent('Activation: ' + addOn.name)}&description=${encodeURIComponent('Requesting activation for add-on: ' + addOn.name + ' (' + addOnAmountLabel(addOn) + '). ' + addOn.description)}`}
+                variant="secondary"
+                size="sm"
+              >
+                Request activation
               </LinkButton>
             </div>
           </div>

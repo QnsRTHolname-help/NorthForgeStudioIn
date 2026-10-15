@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { Panel } from '@/components/ui/Card';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
@@ -31,7 +32,21 @@ const TYPES = [
 export default function Requests() {
   usePageMeta({ title: 'Requests', noIndex: true });
   const toast = useToast();
-  const [creating, setCreating] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const queryTitle = searchParams.get('title') || '';
+  const queryDescription = searchParams.get('description') || '';
+  const queryType = searchParams.get('type') || (searchParams.get('action') === 'activation' ? 'automation' : 'website_change');
+  const queryPriority = searchParams.get('priority') || (searchParams.get('action') === 'activation' ? 'high' : 'medium');
+  const shouldOpenNew = searchParams.get('new') === '1' || Boolean(queryTitle) || searchParams.get('action') === 'activation';
+
+  const [creating, setCreating] = useState(shouldOpenNew);
+  const [formData] = useState({
+    title: queryTitle,
+    description: queryDescription,
+    type: queryType,
+    priority: queryPriority,
+  });
   const [detail, setDetail] = useState<ClientRequest | null>(null);
   const [filter, setFilter] = useState<'open' | 'all'>('open');
 
@@ -46,10 +61,24 @@ export default function Requests() {
       onSuccess: async () => {
         toast.success('Request submitted', 'You can follow its progress here.');
         setCreating(false);
+        // Clear search params
+        setSearchParams({});
         await state.refetch().catch(() => undefined);
       },
     },
   );
+
+  // If autoSubmit flag is set with title, submit automatically
+  useEffect(() => {
+    if (searchParams.get('autoSubmit') === '1' && queryTitle) {
+      void create.mutate({
+        title: queryTitle,
+        description: queryDescription || 'Activation request.',
+        type: queryType,
+        priority: queryPriority,
+      });
+    }
+  }, []);
 
   return (
     <div>
@@ -155,23 +184,34 @@ export default function Requests() {
           className="space-y-4"
         >
           <Select
+            key={`type-${formData.type}`}
             label="What kind of request?"
             name="type"
-            defaultValue="website_change"
+            defaultValue={formData.type || 'website_change'}
             options={TYPES}
           />
-          <Input label="Title" name="title" required placeholder="e.g. Change the hero headline" />
+          <Input
+            key={`title-${formData.title}`}
+            label="Title"
+            name="title"
+            required
+            defaultValue={formData.title}
+            placeholder="e.g. Change the hero headline"
+          />
           <Textarea
+            key={`desc-${formData.description}`}
             label="Details"
             name="description"
             rows={5}
             required
+            defaultValue={formData.description}
             placeholder="What should change, and why? Links and screenshots help."
           />
           <Select
+            key={`priority-${formData.priority}`}
             label="How urgent?"
             name="priority"
-            defaultValue="medium"
+            defaultValue={formData.priority || 'medium'}
             options={[
               { value: 'low', label: 'Low — whenever' },
               { value: 'medium', label: 'Normal' },

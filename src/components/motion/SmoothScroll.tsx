@@ -3,6 +3,7 @@ import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useReducedMotion } from '@/hooks';
+import { setScrollProgress } from '@/hooks/scrollProgress';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -44,7 +45,12 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
     instanceRef.current = instance;
     setLenis(instance);
 
-    const onScroll = () => ScrollTrigger.update();
+    const onScroll = () => {
+      ScrollTrigger.update();
+      // Publish to the shared store so `useScrollProgress` stays frame-accurate
+      // with Lenis even on touch devices that never instantiate Lenis.
+      setScrollProgress(instance.progress);
+    };
     instance.on('scroll', onScroll);
 
     const raf = (time: number) => instance.raf(time * 1000);

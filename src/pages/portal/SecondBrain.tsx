@@ -1,10 +1,14 @@
+import { useState } from 'react';
 import { BrainCircuit, FileText, MessageSquareText, Search, ShieldCheck, Sparkles } from 'lucide-react';
 import { PLANS } from '@shared/catalog';
 import { Panel } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { LinkButton } from '@/components/ui/Button';
+import { Button, LinkButton } from '@/components/ui/Button';
 import { PortalHeader } from '@/components/portal/PortalHeader';
 import { usePageMeta } from '@/hooks/usePageMeta';
+import { useAsync, useMutation } from '@/hooks/useAsync';
+import { useToast } from '@/app/providers/ToastProvider';
+import { requestsService } from '@/services';
 
 const KNOWLEDGE_AREAS = [
   { label: 'Customers', detail: 'Preferences, conversations, requirements and decision history.', icon: MessageSquareText },
@@ -21,6 +25,36 @@ const AVAILABILITY_TONE: Record<string, 'success' | 'brand' | 'neutral'> = {
 
 export default function SecondBrain() {
   usePageMeta({ title: 'Second Brain', noIndex: true });
+  const toast = useToast();
+  const [requestedLocally, setRequestedLocally] = useState(false);
+
+  const requests = useAsync(() => requestsService.list(), []);
+  const existingActivation = requests.data?.items?.find((r) =>
+    r.title.toLowerCase().includes('second brain') || r.description.toLowerCase().includes('second brain'),
+  );
+  const isRequested = Boolean(existingActivation || requestedLocally);
+
+  const activateMutation = useMutation(
+    async () => {
+      const res = await requestsService.create({
+        title: 'Company Second Brain Activation',
+        description: 'Requesting activation and setup of the Company Second Brain knowledge layer for customer, project, and operating intelligence.',
+        type: 'automation',
+        priority: 'high',
+      });
+      setRequestedLocally(true);
+      return res;
+    },
+    {
+      onSuccess: () => {
+        toast.success('Activation request submitted!', 'Our team has received your request and will begin setting up your Second Brain.');
+        void requests.refetch().catch(() => undefined);
+      },
+      onError: (err) => {
+        toast.error('Could not submit request', (err as Error).message || 'Please try again.');
+      },
+    },
+  );
 
   return (
     <div className="space-y-5">
@@ -28,9 +62,29 @@ export default function SecondBrain() {
         title="Company Second Brain"
         description="A growing business memory for customer, project, sales and operating knowledge."
         action={
-          <LinkButton to="/portal/requests" size="sm" arrow>
-            Request activation
-          </LinkButton>
+          isRequested ? (
+            <Badge tone="info" className="py-1.5 px-3 text-xs font-medium">
+              Activation in progress ✓
+            </Badge>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                loading={activateMutation.pending}
+                onClick={() => activateMutation.mutate().catch(() => undefined)}
+                arrow
+              >
+                Request activation
+              </Button>
+              <LinkButton
+                to="/portal/requests?new=1&action=activation&title=Company+Second+Brain+Activation&type=automation"
+                variant="secondary"
+                size="sm"
+              >
+                Customise request
+              </LinkButton>
+            </div>
+          )
         }
       />
 
@@ -56,11 +110,25 @@ export default function SecondBrain() {
               <BrainCircuit className="h-5 w-5" aria-hidden />
             </span>
             <div>
-              <Badge tone="neutral">Setup required</Badge>
+              <Badge tone={isRequested ? 'info' : 'neutral'}>
+                {isRequested ? 'Activation requested · In progress' : 'Setup required'}
+              </Badge>
               <p className="mt-3 text-[13px] leading-relaxed text-muted">
-                The Second Brain is configured with you before it answers anything: the memory is built from the records
-                your business approves, and it says what it is missing rather than guessing.
+                {isRequested
+                  ? 'Your activation request has been logged. Our engineering team is scoping your business knowledge sources.'
+                  : 'The Second Brain is configured with you before it answers anything: the memory is built from the records your business approves, and it says what it is missing rather than guessing.'}
               </p>
+              {!isRequested ? (
+                <div className="mt-4">
+                  <Button
+                    size="sm"
+                    loading={activateMutation.pending}
+                    onClick={() => activateMutation.mutate().catch(() => undefined)}
+                  >
+                    Confirm & Send Activation Request
+                  </Button>
+                </div>
+              ) : null}
             </div>
           </div>
 

@@ -1,68 +1,23 @@
 import { useLayoutEffect, useRef, useCallback } from 'react';
 import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useReducedMotion } from '@/hooks';
-
-gsap.registerPlugin(ScrollTrigger);
 
 /**
  * 3D Hero Animation Component
  *
  * Creates an immersive 3D visual experience using CSS 3D transforms and GSAP.
- * Features:
- * - Floating geometric shapes with parallax
- * - Rotating 3D wireframe cube
- * - Particle system
- * - Mouse parallax interaction
- * - Respects prefers-reduced-motion
+ *
+ * Performance note: the continuous decorative motion (cube spin, floating
+ * shapes, particles) runs on CSS `@keyframes` rather than GSAP repeat tweens.
+ * That keeps the hero out of the JS thread entirely once it has mounted —
+ * the only GSAP work left is the one-shot entrance and the pointer parallax.
  */
 export function Hero3D({ className = '' }: { className?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cubeRef = useRef<HTMLDivElement>(null);
-  const shapesRef = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
 
   const handleMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (reduced) return;
-    const container = containerRef.current;
-    if (!container) return;
-    const rect = container.getBoundingClientRect();
-    const x = ((e.nativeEvent.clientX - rect.left) / rect.width - 0.5) * 30;
-    const y = ((e.nativeEvent.clientY - rect.top) / rect.height - 0.5) * 30;
-
-    gsap.to(cubeRef.current, {
-      rotationY: 15 + x * 0.5,
-      rotationX: -15 - y * 0.5,
-      duration: 0.5,
-      ease: 'power2.out',
-    });
-
-    gsap.to('.hero-shape', {
-      x: (i: number) => (i % 2 === 0 ? x * 0.3 : -x * 0.3),
-      y: (i: number) => (i % 3 === 0 ? y * 0.3 : -y * 0.3),
-      duration: 0.5,
-      ease: 'power2.out',
-    });
-  }, [reduced]);
-
-  const handleLeave = useCallback(() => {
-    if (reduced) return;
-    gsap.to(cubeRef.current, {
-      rotationY: 15,
-      rotationX: -15,
-      duration: 1,
-      ease: 'elastic.out(1, 0.5)',
-    });
-    gsap.to('.hero-shape', {
-      x: 0,
-      y: 0,
-      duration: 1,
-      ease: 'elastic.out(1, 0.5)',
-    });
-  }, [reduced]);
-
-  // Native event handlers for addEventListener (used in useLayoutEffect)
-  const handleMoveNative = useCallback((e: MouseEvent) => {
     if (reduced) return;
     const container = containerRef.current;
     if (!container) return;
@@ -76,11 +31,14 @@ export function Hero3D({ className = '' }: { className?: string }) {
       duration: 0.5,
       ease: 'power2.out',
     });
+  }, [reduced]);
 
-    gsap.to('.hero-shape', {
-      x: (i: number) => (i % 2 === 0 ? x * 0.3 : -x * 0.3),
-      y: (i: number) => (i % 3 === 0 ? y * 0.3 : -y * 0.3),
-      duration: 0.5,
+  const handleLeave = useCallback(() => {
+    if (reduced) return;
+    gsap.to(cubeRef.current, {
+      rotationY: 15,
+      rotationX: -15,
+      duration: 0.8,
       ease: 'power2.out',
     });
   }, [reduced]);
@@ -90,103 +48,32 @@ export function Hero3D({ className = '' }: { className?: string }) {
 
     const container = containerRef.current;
     const cube = cubeRef.current;
-    const shapes = shapesRef.current;
-    if (!container || !cube || !shapes) return;
+    if (!container || !cube) return;
 
     const ctx = gsap.context(() => {
-      // Initial state
-      gsap.set(cube, { rotationX: -15, rotationY: 15, transformPerspective: 1000 });
-      gsap.set('.hero-shape', { opacity: 0, scale: 0.5 });
-      gsap.set('.hero-particle', { opacity: 0, scale: 0 });
-
-      // Floating shapes animation
-      const shapesTimeline = gsap.timeline({
-        scrollTrigger: { trigger: container, start: 'top 80%', once: true },
-        defaults: { ease: 'power2.out' }
-      });
-
-      shapesTimeline
-        .to('.hero-shape', {
-          opacity: 1,
-          scale: 1,
-          duration: 1.2,
-          stagger: 0.15
-        }, 0)
-        .to('.hero-particle', {
-          opacity: 0.4,
-          scale: 1,
-          duration: 0.8,
-          stagger: 0.03
-        }, 0.3);
-
-      // Cube continuous rotation
-      gsap.to(cube, {
-        rotationY: '+=360',
-        duration: 20,
-        ease: 'none',
-        repeat: -1,
-      });
-
-      // Subtle floating animation for shapes
-      document.querySelectorAll('.hero-shape').forEach((shape, i) => {
-        gsap.to(shape, {
-          y: '+=20',
-          x: i % 2 === 0 ? '+=15' : '-=15',
-          rotation: i % 3 === 0 ? '+=360' : '-=360',
-          duration: 3 + i * 0.5,
-          ease: 'sine.inOut',
-          repeat: -1,
-          yoyo: true,
-        });
-      });
-
-      // Particle float
-      document.querySelectorAll('.hero-particle').forEach((particle, i) => {
-        gsap.to(particle, {
-          y: '+=30',
-          x: (i % 2 === 0 ? 1 : -1) * 20,
-          duration: 4 + i * 0.3,
-          ease: 'sine.inOut',
-          repeat: -1,
-          yoyo: true,
-        });
-      });
-
-      // Parallax on scroll
-      ScrollTrigger.create({
-        trigger: container,
-        start: 'top bottom',
-        end: 'bottom top',
-        scrub: 1,
-        onUpdate: (self) => {
-          if (!reduced) {
-            const progress = self.progress;
-            gsap.to(cube, {
-              rotationX: -15 + progress * 10,
-              rotationY: 15 + progress * 20,
-              duration: 0.3,
-              ease: 'none',
-            });
-            gsap.to('.hero-shape', {
-              y: progress * 50,
-              duration: 0.3,
-              ease: 'none',
-            });
-          }
-        },
-      });
+      // One-shot entrance: the cube and its surrounding shapes scale up as
+      // the panel rises. No repeat tweens — the rest of the motion is CSS.
+      const tl = gsap.timeline({ defaults: { ease: 'power2.out' } });
+      tl.fromTo(
+        cube,
+        { opacity: 0, scale: 0.6, rotationX: -15, rotationY: 15 },
+        { opacity: 1, scale: 1, rotationX: -15, rotationY: 15, duration: 1.2 },
+        0,
+      ).fromTo(
+        '.hero-shape',
+        { opacity: 0, scale: 0.5 },
+        { opacity: 1, scale: 1, duration: 1, stagger: 0.12 },
+        0.15,
+      ).fromTo(
+        '.hero-particle',
+        { opacity: 0, scale: 0 },
+        { opacity: 0.5, scale: 1, duration: 0.7, stagger: 0.03 },
+        0.4,
+      );
     }, container);
 
-    container.addEventListener('mousemove', handleMoveNative);
-    container.addEventListener('mouseleave', handleLeave);
-
-    return () => {
-      ctx.revert();
-      container.removeEventListener('mousemove', handleMoveNative);
-      container.removeEventListener('mouseleave', handleLeave);
-      ScrollTrigger.getAll().forEach(t => t.kill());
-    };
-  }, [reduced, handleMove, handleMoveNative, handleLeave]);
+    return () => ctx.revert();
+  }, [reduced]);
 
   // Generate floating shapes
   const floatingShapes = Array.from({ length: 8 }, (_, i) => {
@@ -264,8 +151,10 @@ export function Hero3D({ className = '' }: { className?: string }) {
         <div className="absolute inset-0" style={{ transform: 'translateZ(0)' }}>
           {floatingShapes}
           {particles}
-          <div ref={cubeRef} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y/1/2 w-64 h-64" style={{ transform: 'translate(-50%, -50%) perspective(1000px) rotateX(-15deg) rotateY(15deg)' }}>
-            <WireframeCube />
+          <div ref={cubeRef} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64" style={{ transform: 'translate(-50%, -50%) perspective(1000px) rotateX(-15deg) rotateY(15deg)' }}>
+            <div className="hero-cube-spin h-full w-full" style={{ transformStyle: 'preserve-3d' }}>
+              <WireframeCube />
+            </div>
           </div>
         </div>
       </div>
@@ -290,9 +179,14 @@ export function Hero3D({ className = '' }: { className?: string }) {
         {floatingShapes}
       </div>
 
-      {/* 3D Wireframe Cube */}
-      <div ref={cubeRef} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64" style={{ transformStyle: 'preserve-3d' }}>
-        <WireframeCube />
+      {/* 3D Wireframe Cube.
+          `cubeRef` is the outer wrapper — GSAP drives its rotationY for the
+          pointer parallax. The spin itself lives on the inner element so the
+          two transforms never fight over the same property. */}
+      <div ref={cubeRef} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64">
+        <div className="hero-cube-spin h-full w-full" style={{ transformStyle: 'preserve-3d' }}>
+          <WireframeCube />
+        </div>
       </div>
 
       {/* Connection lines */}

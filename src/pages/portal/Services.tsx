@@ -3,6 +3,7 @@ import { Search } from 'lucide-react';
 import { Panel } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Select, Input } from '@/components/ui/Form';
+import { LinkButton } from '@/components/ui/Button';
 import { PortalHeader } from '@/components/portal/PortalHeader';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { titleForPath } from '@/app/config/titles';
@@ -122,19 +123,28 @@ export default function Services() {
                         </p>
                       </div>
 
-                      <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-line/60 sm:w-36">
-                        <span className="text-xs text-faint sm:hidden">Price</span>
-                        {service.priceFrom === null && service.unit === 'included' ? (
-                          <span className="text-[14px] font-semibold text-success">Included</span>
-                        ) : service.priceFrom !== null ? (
-                          <span className="nf-num text-[14px] font-semibold text-fg">
-                            {service.unit === 'monthly'
-                              ? `${formatMoney(service.priceFrom)}/mo`
-                              : formatMoneyPrecise(service.priceFrom)}
-                          </span>
-                        ) : (
-                          <span className="text-[14px] font-semibold text-muted">On quote</span>
-                        )}
+                      <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-line/60">
+                        <div className="text-left sm:text-right">
+                          <span className="text-xs text-faint sm:hidden block">Price</span>
+                          {service.priceFrom === null && service.unit === 'included' ? (
+                            <span className="text-[14px] font-semibold text-success">Included</span>
+                          ) : service.priceFrom !== null ? (
+                            <span className="nf-num text-[14px] font-semibold text-fg">
+                              {service.unit === 'monthly'
+                                ? `${formatMoney(service.priceFrom)}/mo`
+                                : formatMoneyPrecise(service.priceFrom)}
+                            </span>
+                          ) : (
+                            <span className="text-[14px] font-semibold text-muted">On quote</span>
+                          )}
+                        </div>
+                        <LinkButton
+                          to={`/portal/requests?new=1&action=activation&title=${encodeURIComponent('Activation: ' + service.name)}&description=${encodeURIComponent('Requesting activation for service: ' + service.name + ' (' + service.description + ').')}&type=${service.group === 'automation' ? 'automation' : service.group === 'build' ? 'website_change' : 'general'}`}
+                          variant="secondary"
+                          size="sm"
+                        >
+                          Request
+                        </LinkButton>
                       </div>
                     </li>
                   ))}
@@ -177,6 +187,15 @@ export default function Services() {
                     Setup fee: <span className="text-fg">{formatMoney(plan.setupAmount)}</span>
                   </p>
                 )}
+                <div className="mt-4">
+                  <LinkButton
+                    to={`/portal/subscription?plan=${plan.slug}`}
+                    size="sm"
+                    fullWidth
+                  >
+                    Select {plan.name}
+                  </LinkButton>
+                </div>
               </div>
             </div>
           ))}

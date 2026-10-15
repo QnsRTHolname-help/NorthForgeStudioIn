@@ -28,3 +28,5 @@ supabase/.temp/
 
 # Agent framework workspace
 .agents/
+.claude/
+skills-lock.json

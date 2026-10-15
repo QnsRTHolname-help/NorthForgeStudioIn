@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { CheckCircle2 } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { CheckCircle2, Sparkles } from 'lucide-react';
 import { Input, PasswordInput, FormError, Checkbox } from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
 import { Logo } from '@/components/brand/Logo';
@@ -13,23 +13,26 @@ import { PasswordStrength } from '@/components/ui/PasswordStrength';
 import { useCooldown } from '@/hooks/useCooldown';
 import { PASSWORD_POLICY } from '@shared/password';
 import { normalizeWhatsAppNumber, prettyWhatsAppNumber } from '@/lib/whatsapp';
+import { getLeadCredentials, saveLeadCredentials } from '@/lib/leadStorage';
 
 export default function Register() {
   usePageMeta({ title: 'Create your account', description: 'Create a NorthForge client account.', noIndex: true });
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const savedCredentials = getLeadCredentials();
   const { register, refresh } = useAuth();
   const toast = useToast();
 
-  const [values, setValues] = useState({
-    name: '',
-    businessName: '',
-    email: '',
-    phone: '',
-    businessType: '',
+  const [values, setValues] = useState(() => ({
+    name: searchParams.get('name') || savedCredentials.name || '',
+    businessName: searchParams.get('businessName') || savedCredentials.businessName || '',
+    email: searchParams.get('email') || savedCredentials.email || '',
+    phone: searchParams.get('phone') || savedCredentials.phone || '',
+    businessType: searchParams.get('businessType') || savedCredentials.businessType || '',
     password: '',
     confirm: '',
-  });
+  }));
   const [errors, setErrors] = useState<Record<string, string>>({});
   /** Email confirmation is enabled: the account exists but needs verifying. */
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
@@ -91,7 +94,18 @@ export default function Register() {
   );
 
   const set = (key: keyof typeof values) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    setValues((prev) => ({ ...prev, [key]: event.target.value }));
+    const val = event.target.value;
+    setValues((prev) => {
+      const next = { ...prev, [key]: val };
+      saveLeadCredentials({
+        name: next.name,
+        businessName: next.businessName,
+        email: next.email,
+        phone: next.phone,
+        businessType: next.businessType,
+      });
+      return next;
+    });
     setErrors((prev) => ({ ...prev, [key]: '' }));
   };
 
@@ -239,6 +253,13 @@ export default function Register() {
         <p className="mt-2 text-[13px] text-muted">
           Tell us who you are and we will set up your business workspace.
         </p>
+
+        {(values.name || values.businessName || values.email || values.phone) ? (
+          <div className="mt-4 flex items-center gap-2 rounded-lg border border-brand/25 bg-brand/[0.05] px-3.5 py-2 text-xs text-brand">
+            <Sparkles className="h-3.5 w-3.5 shrink-0" />
+            <span>Details autofilled from your enquiry. You can edit them anytime.</span>
+          </div>
+        ) : null}
 
         <form onSubmit={onSubmit} noValidate className="mt-8 space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">

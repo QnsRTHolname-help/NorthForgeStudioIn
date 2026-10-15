@@ -3,6 +3,7 @@ import { gsap, ScrollTrigger } from '@/components/motion';
 import { PROCESS_STEPS } from '@/data/content';
 import { cn } from '@/lib/cn';
 import { useReducedMotion } from '@/hooks';
+import { EASE, SCRUB } from '@/components/motion/constants';
 
 /**
  * How it works (spec §21).
@@ -37,11 +38,33 @@ export function ProcessTimeline() {
             start: 'top top',
             end: () => `+=${distance()}`,
             pin: true,
-            scrub: 0.6,
+            scrub: SCRUB,
             invalidateOnRefresh: true,
             anticipatePin: 1,
           },
         });
+
+        // A progress rule under the pinned track fills as the storyboard
+        // scrolls across — a single, quiet signal of where you are in the
+        // sequence without adding another moving element.
+        const rule = section.querySelector<HTMLElement>('[data-process-line]');
+        if (rule) {
+          gsap.fromTo(
+            rule,
+            { scaleX: 0 },
+            {
+              scaleX: 1,
+              ease: EASE.scrub,
+              transformOrigin: 'left center',
+              scrollTrigger: {
+                trigger: section,
+                start: 'top top',
+                end: () => `+=${distance()}`,
+                scrub: SCRUB,
+              },
+            },
+          );
+        }
 
         // Cards brighten as they cross the middle of the viewport.
         gsap.utils.toArray<HTMLElement>('[data-step]').forEach((card) => {
@@ -108,6 +131,12 @@ export function ProcessTimeline() {
       </div>
 
       <div ref={sectionRef} className="relative overflow-hidden lg:h-screen">
+        <span
+          data-process-line
+          aria-hidden
+          className="pointer-events-none absolute bottom-4 left-1/2 hidden h-px w-[60%] max-w-2xl -translate-x-1/2 bg-gradient-to-r from-transparent via-brand/60 to-transparent lg:block"
+          style={{ transform: 'translateX(-50%) scaleX(0)' }}
+        />
         <div
           ref={trackRef}
           className="nf-scroll-x flex gap-5 px-5 pb-6 sm:px-8 lg:h-screen lg:items-center lg:gap-7 lg:px-12 lg:pb-0 lg:overflow-visible"

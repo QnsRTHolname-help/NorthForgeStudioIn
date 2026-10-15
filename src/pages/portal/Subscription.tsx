@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { AlertTriangle, Check, CheckCircle2 } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { AlertTriangle, Check, CheckCircle2, Sparkles, Zap } from 'lucide-react';
 import { Panel, KpiCard } from '@/components/ui/Card';
-import { AsyncBoundary, EmptyState } from '@/components/ui/States';
+import { AsyncBoundary } from '@/components/ui/States';
 import { Badge, StatusIndicator } from '@/components/ui/Badge';
 import { PortalHeader, MetricRow, Explain } from '@/components/portal/PortalHeader';
 import { Modal } from '@/components/ui/Modal';
@@ -10,10 +10,13 @@ import { Input, Select } from '@/components/ui/Form';
 import { Button, LinkButton } from '@/components/ui/Button';
 import { useAsync, useMutation } from '@/hooks/useAsync';
 import { usePageMeta } from '@/hooks/usePageMeta';
+import { useAuth } from '@/app/providers/AuthProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { billingService, requestsService } from '@/services';
 import { formatMoney, formatDate, formatDaysUntil } from '@/lib/format';
 import { cn } from '@/lib/cn';
+import { PLANS, planSetupLabel } from '@shared/catalog';
+import { getLeadCredentials } from '@/lib/leadStorage';
 import type { Invoice, Plan, Subscription as SubscriptionRecord } from '@/types';
 
 /**
@@ -115,17 +118,7 @@ export default function Subscription() {
         data={subs.data}
         isEmpty={(payload) => !payload.items?.length}
         onRetry={() => subs.refetch().catch(() => undefined)}
-        empty={
-          <EmptyState
-            title="No active subscription"
-            description="Your subscription is created when your engagement starts. Until then, nothing is billed."
-            action={
-              <LinkButton to="/pricing" variant="secondary" size="sm">
-                See plans
-              </LinkButton>
-            }
-          />
-        }
+        empty={<ActivateSubscriptionView onActivated={() => subs.refetch().catch(() => undefined)} />}
       >
         {subscription ? (
           <div className="space-y-4">
@@ -573,5 +566,336 @@ function PlanChangeRequest({
         </Button>
       </div>
     </form>
+  );
+}
+
+function ActivateSubscriptionView({ onActivated }: { onActivated: () => void }) {
+  const { session } = useAuth();
+  const [searchParams] = useSearchParams();
+  const savedCredentials = getLeadCredentials();
+  const toast = useToast();
+
+  const initialPlanSlug = searchParams.get('plan') || savedCredentials.plan || 'convert';
+  const initialPlan =
+    PLANS.find(
+      (p) =>
+        p.slug === initialPlanSlug ||
+        p.name.toLowerCase() === initialPlanSlug.toLowerCase(),
+    ) ?? PLANS[1];
+
+  const [selectedPlan, setSelectedPlan] = useState<typeof PLANS[0]>(initialPlan);
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'quarterly'>('monthly');
+  const [promoCode, setPromoCode] = useState('FOUNDER5K');
+
+  const [formData, setFormData] = useState({
+    businessName: session?.client?.businessName || savedCredentials.businessName || '',
+    contactName: session?.user?.name || session?.client?.contactName || savedCredentials.name || '',
+    email: session?.user?.email || session?.client?.email || savedCredentials.email || '',
+    phone: session?.client?.phone || savedCredentials.phone || '',
+    businessType: session?.client?.businessType || savedCredentials.businessType || 'Interior Design',
+    notes: '',
+  });
+
+  const [submittedSuccess, setSubmittedSuccess] = useState(false);
+
+  const activateMutation = useMutation(
+    async () => {
+      const discount = promoCode.trim().toUpperCase() === 'FOUNDER5K' ? 5000 : 0;
+      const baseMonthly = selectedPlan.amount ?? 0;
+      const effectiveMonthly = billingCycle === 'quarterly' ? Math.round(baseMonthly * 0.85) : baseMonthly;
+      const baseSetup = selectedPlan.setupAmount ?? 0;
+      const effectiveSetup = Math.max(0, baseSetup - discount);
+
+      const description = [
+        `Plan: ${selectedPlan.name}`,
+        `Billing Commitment: ${billingCycle === 'quarterly' ? 'Quarterly (15% savings + 1 extra seat)' : 'Monthly'}`,
+        `Client Business: ${formData.businessName} (${formData.businessType})`,
+        `Contact: ${formData.contactName} (${formData.email}, ${formData.phone})`,
+        promoCode.trim() ? `Promo Code Applied: ${promoCode.trim().toUpperCase()} (-₹5,000 setup discount)` : null,
+        `Monthly Fee: ${formatMoney(effectiveMonthly)}`,
+        `Setup Fee: ${formatMoney(effectiveSetup)}`,
+        formData.notes ? `Client Notes: ${formData.notes}` : null,
+      ]
+        .filter(Boolean)
+        .join(' | ');
+
+      const res = await requestsService.create({
+        title: `Subscription Activation: ${selectedPlan.name} (${billingCycle})`,
+        description,
+        type: 'general',
+        priority: 'high',
+      });
+
+      setSubmittedSuccess(true);
+      return res;
+    },
+    {
+      onSuccess: () => {
+        toast.success(
+          'Subscription activated!',
+          'Your activation request has been logged. Our engineering team is preparing your workspace.',
+        );
+        onActivated();
+      },
+      onError: (err) => {
+        toast.error('Failed to submit subscription', (err as Error).message || 'Please try again.');
+      },
+    },
+  );
+
+  const baseMonthly = selectedPlan.amount ?? 0;
+  const isQuarterly = billingCycle === 'quarterly';
+  const monthlyDisplay = isQuarterly ? Math.round(baseMonthly * 0.85) : baseMonthly;
+  const discount = promoCode.trim().toUpperCase() === 'FOUNDER5K' ? 5000 : 0;
+  const setupDisplay = Math.max(0, (selectedPlan.setupAmount ?? 0) - discount);
+
+  if (submittedSuccess) {
+    return (
+      <div className="rounded-xl border border-success/30 bg-success/[0.04] p-8 text-center">
+        <span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-success/10 text-success">
+          <CheckCircle2 className="h-6 w-6" />
+        </span>
+        <h3 className="text-xl font-semibold text-fg">Subscription Activation Requested!</h3>
+        <p className="mt-2 text-[14px] text-muted max-w-lg mx-auto">
+          We have received your activation for the <strong className="text-fg">{selectedPlan.name}</strong> plan (
+          {billingCycle}). Your onboarding and deployment sequence is underway.
+        </p>
+        <div className="mt-6">
+          <LinkButton to="/portal" variant="secondary" size="sm">
+            Back to Dashboard
+          </LinkButton>
+        </div>
+      </div>
+    );
+  }
+
+  const setField = (key: keyof typeof formData) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    setFormData((prev) => ({ ...prev, [key]: e.target.value }));
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Active Incentives Strip */}
+      <div className="rounded-xl border border-brand/20 bg-brand/[0.04] p-4 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Zap className="h-4 w-4 text-brand" />
+            <span className="font-semibold text-fg">New Member Incentives Applied</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-muted">
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-warning animate-pulse" />
+              Only 3 spots left this month
+            </span>
+            <span>• Code <strong>FOUNDER5K</strong> active</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Plan Selection Cards */}
+      <div>
+        <h3 className="text-base font-semibold text-fg">1. Choose your plan tier</h3>
+        <p className="mt-1 text-xs text-muted">Select the tier that matches your business scale.</p>
+
+        <div className="mt-4 grid gap-4 grid-cols-1 md:grid-cols-3">
+          {PLANS.filter((p) => p.amount !== null).map((p) => {
+            const isSelected = selectedPlan.id === p.id;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setSelectedPlan(p)}
+                className={cn(
+                  'relative flex flex-col rounded-xl border p-5 text-left transition-all',
+                  isSelected
+                    ? 'border-brand bg-brand/[0.05] ring-2 ring-brand/30'
+                    : 'border-line bg-surface hover:border-line-strong',
+                )}
+              >
+                {p.slug === 'convert' ? (
+                  <span className="absolute -top-2.5 right-4 rounded-full bg-brand px-2.5 py-0.5 text-2xs font-bold text-white shadow-sm">
+                    Most Popular
+                  </span>
+                ) : null}
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold text-fg">{p.name}</span>
+                  {isSelected ? <Check className="h-4 w-4 text-brand" /> : null}
+                </div>
+                <p className="mt-1 text-xs text-muted line-clamp-2">{p.tagline}</p>
+                <div className="mt-4 border-t border-line/60 pt-3">
+                  <p className="nf-num text-xl font-bold text-fg">
+                    {formatMoney(isQuarterly ? Math.round(p.amount! * 0.85) : p.amount!)}
+                    <span className="text-xs font-normal text-muted">/mo</span>
+                  </p>
+                  <p className="mt-1 text-2xs text-muted">
+                    Setup fee: <span className="text-fg">{planSetupLabel(p)}</span>
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Billing Commitment */}
+      <div>
+        <h3 className="text-base font-semibold text-fg">2. Select billing commitment</h3>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => setBillingCycle('monthly')}
+            className={cn(
+              'flex items-center justify-between rounded-xl border p-4 text-left transition-all',
+              billingCycle === 'monthly'
+                ? 'border-brand bg-brand/[0.05] ring-1 ring-brand/30'
+                : 'border-line bg-surface hover:border-line-strong',
+            )}
+          >
+            <div>
+              <p className="text-[13px] font-semibold text-fg">Monthly billing</p>
+              <p className="mt-0.5 text-xs text-muted">Standard month-to-month flexibility. Cancel anytime.</p>
+            </div>
+            {billingCycle === 'monthly' ? <Check className="h-4 w-4 text-brand" /> : null}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setBillingCycle('quarterly')}
+            className={cn(
+              'flex items-center justify-between rounded-xl border p-4 text-left transition-all',
+              billingCycle === 'quarterly'
+                ? 'border-brand bg-brand/[0.05] ring-1 ring-brand/30'
+                : 'border-line bg-surface hover:border-line-strong',
+            )}
+          >
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-[13px] font-semibold text-fg">Quarterly commitment</p>
+                <Badge tone="success" className="text-2xs">Save 15%</Badge>
+              </div>
+              <p className="mt-0.5 text-xs text-muted">15% off monthly fee + 1 extra employee seat included free.</p>
+            </div>
+            {billingCycle === 'quarterly' ? <Check className="h-4 w-4 text-brand" /> : null}
+          </button>
+        </div>
+      </div>
+
+      {/* Auto-filled Client Details Form */}
+      <Panel title="3. Account & business details">
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-brand/20 bg-brand/[0.04] px-3.5 py-2 text-xs text-brand">
+          <Sparkles className="h-4 w-4 shrink-0" />
+          <span>Credentials auto-filled from your profile. Ready for instant activation.</span>
+        </div>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void activateMutation.mutate();
+          }}
+          className="space-y-4"
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="Business name"
+              required
+              value={formData.businessName}
+              onChange={setField('businessName')}
+              placeholder="e.g. Studio Vertex"
+            />
+            <Input
+              label="Contact name"
+              required
+              value={formData.contactName}
+              onChange={setField('contactName')}
+              placeholder="Your name"
+            />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="Email address"
+              type="email"
+              required
+              value={formData.email}
+              onChange={setField('email')}
+              placeholder="you@company.com"
+            />
+            <Input
+              label="Phone / WhatsApp"
+              required
+              value={formData.phone}
+              onChange={setField('phone')}
+              placeholder="+91 98765 43210"
+            />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="Business type / niche"
+              value={formData.businessType}
+              onChange={setField('businessType')}
+              placeholder="e.g. Interior Design, Architecture"
+            />
+            <Input
+              label="Promo / Discount Code"
+              value={promoCode}
+              onChange={(e) => setPromoCode(e.target.value)}
+              hint="FOUNDER5K saves ₹5,000 on setup fees"
+            />
+          </div>
+
+          <Input
+            label="Specific requests or notes (optional)"
+            value={formData.notes}
+            onChange={setField('notes')}
+            placeholder="e.g. Need WhatsApp AI assistant live first"
+          />
+
+          {/* Pricing Summary */}
+          <div className="rounded-xl border border-line bg-sunken/40 p-4 space-y-2 text-xs">
+            <div className="flex justify-between text-muted">
+              <span>Selected plan</span>
+              <span className="font-medium text-fg">{selectedPlan.name} ({billingCycle})</span>
+            </div>
+            <div className="flex justify-between text-muted">
+              <span>Monthly subscription</span>
+              <span className="font-semibold text-fg">{formatMoney(monthlyDisplay)}/mo</span>
+            </div>
+            <div className="flex justify-between text-muted">
+              <span>Setup & onboarding fee</span>
+              <span className="font-semibold text-fg">
+                {formatMoney(setupDisplay)}
+                {discount > 0 ? (
+                  <span className="ml-1 text-2xs text-brand font-normal">(-₹5,000 w/ FOUNDER5K)</span>
+                ) : null}
+              </span>
+            </div>
+            <div className="border-t border-line pt-2 flex justify-between text-sm font-bold text-fg">
+              <span>Total first investment</span>
+              <span className="nf-num">{formatMoney(monthlyDisplay + setupDisplay)}</span>
+            </div>
+          </div>
+
+          {activateMutation.error ? (
+            <p className="text-xs text-danger">{activateMutation.error}</p>
+          ) : null}
+
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+            <LinkButton to="/pricing" variant="ghost" size="sm">
+              View full plan breakdown →
+            </LinkButton>
+
+            <Button
+              type="submit"
+              size="lg"
+              loading={activateMutation.pending}
+              arrow
+            >
+              Confirm & Activate Subscription
+            </Button>
+          </div>
+        </form>
+      </Panel>
+    </div>
   );
 }

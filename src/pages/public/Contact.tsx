@@ -2,16 +2,18 @@ import { useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Check, CheckCircle2, Clock, Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
 import { Input, Textarea, Select, Field, FormError } from '@/components/ui/Form';
-import { Button } from '@/components/ui/Button';
+import { Button, LinkButton } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/Card';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useMutation } from '@/hooks/useAsync';
+import { useAuth } from '@/app/providers/AuthProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { contactService } from '@/services/public';
 import { CONTACT, emailLink, whatsappLink } from '@/data/site';
 import { PLANS, planAmountLabel, planSetupLabel } from '@shared/catalog';
 import { trackEvent } from '@/lib/analytics';
+import { getLeadCredentials, saveLeadCredentials } from '@/lib/leadStorage';
 
 const BUSINESS_TYPES = [
   'Healthcare & clinic',
@@ -74,15 +76,40 @@ export default function Contact() {
     canonicalPath: '/contact',
   });
 
+  const { session } = useAuth();
   const [searchParams] = useSearchParams();
   const selectedPlan = PLANS.find((plan) => plan.slug === searchParams.get('plan')) ?? null;
-  const [values, setValues] = useState<FormState>(() =>
-    // Arriving from /pricing?plan=<slug> pre-fills the plan selector, so a
-    // choice made on the pricing page is never lost in the form.
-    selectedPlan ? { ...EMPTY, plan: selectedPlan.name } : EMPTY,
-  );
+  const savedCredentials = getLeadCredentials();
+
+  const [values, setValues] = useState<FormState>(() => {
+    const fromAuth = {
+      name: session?.user?.name ?? '',
+      businessName: session?.client?.businessName ?? '',
+      email: session?.user?.email ?? '',
+      phone: session?.client?.phone ?? '',
+      businessType: session?.client?.businessType ?? '',
+    };
+    const fromUrl = {
+      name: searchParams.get('name') || '',
+      businessName: searchParams.get('businessName') || '',
+      email: searchParams.get('email') || '',
+      phone: searchParams.get('phone') || '',
+      businessType: searchParams.get('businessType') || '',
+    };
+    return {
+      ...EMPTY,
+      plan: selectedPlan ? selectedPlan.name : (searchParams.get('plan') || savedCredentials.plan || ''),
+      name: fromUrl.name || fromAuth.name || savedCredentials.name || '',
+      businessName: fromUrl.businessName || fromAuth.businessName || savedCredentials.businessName || '',
+      email: fromUrl.email || fromAuth.email || savedCredentials.email || '',
+      phone: fromUrl.phone || fromAuth.phone || savedCredentials.phone || '',
+      businessType: fromUrl.businessType || fromAuth.businessType || savedCredentials.businessType || '',
+    };
+  });
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [lastSubmitted, setLastSubmitted] = useState<FormState | null>(null);
   const [reference, setReference] = useState<string | null>(null);
   const toast = useToast();
   /** Fires once, on the first keystroke — the start of the funnel (spec §39). */
@@ -107,11 +134,19 @@ export default function Contact() {
     },
     {
       onSuccess: (result, payload) => {
-        // Which entry point produced the enquiry — never WHO submitted it.
+        // Persist submitted credentials so registering an account retains all information
+        saveLeadCredentials({
+          name: payload.name,
+          businessName: payload.businessName,
+          email: payload.email,
+          phone: payload.phone,
+          businessType: payload.businessType,
+          plan: payload.plan,
+        });
+        setLastSubmitted(payload);
         trackEvent('contact_form_submit', { with_plan: Boolean(payload.plan), reference: result.reference ?? 'none' });
         setSubmitted(true);
         setReference(result.reference);
-        setValues(EMPTY);
         toast.success('Enquiry sent', 'We will reply within one business day.');
       },
     },
@@ -122,7 +157,19 @@ export default function Contact() {
       startedRef.current = true;
       trackEvent('contact_form_start');
     }
-    setValues((prev) => ({ ...prev, [key]: event.target.value }));
+    const val = event.target.value;
+    setValues((prev) => {
+      const next = { ...prev, [key]: val };
+      saveLeadCredentials({
+        name: next.name,
+        businessName: next.businessName,
+        email: next.email,
+        phone: next.phone,
+        businessType: next.businessType,
+        plan: next.plan,
+      });
+      return next;
+    });
     setErrors((prev) => ({ ...prev, [key]: '' }));
   };
 
@@ -142,6 +189,14 @@ export default function Contact() {
   };
 
   if (submitted) {
+    const regParams = new URLSearchParams();
+    if (lastSubmitted?.email) regParams.set('email', lastSubmitted.email);
+    if (lastSubmitted?.name) regParams.set('name', lastSubmitted.name);
+    if (lastSubmitted?.businessName) regParams.set('businessName', lastSubmitted.businessName);
+    if (lastSubmitted?.phone) regParams.set('phone', lastSubmitted.phone);
+    if (lastSubmitted?.businessType) regParams.set('businessType', lastSubmitted.businessType);
+    if (lastSubmitted?.plan) regParams.set('plan', lastSubmitted.plan);
+
     return (
       <section className="nf-shell py-24">
         <div className="mx-auto max-w-xl text-center">
@@ -157,7 +212,23 @@ export default function Contact() {
             <p className="mt-3 font-mono text-2xs uppercase tracking-wider text-faint">Reference {reference}</p>
           ) : null}
 
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
+          {/* Quick onboarding workspace creation CTA */}
+          <div className="mt-8 rounded-xl border border-brand/20 bg-brand/[0.04] p-5 text-left">
+            <div className="flex items-center gap-2">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand/10 text-xs font-bold text-brand">✓</span>
+              <p className="text-sm font-semibold text-fg">Want to unlock your workspace now?</p>
+            </div>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted">
+              Create your account to view your project dashboard. Your details ({lastSubmitted?.businessName || lastSubmitted?.email || 'credentials'}) will be automatically prefilled so registration takes seconds.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2.5">
+              <LinkButton to={`/register?${regParams.toString()}`} size="sm" arrow>
+                Create your workspace account
+              </LinkButton>
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Button
               variant="secondary"
               iconLeft={<MessageCircle className="h-4 w-4" />}
