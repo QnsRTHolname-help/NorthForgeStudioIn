@@ -96,8 +96,9 @@ export function AutomationShowcase() {
           trigger: track,
           start: 'top 72%',
           end: 'bottom 55%',
-          scrub: 0.6, // gentle smoothing; still locked to scroll
+          scrub: true,
           invalidateOnRefresh: true,
+          fastScrollEnd: true,
           onUpdate: (self) => {
             if (clock) clock.textContent = formatElapsed(self.progress);
           },
@@ -185,7 +186,7 @@ export function AutomationShowcase() {
 
             <ol className="space-y-3">
               {AUTOMATION_FLOW.map((step, index) => (
-                <li key={step} data-flow-step className="relative">
+                <li key={step} data-flow-step className="relative nf-gpu will-change-[transform,opacity]">
                   <span
                     aria-hidden
                     className="absolute -left-8 top-4 flex h-[15px] w-[15px] items-center justify-center rounded-full border border-line-strong bg-canvas sm:-left-10"

@@ -33,14 +33,14 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
     if (!enabled || reduced) return;
 
     const instance = new Lenis({
-      duration: 1.05,
-      easing: (t) => Math.min(1, 1.001 - 2 ** (-10 * t)),
+      lerp: 0.1,
       smoothWheel: true,
       // Leave touch devices on native momentum scrolling — it feels better
       // and avoids fighting the platform (spec §9, §147).
       syncTouch: false,
       touchMultiplier: 1.6,
       wheelMultiplier: 1,
+      autoResize: true,
     });
     instanceRef.current = instance;
     setLenis(instance);

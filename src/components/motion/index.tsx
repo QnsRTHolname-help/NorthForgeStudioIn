@@ -2,7 +2,8 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode }
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { cn } from '@/lib/cn';
-import { useReducedMotion, useIsTouch, useScrollProgress } from '@/hooks';
+import { useReducedMotion, useIsTouch } from '@/hooks';
+import { subscribeScrollProgress } from '@/hooks/scrollProgress';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -57,6 +58,7 @@ export function FadeUp({
           duration: reduced ? Math.min(duration, 0.4) : duration,
           delay,
           ease: 'power3.out',
+          clearProps: 'transform,opacity',
           scrollTrigger: { trigger: node, start: 'top 88%', once },
         },
       );
@@ -106,6 +108,7 @@ export function Stagger({
           duration: reduced ? 0.35 : 0.65,
           stagger,
           ease: 'power3.out',
+          clearProps: 'transform,opacity',
           scrollTrigger: { trigger: node, start, once: true },
         },
       );
@@ -203,7 +206,7 @@ export function Parallax({
           y: distance / 2,
           ...(scale ? { scale } : {}),
           ease: 'none',
-          scrollTrigger: { trigger: node, start: 'top bottom', end: 'bottom top', scrub: 0.6 },
+          scrollTrigger: { trigger: node, start: 'top bottom', end: 'bottom top', scrub: true },
         },
       );
     }, node);
@@ -388,17 +391,21 @@ export function SpotlightCard({ children, className }: { children: ReactNode; cl
 
 export function ScrollProgress({ className }: { className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
-  const { progress } = useScrollProgress();
 
-  useIsomorphicLayoutEffect(() => {
+  useEffect(() => {
     const node = ref.current;
     if (!node) return;
-    node.style.transform = `scaleX(${progress})`;
-  }, [progress]);
+    const unsub = subscribeScrollProgress((progress) => {
+      node.style.transform = `scaleX(${progress})`;
+    });
+    return () => {
+      unsub();
+    };
+  }, []);
 
   return (
     <div className={cn('fixed inset-x-0 top-0 z-[70] h-px bg-transparent', className)} aria-hidden>
-      <div ref={ref} className="h-full origin-left bg-brand" style={{ transform: 'scaleX(0)' }} />
+      <div ref={ref} className="h-full origin-left bg-brand nf-gpu will-change-transform" style={{ transform: 'scaleX(0)' }} />
     </div>
   );
 }
@@ -478,6 +485,7 @@ export function Reveal({
           duration: reduced ? 0.4 : 0.8,
           delay,
           ease: 'power3.out',
+          clearProps: 'transform,opacity',
           scrollTrigger: { trigger: node, start, once: true },
         },
       );

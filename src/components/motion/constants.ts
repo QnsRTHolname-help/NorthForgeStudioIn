@@ -51,6 +51,6 @@ export const START = {
   mid: 'top 72%',
 } as const;
 
-/** Scroll scrub smoothing. A small value keeps the scrub locked to scroll
- * while softening the jitter of trackpads. */
-export const SCRUB = 0.6;
+/** Scroll scrub smoothing. With Lenis smooth scrolling active, scrub: true
+ * binds animations 1:1 to the scroll position without double-smoothing lag. */
+export const SCRUB: boolean | number = true;

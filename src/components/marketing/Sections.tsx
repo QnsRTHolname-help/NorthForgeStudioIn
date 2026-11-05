@@ -163,7 +163,7 @@ export function FinalCta({
   return (
     <section className="relative overflow-hidden border-t border-line py-20 lg:py-28">
       <div
-        className="pointer-events-none absolute left-1/2 top-0 h-[420px] w-[820px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-[0.12] blur-[120px]"
+        className="pointer-events-none absolute left-1/2 top-0 h-[420px] w-[820px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-[0.12] blur-[120px] nf-gpu will-change-transform"
         style={{ background: 'radial-gradient(ellipse, rgb(var(--nf-blue)), transparent 70%)' }}
         aria-hidden
       />
@@ -184,15 +184,15 @@ export function FinalCta({
       </div>
 
       <div className="nf-shell relative">
-        <div className="nf-glass-card nf-glass-elevated relative mx-auto max-w-4xl overflow-hidden rounded-3xl border border-white/70 p-8 sm:p-12 lg:p-16 text-center shadow-lg backdrop-blur-2xl">
+        <div className="nf-glass-card nf-glass-elevated relative mx-auto max-w-4xl overflow-hidden rounded-3xl border border-white/70 p-8 sm:p-12 lg:p-16 text-center shadow-lg">
           {/* Subtle illumination halo */}
           <div
-            className="pointer-events-none absolute left-1/2 -top-24 h-72 w-[500px] -translate-x-1/2 rounded-full opacity-25 blur-[90px]"
+            className="pointer-events-none absolute left-1/2 -top-24 h-72 w-[500px] -translate-x-1/2 rounded-full opacity-25 blur-[90px] nf-gpu will-change-transform"
             style={{ background: 'radial-gradient(ellipse, rgb(var(--nf-blue)), transparent 70%)' }}
             aria-hidden
           />
           <div
-            className="pointer-events-none absolute right-4 -bottom-16 h-48 w-48 rounded-full opacity-15 blur-[60px]"
+            className="pointer-events-none absolute right-4 -bottom-16 h-48 w-48 rounded-full opacity-15 blur-[60px] nf-gpu will-change-transform"
             style={{ background: 'radial-gradient(ellipse, #F59E0B, transparent 70%)' }}
             aria-hidden
           />

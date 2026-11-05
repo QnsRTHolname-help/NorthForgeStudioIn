@@ -44,7 +44,7 @@ export function StickyCTA() {
       <div
         data-sticky-cta
         className={cn(
-          'nf-glass-card nf-glass-elevated nf-gpu sticky bottom-0 z-50 flex items-center justify-between gap-4 rounded-t-2xl border border-white/60 px-5 py-3.5 shadow-lg backdrop-blur-2xl sm:px-6',
+          'nf-glass-card nf-glass-elevated nf-gpu sticky bottom-0 z-50 flex items-center justify-between gap-4 rounded-t-2xl border border-white/60 px-5 py-3.5 shadow-lg sm:px-6',
           !visible && 'hidden',
         )}
         aria-hidden={!visible}
@@ -72,7 +72,7 @@ export function StickyCTA() {
       className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 nf-gpu pointer-events-none"
       aria-hidden={false}
     >
-      <div className="nf-glass-card nf-glass-elevated pointer-events-auto flex items-center gap-3 rounded-full border border-white/60 px-5 py-2.5 shadow-lg backdrop-blur-2xl">
+      <div className="nf-glass-card nf-glass-elevated pointer-events-auto flex items-center gap-3 rounded-full border border-white/60 px-5 py-2.5 shadow-lg">
         <div className="hidden sm:flex sm:flex-col">
           <span className="text-[13px] font-semibold leading-none text-fg">
             Still deciding?
@@ -86,7 +86,7 @@ export function StickyCTA() {
           href={whatsappLink('Hi NorthForge — I would like to know more.')}
           target="_blank"
           rel="noopener noreferrer"
-          className="nf-glass-interactive hidden h-9 items-center gap-1.5 rounded-full border border-white/60 bg-white/70 px-3.5 text-[13px] font-medium text-fg shadow-2xs backdrop-blur-md transition-all hover:border-brand/40 hover:bg-white sm:inline-flex"
+          className="nf-glass-interactive hidden h-9 items-center gap-1.5 rounded-full border border-white/60 bg-white/70 px-3.5 text-[13px] font-medium text-fg shadow-2xs transition-all hover:border-brand/40 hover:bg-white sm:inline-flex"
         >
           <MessageCircle className="h-3.5 w-3.5 text-success" aria-hidden />
           WhatsApp

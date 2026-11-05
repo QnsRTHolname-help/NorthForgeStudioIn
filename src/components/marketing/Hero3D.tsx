@@ -1,9 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useReducedMotion } from '@/hooks';
-
-gsap.registerPlugin(ScrollTrigger);
 
 /**
  * 3D Hero Visual Component
@@ -63,6 +60,7 @@ export function Hero3D({ className = '' }: { className?: string }) {
 
     const onWindowMove = (e: MouseEvent) => {
       if (reduced || !quickTiltXRef.current || !quickTiltYRef.current) return;
+      if (window.scrollY > 900) return;
       const rect = container.getBoundingClientRect();
       // Only react if pointer is within a reasonable proximity of the hero area
       if (

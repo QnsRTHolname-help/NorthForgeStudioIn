@@ -57,7 +57,7 @@ export function Hero() {
         .fromTo(
           '[data-hero-system]',
           { opacity: 0, y: DISTANCE.section },
-          { opacity: 1, y: 0, duration: DURATION.panel, ease: EASE.expressive },
+          { opacity: 1, y: 0, duration: DURATION.panel, ease: EASE.expressive, clearProps: 'transform' },
           0.55,
         )
         // Actions stagger in right after the panel starts its rise.
@@ -84,6 +84,7 @@ export function Hero() {
         gsap.to([panel, glow].filter(Boolean), {
           y: 28,
           ease: EASE.scrub,
+          immediateRender: false,
           scrollTrigger: {
             trigger: node,
             start: 'top top',
@@ -105,7 +106,7 @@ export function Hero() {
       {/* Soft light behind the system panel — depth without decoration. */}
       <div
         data-hero-glow
-        className="pointer-events-none absolute right-0 top-24 h-[520px] w-[620px] translate-x-1/4 rounded-full opacity-[0.10] blur-[130px]"
+        className="pointer-events-none absolute right-0 top-24 h-[520px] w-[620px] translate-x-1/4 rounded-full opacity-[0.10] blur-[130px] nf-gpu will-change-transform"
         style={{ background: 'radial-gradient(circle, rgb(var(--nf-blue)), transparent 70%)' }}
         aria-hidden
       />
