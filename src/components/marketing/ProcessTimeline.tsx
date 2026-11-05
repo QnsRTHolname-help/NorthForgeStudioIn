@@ -40,7 +40,7 @@ export function ProcessTimeline() {
             pin: true,
             scrub: SCRUB,
             invalidateOnRefresh: true,
-            anticipatePin: 1,
+            anticipatePin: 0,
           },
         });
 
@@ -112,7 +112,11 @@ export function ProcessTimeline() {
 
     // Fonts and images can change measurements after mount.
     const refresh = () => ScrollTrigger.refresh();
-    window.addEventListener('load', refresh);
+    if (document.readyState === 'complete') {
+      refresh();
+    } else {
+      window.addEventListener('load', refresh);
+    }
     return () => {
       window.removeEventListener('load', refresh);
       ctx.revert();
@@ -139,7 +143,7 @@ export function ProcessTimeline() {
         />
         <div
           ref={trackRef}
-          className="nf-scroll-x flex gap-5 px-5 pb-6 sm:px-8 lg:h-screen lg:items-center lg:gap-7 lg:px-12 lg:pb-0 lg:overflow-visible"
+          className="nf-scroll-x nf-gpu will-change-transform flex gap-5 px-5 pb-6 sm:px-8 lg:h-screen lg:items-center lg:gap-7 lg:px-12 lg:pb-0 lg:overflow-visible"
         >
           {PROCESS_STEPS.map((step, index) => {
             const isLast = index === PROCESS_STEPS.length - 1;
@@ -149,7 +153,7 @@ export function ProcessTimeline() {
                 key={step.number}
                 data-step
                 className={cn(
-                  'nf-glass-card nf-glass-interactive group relative flex min-h-[300px] w-[300px] shrink-0 flex-col justify-between rounded-2xl border border-white/60 bg-white/70 p-6 shadow-2xs backdrop-blur-md transition-all duration-300 hover:shadow-md',
+                  'nf-glass-card nf-glass-interactive group relative flex min-h-[300px] w-[300px] shrink-0 flex-col justify-between rounded-2xl border border-white/60 bg-white/80 p-6 shadow-2xs backdrop-blur-sm transition-all duration-300 hover:shadow-md',
                   'sm:w-[340px] lg:h-[62vh] lg:max-h-[460px] lg:w-[380px] lg:p-8',
                 )}
                 style={{

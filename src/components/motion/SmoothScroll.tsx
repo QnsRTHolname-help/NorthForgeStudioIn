@@ -45,11 +45,9 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
     instanceRef.current = instance;
     setLenis(instance);
 
-    const onScroll = () => {
+    const onScroll = (e: { progress: number }) => {
       ScrollTrigger.update();
-      // Publish to the shared store so `useScrollProgress` stays frame-accurate
-      // with Lenis even on touch devices that never instantiate Lenis.
-      setScrollProgress(instance.progress);
+      setScrollProgress(e.progress ?? instance.progress);
     };
     instance.on('scroll', onScroll);
 

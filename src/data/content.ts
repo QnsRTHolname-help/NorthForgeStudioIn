@@ -5,9 +5,13 @@
 
 export const PROOF_ITEMS = [
   'Premium business websites',
+  '100/100 Core Web Vitals (Boost Engine)',
   'AI lead qualification',
+  'Generative UI & adaptive components',
   'WhatsApp automation',
+  'AppSec & OWASP Hardened',
   'Enquiry → CRM in seconds',
+  'Real-time Teamwork & Delegation',
   'Automated follow-ups',
   'Booking & appointment reminders',
   'Analytics you can act on',

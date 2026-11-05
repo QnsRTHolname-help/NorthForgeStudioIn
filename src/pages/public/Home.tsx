@@ -54,7 +54,7 @@ export default function Home() {
       <ProblemSection />
       <PromiseSection />
 
-      <section id="services" className="nf-shell scroll-mt-28 py-20 lg:py-28">
+      <section id="services" className="nf-shell nf-section-smooth scroll-mt-28 py-20 lg:py-28">
         <SectionHeader
           eyebrow="Services"
           title="What we build."

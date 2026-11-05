@@ -106,12 +106,20 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
               <TiltCard max={recommended ? 5 : 3} className="h-full">
                 <div
                   className={cn(
-                    'nf-glass-card nf-glass-interactive group relative flex h-full flex-col rounded-2xl p-6 transition-all duration-500 ease-forge hover:-translate-y-1 shadow-2xs',
+                    'nf-glass-card nf-glass-interactive group relative flex h-full flex-col overflow-hidden rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1',
                     recommended
                       ? 'nf-glass-elevated border-brand/60 ring-1 ring-brand/30 shadow-[0_28px_70px_-32px_rgb(var(--nf-blue)/0.55)] lg:-translate-y-2 lg:hover:-translate-y-3'
-                      : 'border-white/60 hover:border-white/90',
+                      : 'border-white/60 hover:border-white/90 shadow-2xs',
                   )}
+                  style={{
+                    boxShadow: recommended
+                      ? '0 28px 70px -32px rgb(var(--nf-blue)/0.45), 0 4px 16px -4px rgb(60 48 32 / 0.04), inset 0 1px 0 rgb(255 255 255 / 0.95)'
+                      : '0 12px 32px -8px rgb(60 48 32 / 0.08), inset 0 1px 0 rgb(255 255 255 / 0.95)',
+                  }}
                 >
+                  {/* Subtle top rim highlight */}
+                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent" aria-hidden />
+
                   {/* Featured illumination glow for Convert plan */}
                   {recommended ? (
                     <div className="pointer-events-none absolute -top-12 -right-12 h-36 w-36 rounded-full bg-brand/15 blur-2xl" aria-hidden />

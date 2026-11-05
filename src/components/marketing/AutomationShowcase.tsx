@@ -88,6 +88,8 @@ export function AutomationShowcase() {
       // packet and every step highlight are positions on the same progress
       // value, so they can never drift apart. Each step lights up at the
       // exact moment the packet reaches its dot.
+      const clock = node.querySelector<HTMLElement>('[data-elapsed]');
+
       const tl = gsap.timeline({
         defaults: { ease: 'none' },
         scrollTrigger: {
@@ -97,7 +99,6 @@ export function AutomationShowcase() {
           scrub: 0.6, // gentle smoothing; still locked to scroll
           invalidateOnRefresh: true,
           onUpdate: (self) => {
-            const clock = node.querySelector('[data-elapsed]');
             if (clock) clock.textContent = formatElapsed(self.progress);
           },
         },
@@ -173,13 +174,13 @@ export function AutomationShowcase() {
             <span
               data-spine
               aria-hidden
-              className="absolute left-[7px] w-px origin-top bg-brand"
+              className="absolute left-[7px] w-px origin-top bg-brand nf-gpu will-change-transform"
               style={{ transform: 'scaleY(0)' }}
             />
             <span
               data-packet
               aria-hidden
-              className="absolute left-[3.5px] top-[19.5px] h-2 w-2 rounded-full bg-brand shadow-[0_0_14px_2px_rgb(var(--nf-blue)/0.55)]"
+              className="absolute left-[3.5px] top-[19.5px] h-2 w-2 rounded-full bg-brand shadow-[0_0_14px_2px_rgb(var(--nf-blue)/0.55)] nf-gpu will-change-transform"
             />
 
             <ol className="space-y-3">
@@ -221,22 +222,56 @@ export function AutomationShowcase() {
 export function SystemMonitor({ className }: { className?: string }) {
   const [events, setEvents] = useState<string[]>(['NEW ENQUIRY']);
   const reduced = useReducedMotion();
+  const monitorRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     if (reduced) return;
+    const node = monitorRef.current;
+    if (!node) return;
+
     let index = 1;
-    const timer = window.setInterval(() => {
-      setEvents((prev) => {
-        const next = [...prev, MONITOR_EVENTS[index % MONITOR_EVENTS.length]!];
-        index += 1;
-        return next.slice(-5);
-      });
-    }, 2600);
-    return () => window.clearInterval(timer);
+    let timer: number | null = null;
+
+    const startTimer = () => {
+      if (timer !== null) return;
+      timer = window.setInterval(() => {
+        setEvents((prev) => {
+          const next = [...prev, MONITOR_EVENTS[index % MONITOR_EVENTS.length]!];
+          index += 1;
+          return next.slice(-5);
+        });
+      }, 2600);
+    };
+
+    const stopTimer = () => {
+      if (timer !== null) {
+        window.clearInterval(timer);
+        timer = null;
+      }
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          startTimer();
+        } else {
+          stopTimer();
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    observer.observe(node);
+
+    return () => {
+      observer.disconnect();
+      stopTimer();
+    };
   }, [reduced]);
 
   return (
     <div
+      ref={monitorRef}
       className={cn(
         'overflow-hidden rounded-2xl border border-white/60 bg-white/80 shadow-panel backdrop-blur-xl',
         className,

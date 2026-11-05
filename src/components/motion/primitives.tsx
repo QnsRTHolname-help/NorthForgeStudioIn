@@ -245,21 +245,33 @@ export function TiltCard({
   const ref = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
   const touch = useIsTouch();
+  const quickRotY = useRef<((value: number) => void) | null>(null);
+  const quickRotX = useRef<((value: number) => void) | null>(null);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node || reduced || touch) return;
+
+    gsap.set(node, { transformPerspective: 900 });
+    quickRotY.current = gsap.quickTo(node, 'rotateY', { duration: 0.5, ease: 'power3.out' });
+    quickRotX.current = gsap.quickTo(node, 'rotateX', { duration: 0.5, ease: 'power3.out' });
+
+    return () => {
+      quickRotY.current = null;
+      quickRotX.current = null;
+      gsap.killTweensOf(node);
+    };
+  }, [reduced, touch]);
 
   const onMove = (event: React.PointerEvent<HTMLDivElement>) => {
     const node = ref.current;
-    if (!node || reduced || touch) return;
+    if (!node || reduced || touch || !quickRotY.current || !quickRotX.current) return;
     const rect = node.getBoundingClientRect();
     const px = (event.clientX - rect.left) / rect.width;
     const py = (event.clientY - rect.top) / rect.height;
 
-    gsap.to(node, {
-      rotateY: (px - 0.5) * max * 2,
-      rotateX: -(py - 0.5) * max * 2,
-      duration: 0.5,
-      ease: 'power3.out',
-      transformPerspective: 900,
-    });
+    quickRotY.current((px - 0.5) * max * 2);
+    quickRotX.current(-(py - 0.5) * max * 2);
 
     if (glare) {
       node.style.setProperty('--nf-tilt-x', `${px * 100}%`);
@@ -267,18 +279,29 @@ export function TiltCard({
     }
   };
 
+  const onEnter = () => {
+    if (ref.current && !reduced && !touch) {
+      ref.current.style.willChange = 'transform';
+    }
+  };
+
   const onLeave = () => {
-    const node = ref.current;
-    if (!node || reduced || touch) return;
-    gsap.to(node, { rotateX: 0, rotateY: 0, duration: 0.7, ease: 'power3.out' });
+    if (quickRotX.current && quickRotY.current) {
+      quickRotX.current(0);
+      quickRotY.current(0);
+    }
+    if (ref.current) {
+      ref.current.style.willChange = 'auto';
+    }
   };
 
   return (
     <div
       ref={ref}
+      onPointerEnter={onEnter}
       onPointerMove={onMove}
       onPointerLeave={onLeave}
-      className={cn('group relative will-change-transform', className)}
+      className={cn('group relative', className)}
       style={{ transformStyle: 'preserve-3d' }}
     >
       {children}

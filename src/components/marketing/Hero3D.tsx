@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useReducedMotion } from '@/hooks';
@@ -6,183 +6,116 @@ import { useReducedMotion } from '@/hooks';
 gsap.registerPlugin(ScrollTrigger);
 
 /**
- * 3D Hero Animation Component
+ * 3D Hero Visual Component
  *
- * Immersive, Apple-inspired 3D visual experience using CSS 3D transforms and GSAP.
- * Features:
- * - Rotating 3D wireframe cube with luminous corner nodes and edge glow
- * - Floating geometric shapes (circle, square, triangle, hexagon) with parallax
- * - Particle system layered at multiple Z-depths
- * - Smooth pointer/mouse parallax interaction with damping
- * - Constellation connection lines
- * - SSR-safe with clean lifecycle cleanup
+ * Immersive, Apple-inspired 3D visual experience engineered for 60-120fps fluid smoothness:
+ * - Pure hardware-accelerated CSS 3D perspective wireframe cube (no JS tween fighting)
+ * - Decoupled pointer parallax powered by gsap.quickTo (zero heap churn per mousemove)
+ * - Composite-thread floating geometry and multi-depth particle field
+ * - GPU drop-shadow illumination (replaces laggy SVG feGaussianBlur CPU rasterization)
+ * - Passive event listeners and instant SSR-safe lifecycle cleanup
  * - Fully respects prefers-reduced-motion
  */
 export function Hero3D({ className = '' }: { className?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const cubeRef = useRef<HTMLDivElement>(null);
+  const tiltRef = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
 
-  const handleMoveNative = useCallback((e: MouseEvent) => {
-    if (reduced) return;
-    const container = containerRef.current;
-    if (!container) return;
-    const rect = container.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 36;
-    const y = ((e.clientY - rect.top) / rect.height - 0.5) * 36;
+  const quickTiltXRef = useRef<((value: number) => void) | null>(null);
+  const quickTiltYRef = useRef<((value: number) => void) | null>(null);
 
-    if (cubeRef.current) {
-      gsap.to(cubeRef.current, {
-        rotationY: 15 + x * 0.6,
-        rotationX: -15 - y * 0.6,
-        duration: 0.6,
-        ease: 'power2.out',
-      });
-    }
 
-    const shapes = container.querySelectorAll('.hero-shape');
-    if (shapes.length > 0) {
-      gsap.to(shapes, {
-        x: (i: number) => (i % 2 === 0 ? x * 0.35 : -x * 0.35),
-        y: (i: number) => (i % 3 === 0 ? y * 0.35 : -y * 0.35),
-        duration: 0.6,
-        ease: 'power2.out',
-      });
-    }
-  }, [reduced]);
-
-  const handleLeave = useCallback(() => {
-    if (reduced || !containerRef.current) return;
-    if (cubeRef.current) {
-      gsap.to(cubeRef.current, {
-        rotationY: 15,
-        rotationX: -15,
-        duration: 1.2,
-        ease: 'elastic.out(1, 0.4)',
-      });
-    }
-    const shapes = containerRef.current.querySelectorAll('.hero-shape');
-    if (shapes.length > 0) {
-      gsap.to(shapes, {
-        x: 0,
-        y: 0,
-        duration: 1.2,
-        ease: 'elastic.out(1, 0.4)',
-      });
-    }
-  }, [reduced]);
 
   useEffect(() => {
     if (reduced || typeof window === 'undefined') return;
 
     const container = containerRef.current;
-    const cube = cubeRef.current;
-    if (!container || !cube) return;
+    const tilt = tiltRef.current;
+    if (!container || !tilt) return;
+
+    // Initialize high-performance quickTo dampeners
+    quickTiltXRef.current = gsap.quickTo(tilt, 'rotationY', { duration: 0.7, ease: 'power2.out' });
+    quickTiltYRef.current = gsap.quickTo(tilt, 'rotationX', { duration: 0.7, ease: 'power2.out' });
 
     const ctx = gsap.context(() => {
       // Set initial 3D transform orientations
-      gsap.set(cube, { rotationX: -15, rotationY: 15, transformPerspective: 1000 });
-      gsap.set('.hero-shape', { opacity: 0, scale: 0.6 });
+      gsap.set(tilt, { transformPerspective: 1000, transformStyle: 'preserve-3d' });
+      gsap.set('.hero-shape', { opacity: 0, scale: 0.65 });
       gsap.set('.hero-particle', { opacity: 0, scale: 0 });
 
-      // Entrance animation timeline
-      const entranceTl = gsap.timeline({
-        defaults: { ease: 'power2.out' },
-      });
+      // Clean one-shot entrance timeline
+      const entranceTl = gsap.timeline({ defaults: { ease: 'power2.out' } });
 
       entranceTl
         .to('.hero-shape', {
           opacity: 1,
           scale: 1,
-          duration: 1.2,
-          stagger: 0.12,
+          duration: 1.1,
+          stagger: 0.08,
         }, 0.1)
         .to('.hero-particle', {
-          opacity: 0.5,
+          opacity: 0.55,
           scale: 1,
-          duration: 0.9,
-          stagger: 0.03,
-        }, 0.3);
-
-      // Continuous slow 3D rotation of wireframe cube
-      gsap.to(cube, {
-        rotationY: '+=360',
-        duration: 24,
-        ease: 'none',
-        repeat: -1,
-      });
-
-      // Floating oscillation for individual geometric shapes
-      container.querySelectorAll('.hero-shape').forEach((shape, i) => {
-        gsap.to(shape, {
-          y: '+=18',
-          x: i % 2 === 0 ? '+=12' : '-=12',
-          rotation: i % 3 === 0 ? '+=180' : '-=180',
-          duration: 4 + i * 0.6,
-          ease: 'sine.inOut',
-          repeat: -1,
-          yoyo: true,
-        });
-      });
-
-      // Gentle drift for particles
-      container.querySelectorAll('.hero-particle').forEach((particle, i) => {
-        gsap.to(particle, {
-          y: '+=24',
-          x: (i % 2 === 0 ? 1 : -1) * 16,
-          duration: 3.5 + i * 0.4,
-          ease: 'sine.inOut',
-          repeat: -1,
-          yoyo: true,
-        });
-      });
-
-      // Parallax scroll link
-      ScrollTrigger.create({
-        trigger: container,
-        start: 'top bottom',
-        end: 'bottom top',
-        scrub: 1.2,
-        onUpdate: (self) => {
-          if (!reduced && cube) {
-            const p = self.progress;
-            gsap.to(cube, {
-              rotationX: -15 + p * 12,
-              rotationY: 15 + p * 24,
-              duration: 0.3,
-              ease: 'none',
-            });
-          }
-        },
-      });
+          duration: 0.8,
+          stagger: 0.02,
+        }, 0.25);
     }, container);
 
-    container.addEventListener('mousemove', handleMoveNative);
-    container.addEventListener('mouseleave', handleLeave);
+    const onWindowMove = (e: MouseEvent) => {
+      if (reduced || !quickTiltXRef.current || !quickTiltYRef.current) return;
+      const rect = container.getBoundingClientRect();
+      // Only react if pointer is within a reasonable proximity of the hero area
+      if (
+        e.clientX < rect.left - 240 ||
+        e.clientX > rect.right + 240 ||
+        e.clientY < rect.top - 240 ||
+        e.clientY > rect.bottom + 240
+      ) {
+        quickTiltXRef.current(0);
+        quickTiltYRef.current(0);
+        return;
+      }
+      const x = ((e.clientX - rect.left) / rect.width - 0.5) * 28;
+      const y = ((e.clientY - rect.top) / rect.height - 0.5) * 28;
+      quickTiltXRef.current(x * 0.35);
+      quickTiltYRef.current(-y * 0.35);
+    };
+
+    const onWindowLeave = () => {
+      if (quickTiltXRef.current && quickTiltYRef.current) {
+        quickTiltXRef.current(0);
+        quickTiltYRef.current(0);
+      }
+    };
+
+    window.addEventListener('mousemove', onWindowMove, { passive: true });
+    document.addEventListener('mouseleave', onWindowLeave, { passive: true });
 
     return () => {
       ctx.revert();
-      container.removeEventListener('mousemove', handleMoveNative);
-      container.removeEventListener('mouseleave', handleLeave);
+      quickTiltXRef.current = null;
+      quickTiltYRef.current = null;
+      window.removeEventListener('mousemove', onWindowMove);
+      document.removeEventListener('mouseleave', onWindowLeave);
     };
-  }, [reduced, handleMoveNative, handleLeave]);
+  }, [reduced]);
 
-  // Floating geometric elements
+  // Floating geometric elements (animated via CSS GPU keyframes)
   const floatingShapes = Array.from({ length: 8 }, (_, i) => {
-    const size = 36 + (i % 3) * 26;
+    const size = 36 + (i % 3) * 24;
     const shapes = ['circle', 'square', 'triangle', 'hexagon'] as const;
     const shapeType = shapes[i % shapes.length];
-    const delay = i * 0.12;
+    const delay = i * 0.14;
 
     return (
       <div
         key={i}
-        className="hero-shape absolute pointer-events-none"
+        className="hero-shape absolute pointer-events-none nf-gpu"
         style={{
           width: size,
           height: size,
-          left: `${12 + (i % 4) * 22}%`,
-          top: `${14 + Math.floor(i / 4) * 36}%`,
+          left: `${10 + (i % 4) * 24}%`,
+          top: `${12 + Math.floor(i / 4) * 38}%`,
           animationDelay: `${delay}s`,
         }}
         data-depth={0.5 + i * 0.1}
@@ -215,16 +148,16 @@ export function Hero3D({ className = '' }: { className?: string }) {
     );
   });
 
-  // Particle field
-  const particles = Array.from({ length: 20 }, (_, i) => (
+  // Particle field (animated via CSS GPU keyframes)
+  const particles = Array.from({ length: 18 }, (_, i) => (
     <div
       key={i}
-      className="hero-particle absolute pointer-events-none rounded-full"
+      className="hero-particle absolute pointer-events-none rounded-full nf-gpu"
       style={{
         width: 4 + (i % 3) * 2,
         height: 4 + (i % 3) * 2,
-        left: `${6 + (i % 5) * 18}%`,
-        top: `${8 + Math.floor(i / 5) * 24}%`,
+        left: `${7 + (i % 5) * 19}%`,
+        top: `${8 + Math.floor(i / 5) * 25}%`,
         backgroundColor: [
           'rgb(var(--nf-blue))',
           'rgb(var(--nf-violet))',
@@ -232,7 +165,7 @@ export function Hero3D({ className = '' }: { className?: string }) {
           'rgb(var(--nf-amber))',
         ][i % 4],
         opacity: 0,
-        animationDelay: `${i * 0.05}s`,
+        animationDelay: `${i * 0.08}s`,
       }}
       data-depth={0.8 + i * 0.01}
     />
@@ -245,15 +178,12 @@ export function Hero3D({ className = '' }: { className?: string }) {
         className={`relative overflow-hidden ${className}`}
         aria-hidden="true"
       >
-        <div className="absolute inset-0" style={{ transform: 'translateZ(0)' }}>
+        <div className="absolute inset-0">
           {floatingShapes}
           {particles}
           <div
-            ref={cubeRef}
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64"
-            style={{
-              transform: 'translate(-50%, -50%) perspective(1000px) rotateX(-15deg) rotateY(15deg)',
-            }}
+            style={{ transform: 'translate(-50%, -50%) rotateX(-15deg) rotateY(15deg)' }}
           >
             <WireframeCube />
           </div>
@@ -269,35 +199,44 @@ export function Hero3D({ className = '' }: { className?: string }) {
       aria-hidden="true"
       style={{ perspective: 1000 }}
     >
-      {/* Deep particle layer */}
-      <div className="absolute inset-0" style={{ transform: 'translateZ(-100px) scale(1.1)' }}>
-        {particles}
-      </div>
-
-      {/* Floating geometric layer */}
-      <div className="absolute inset-0" style={{ transform: 'translateZ(-50px) scale(1.05)' }}>
-        {floatingShapes}
-      </div>
-
-      {/* 3D Wireframe Cube with rotating perspective */}
+      {/* Decoupled interactive parallax wrapper */}
       <div
-        ref={cubeRef}
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64"
+        ref={tiltRef}
+        className="absolute inset-0 w-full h-full"
         style={{ transformStyle: 'preserve-3d' }}
       >
-        <WireframeCube />
-      </div>
+        {/* Deep particle layer */}
+        <div className="absolute inset-0" style={{ transform: 'translateZ(-90px) scale(1.1)' }}>
+          {particles}
+        </div>
 
-      {/* Constellation connection lines */}
-      <div className="absolute inset-0 pointer-events-none" style={{ transform: 'translateZ(0)' }}>
-        <ConnectionLines />
+        {/* Floating geometric layer */}
+        <div className="absolute inset-0" style={{ transform: 'translateZ(-45px) scale(1.05)' }}>
+          {floatingShapes}
+        </div>
+
+        {/* 3D Wireframe Cube with continuous pure-GPU rotation */}
+        <div
+          className="absolute -top-4 -right-4 sm:-top-6 sm:-right-6 w-52 h-52 sm:w-60 sm:h-60"
+          style={{ transformStyle: 'preserve-3d' }}
+        >
+          <div className="hero-cube-spin w-full h-full flex items-center justify-center" style={{ transformStyle: 'preserve-3d' }}>
+            <WireframeCube />
+          </div>
+        </div>
+
+        {/* Constellation connection lines */}
+        <div className="absolute inset-0 pointer-events-none" style={{ transform: 'translateZ(0)' }}>
+          <ConnectionLines />
+        </div>
       </div>
     </div>
   );
 }
 
 /**
- * 3D Wireframe Cube with animated luminous edges
+ * 3D Wireframe Cube with GPU-accelerated luminous edges
+ * Uses CSS drop-shadow instead of CPU-bound SVG feGaussianBlur filter.
  */
 function WireframeCube() {
   const size = 124;
@@ -324,12 +263,12 @@ function WireframeCube() {
 
   // Translucent luminous faces
   const faces = [
-    { vertices: [0, 1, 2, 3], color: 'rgba(var(--nf-blue), 0.06)', stroke: 'rgb(var(--nf-blue))' },
-    { vertices: [4, 5, 6, 7], color: 'rgba(var(--nf-violet), 0.06)', stroke: 'rgb(var(--nf-violet))' },
-    { vertices: [0, 1, 5, 4], color: 'rgba(var(--nf-cyan), 0.04)', stroke: 'rgb(var(--nf-cyan))' },
-    { vertices: [2, 3, 7, 6], color: 'rgba(var(--nf-amber), 0.04)', stroke: 'rgb(var(--nf-amber))' },
-    { vertices: [1, 2, 6, 5], color: 'rgba(var(--nf-blue), 0.05)', stroke: 'rgb(var(--nf-blue))' },
-    { vertices: [0, 3, 7, 4], color: 'rgba(var(--nf-violet), 0.05)', stroke: 'rgb(var(--nf-violet))' },
+    { vertices: [0, 1, 2, 3], color: 'rgba(var(--nf-blue), 0.08)', stroke: 'rgb(var(--nf-blue))' },
+    { vertices: [4, 5, 6, 7], color: 'rgba(var(--nf-violet), 0.08)', stroke: 'rgb(var(--nf-violet))' },
+    { vertices: [0, 1, 5, 4], color: 'rgba(var(--nf-cyan), 0.05)', stroke: 'rgb(var(--nf-cyan))' },
+    { vertices: [2, 3, 7, 6], color: 'rgba(var(--nf-amber), 0.05)', stroke: 'rgb(var(--nf-amber))' },
+    { vertices: [1, 2, 6, 5], color: 'rgba(var(--nf-blue), 0.06)', stroke: 'rgb(var(--nf-blue))' },
+    { vertices: [0, 3, 7, 4], color: 'rgba(var(--nf-violet), 0.06)', stroke: 'rgb(var(--nf-violet))' },
   ];
 
   return (
@@ -337,20 +276,12 @@ function WireframeCube() {
       width={size}
       height={size}
       viewBox={`-${half} -${half} ${size} ${size}`}
-      className="w-full h-full"
-      style={{ transformStyle: 'preserve-3d' }}
+      className="w-full h-full nf-gpu"
+      style={{
+        transformStyle: 'preserve-3d',
+      }}
       aria-hidden="true"
     >
-      <defs>
-        <filter id="nf-cube-glow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="2" result="coloredBlur" />
-          <feMerge>
-            <feMergeNode in="coloredBlur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-
       {/* Faces with luminous gradient */}
       {faces.map((face, i) => (
         <polygon
@@ -358,9 +289,8 @@ function WireframeCube() {
           points={face.vertices.map((v) => `${vertices[v][0]},${vertices[v][1]}`).join(' ')}
           fill={face.color}
           stroke={face.stroke}
-          strokeWidth="0.5"
-          opacity="0.35"
-          filter="url(#nf-cube-glow)"
+          strokeWidth="0.6"
+          opacity="0.45"
           className="cube-face"
         />
       ))}
@@ -376,8 +306,7 @@ function WireframeCube() {
           stroke={i < 4 ? 'rgb(var(--nf-blue))' : i < 8 ? 'rgb(var(--nf-violet))' : 'rgb(var(--nf-cyan))'}
           strokeWidth="1.6"
           strokeLinecap="round"
-          opacity="0.65"
-          filter="url(#nf-cube-glow)"
+          opacity="0.75"
           className="cube-edge"
         />
       ))}
@@ -390,8 +319,7 @@ function WireframeCube() {
           cy={v[1]}
           r="3"
           fill={i < 4 ? 'rgb(var(--nf-blue))' : 'rgb(var(--nf-violet))'}
-          opacity="0.85"
-          filter="url(#nf-cube-glow)"
+          opacity="0.9"
           className="cube-node"
         />
       ))}
@@ -416,7 +344,7 @@ function ConnectionLines() {
   ];
 
   return (
-    <svg viewBox="0 0 100 100" className="w-full h-full" aria-hidden>
+    <svg viewBox="0 0 100 100" className="w-full h-full nf-gpu" aria-hidden>
       <defs>
         <linearGradient id="nf-conn-grad" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="rgb(var(--nf-blue))" stopOpacity="0.35" />

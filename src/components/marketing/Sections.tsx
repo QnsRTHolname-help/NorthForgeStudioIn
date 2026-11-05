@@ -219,7 +219,7 @@ export function FinalCta({
                   variant="secondary"
                   size="lg"
                   iconLeft={<MessageCircle className="h-4 w-4 text-success" />}
-                  onClick={() => window.open(whatsappLink('Hi NorthForge — I would like to know more.'), '_blank', 'noopener')}
+                  onClick={() => window.open(whatsappLink('Hi NorthForge — I would like to know more.'), '_blank', 'noopener,noreferrer')}
                   className="nf-glass-pill hover:border-white/80"
                 >
                   Talk on WhatsApp

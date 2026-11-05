@@ -152,16 +152,26 @@
 
   html {
     -webkit-text-size-adjust: 100%;
-    scroll-behavior: smooth;
+    scroll-behavior: auto;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    html:not(.lenis) {
+      scroll-behavior: smooth;
+    }
   }
 
   /* Lenis drives scrolling on the marketing site; native elsewhere. */
   html.lenis,
   html.lenis body {
     height: auto;
+    scroll-behavior: auto !important;
+    overscroll-behavior-y: none;
   }
   .lenis.lenis-smooth {
     scroll-behavior: auto !important;
+  }
+  .lenis.lenis-smooth [data-lenis-prevent] {
+    overscroll-behavior: contain;
   }
   .lenis.lenis-stopped {
     overflow: hidden;
@@ -598,6 +608,13 @@
   .nf-gpu {
     will-change: transform;
     transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+  }
+  .nf-contain-paint {
+    contain: paint layout;
+  }
+  .nf-section-smooth {
+    contain: layout style;
   }
 
   /* ── Depth & atmosphere tokens ───────────────────────────────
@@ -693,33 +710,36 @@
      The global reduced-motion rule at the bottom of this file suppresses
      these animations automatically. */
   @keyframes nf-hero-spin {
-    from { transform: rotateY(0deg); }
-    to { transform: rotateY(360deg); }
+    from { transform: translate3d(0, 0, 0) rotateY(0deg) rotateX(-14deg); }
+    to { transform: translate3d(0, 0, 0) rotateY(360deg) rotateX(-14deg); }
   }
   @keyframes nf-hero-float {
-    0%, 100% { transform: translate(0, 0) rotate(0deg); }
-    50% { transform: translate(14px, -18px) rotate(180deg); }
+    0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+    50% { transform: translate3d(14px, -18px, 0) rotate(180deg); }
   }
   @keyframes nf-hero-particle {
-    0%, 100% { transform: translate(0, 0); opacity: 0.35; }
-    50% { transform: translate(-16px, 24px); opacity: 0.6; }
+    0%, 100% { transform: translate3d(0, 0, 0); opacity: 0.35; }
+    50% { transform: translate3d(-16px, 24px, 0); opacity: 0.6; }
   }
   .hero-cube-spin {
-    animation: nf-hero-spin 22s linear infinite;
+    animation: nf-hero-spin 24s linear infinite;
     transform-origin: center center;
     will-change: transform;
+    transform-style: preserve-3d;
   }
   .hero-shape {
-    animation: nf-hero-float 6s ease-in-out infinite;
+    animation: nf-hero-float 7s ease-in-out infinite;
     will-change: transform;
+    backface-visibility: hidden;
   }
-  .hero-shape:nth-child(2n) { animation-duration: 7.5s; animation-delay: -1.5s; }
-  .hero-shape:nth-child(3n) { animation-duration: 5s; animation-delay: -3s; }
+  .hero-shape:nth-child(2n) { animation-duration: 8.5s; animation-delay: -1.5s; }
+  .hero-shape:nth-child(3n) { animation-duration: 6s; animation-delay: -3s; }
   .hero-particle {
-    animation: nf-hero-particle 5s ease-in-out infinite;
+    animation: nf-hero-particle 5.5s ease-in-out infinite;
     will-change: transform, opacity;
+    backface-visibility: hidden;
   }
-  .hero-particle:nth-child(3n+1) { animation-duration: 6.5s; animation-delay: -2s; }
+  .hero-particle:nth-child(3n+1) { animation-duration: 7s; animation-delay: -2s; }
   @keyframes nf-shiny {
     0%, 72%, 100% { background-position: 120% 0; }
     46% { background-position: -20% 0; }

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { MessageCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { LinkButton } from '@/components/ui/Button';
 import { cn } from '@/lib/cn';
 import { useIsTouch } from '@/hooks';
+import { whatsappLink } from '@/data/site';
 
 /**
  * Persistent bottom bar that appears once the visitor has scrolled past the
@@ -21,7 +21,16 @@ export function StickyCTA() {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > window.innerHeight * 0.5);
+    let ticking = false;
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setScrolled(window.scrollY > window.innerHeight * 0.5);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
@@ -35,7 +44,7 @@ export function StickyCTA() {
       <div
         data-sticky-cta
         className={cn(
-          'nf-glass-card nf-glass-elevated sticky bottom-0 z-50 flex items-center justify-between gap-4 rounded-t-2xl border border-white/60 px-5 py-3.5 shadow-lg backdrop-blur-2xl sm:px-6',
+          'nf-glass-card nf-glass-elevated nf-gpu sticky bottom-0 z-50 flex items-center justify-between gap-4 rounded-t-2xl border border-white/60 px-5 py-3.5 shadow-lg backdrop-blur-2xl sm:px-6',
           !visible && 'hidden',
         )}
         aria-hidden={!visible}
@@ -60,10 +69,10 @@ export function StickyCTA() {
   return (
     <div
       data-sticky-cta
-      className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4"
+      className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 nf-gpu pointer-events-none"
       aria-hidden={false}
     >
-      <div className="nf-glass-card nf-glass-elevated flex items-center gap-3 rounded-full border border-white/60 px-5 py-2.5 shadow-lg backdrop-blur-2xl">
+      <div className="nf-glass-card nf-glass-elevated pointer-events-auto flex items-center gap-3 rounded-full border border-white/60 px-5 py-2.5 shadow-lg backdrop-blur-2xl">
         <div className="hidden sm:flex sm:flex-col">
           <span className="text-[13px] font-semibold leading-none text-fg">
             Still deciding?
@@ -73,13 +82,15 @@ export function StickyCTA() {
         <LinkButton to="/contact" size="sm" arrow className="nf-glass-glow">
           Start a project
         </LinkButton>
-        <Link
-          to="/contact"
+        <a
+          href={whatsappLink('Hi NorthForge — I would like to know more.')}
+          target="_blank"
+          rel="noopener noreferrer"
           className="nf-glass-interactive hidden h-9 items-center gap-1.5 rounded-full border border-white/60 bg-white/70 px-3.5 text-[13px] font-medium text-fg shadow-2xs backdrop-blur-md transition-all hover:border-brand/40 hover:bg-white sm:inline-flex"
         >
           <MessageCircle className="h-3.5 w-3.5 text-success" aria-hidden />
           WhatsApp
-        </Link>
+        </a>
       </div>
     </div>
   );
