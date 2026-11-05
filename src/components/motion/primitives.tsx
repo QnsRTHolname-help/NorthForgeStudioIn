@@ -199,6 +199,35 @@ export function TextScramble({
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   SHINY TEXT — a light sweep across a word or short phrase
+   ═══════════════════════════════════════════════════════════════ */
+
+export function ShinyText({ children, className }: { children: ReactNode; className?: string }) {
+  const reduced = useReducedMotion();
+  return (
+    <span
+      className={cn('relative inline-block', className)}
+      style={
+        reduced
+          ? undefined
+          : {
+              backgroundImage:
+                'linear-gradient(105deg, rgb(var(--nf-muted)) 30%, rgb(var(--nf-fg)) 45%, rgb(var(--nf-blue)) 55%, rgb(var(--nf-muted)) 70%)',
+              backgroundSize: '220% 100%',
+              backgroundPosition: '120% 0',
+              WebkitBackgroundClip: 'text',
+              backgroundClip: 'text',
+              color: 'transparent',
+              animation: 'nf-shiny 5.5s ease-in-out infinite',
+            }
+      }
+    >
+      {children}
+    </span>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
    TILT CARD — pointer-tracked 3D tilt (desktop, motion-allowed only)
    ═══════════════════════════════════════════════════════════════ */
 

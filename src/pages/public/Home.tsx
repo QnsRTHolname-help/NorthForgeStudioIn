@@ -14,6 +14,7 @@ import { AutomationShowcase } from '@/components/marketing/AutomationShowcase';
 import { CrmShowcase } from '@/components/marketing/CrmShowcase';
 import { PricingTable } from '@/components/marketing/PricingTable';
 import { FaqSection } from '@/components/marketing/FaqSection';
+import { StickyCTA } from '@/components/marketing/StickyCTA';
 import { SectionHeader } from '@/components/ui/Card';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { organizationSchema, serviceSchema } from '@/data/site';
@@ -71,6 +72,7 @@ export default function Home() {
       <PricingTable showDetail={false} />
       <FaqSection limit={6} />
       <FinalCta />
+      <StickyCTA />
     </>
   );
 }

@@ -720,7 +720,10 @@
     will-change: transform, opacity;
   }
   .hero-particle:nth-child(3n+1) { animation-duration: 6.5s; animation-delay: -2s; }
-  .hero-particle:nth-child(5n+2) { animation-duration: 4s; animation-delay: -1s; }
+  @keyframes nf-shiny {
+    0%, 72%, 100% { background-position: 120% 0; }
+    46% { background-position: -20% 0; }
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════

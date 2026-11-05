@@ -4,8 +4,9 @@ import { ArrowRight, MessageCircle } from 'lucide-react';
 import { gsap } from 'gsap';
 import { LinkButton, Button } from '@/components/ui/Button';
 import { Magnetic } from '@/components/motion';
-import { SplitText, CountUp } from '@/components/motion/primitives';
+import { SplitText, CountUp, ShinyText } from '@/components/motion/primitives';
 import { GrowthSystem, GrowthChain } from './GrowthSystem';
+import { Hero3D } from './Hero3D';
 import { whatsappLink } from '@/data/site';
 import { useReducedMotion } from '@/hooks';
 import { trackEvent } from '@/lib/analytics';
@@ -119,7 +120,7 @@ export function Hero() {
                   <span className="absolute inline-flex h-full w-full animate-pulse-ring rounded-full bg-brand" />
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-brand" />
                 </span>
-                WEB · AUTOMATION · AI · GROWTH
+                <ShinyText className="text-brand">WEB · AUTOMATION · AI · GROWTH</ShinyText>
               </span>
             </div>
 
@@ -188,15 +189,16 @@ export function Hero() {
 
           {/* ── System panel ───────────────────────────────────── */}
           <div data-hero-system className="relative">
-            {/* Quiet CSS-only atmosphere behind the panel — the same
-                floating-geometry language as the 3D hero, at a fraction of
-                the cost, and it never competes with the loop it frames. */}
+            {/* 3D Visual & Atmospheric Layer - Behind the system panel */}
             <div
               data-hero-glow
-              className="pointer-events-none absolute -inset-10 -z-10 opacity-60"
-              aria-hidden
+              className="pointer-events-none absolute -inset-10 -z-10 overflow-hidden"
+              aria-hidden="true"
             >
-              <HeroAtmosphere />
+              <Hero3D className="w-full h-full" />
+              <div className="absolute inset-0 opacity-40">
+                <HeroAtmosphere />
+              </div>
             </div>
 
             {/* Apple-grade frosted glass console with connected operating flow */}
