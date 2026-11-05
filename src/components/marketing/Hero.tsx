@@ -57,7 +57,7 @@ export function Hero() {
         .fromTo(
           '[data-hero-system]',
           { opacity: 0, y: DISTANCE.section },
-          { opacity: 1, y: 0, duration: DURATION.panel, ease: EASE.expressive, clearProps: 'transform' },
+          { opacity: 1, y: 0, duration: DURATION.panel, ease: EASE.expressive },
           0.55,
         )
         // Actions stagger in right after the panel starts its rise.

@@ -428,18 +428,12 @@ export function PageTransition({
     const ctx = gsap.context(() => {
       gsap.fromTo(
         node,
-        { opacity: 0, y: variant === 'expressive' ? 14 : 8 },
+        { opacity: 0 },
         {
           opacity: 1,
-          y: 0,
-          duration: variant === 'expressive' ? 0.5 : 0.35,
+          duration: variant === 'expressive' ? 0.35 : 0.2,
           ease: 'power2.out',
-          // Clear the inline transform when the intro finishes. A leftover
-          // transform (even translate(0,0)) on this wrapper makes it the
-          // containing block for position:fixed descendants, which desyncs
-          // ScrollTrigger's fixed-position pinning — visibly glitching the
-          // pinned How It Works storyboard while scrolling.
-          clearProps: 'transform,opacity',
+          clearProps: 'opacity',
         },
       );
     }, node);

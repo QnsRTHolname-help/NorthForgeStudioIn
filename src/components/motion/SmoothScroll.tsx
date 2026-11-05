@@ -33,19 +33,20 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
     if (!enabled || reduced) return;
 
     const instance = new Lenis({
-      lerp: 0.1,
+      lerp: 0.075,
+      wheelMultiplier: 1.15,
       smoothWheel: true,
       // Leave touch devices on native momentum scrolling — it feels better
       // and avoids fighting the platform (spec §9, §147).
       syncTouch: false,
-      touchMultiplier: 1.6,
-      wheelMultiplier: 1,
       autoResize: true,
+      anchors: true,
+      stopInertiaOnNavigate: true,
     });
     instanceRef.current = instance;
     setLenis(instance);
 
-    const onScroll = (e: { progress: number }) => {
+    const onScroll = (e: { progress?: number }) => {
       ScrollTrigger.update();
       setScrollProgress(e.progress ?? instance.progress);
     };
@@ -57,6 +58,7 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
 
     return () => {
       gsap.ticker.remove(raf);
+      gsap.ticker.lagSmoothing(500, 33);
       instance.off('scroll', onScroll);
       instance.destroy();
       instanceRef.current = null;

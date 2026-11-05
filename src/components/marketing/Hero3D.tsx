@@ -58,25 +58,32 @@ export function Hero3D({ className = '' }: { className?: string }) {
         }, 0.25);
     }, container);
 
+    let ticking = false;
     const onWindowMove = (e: MouseEvent) => {
       if (reduced || !quickTiltXRef.current || !quickTiltYRef.current) return;
-      if (window.scrollY > 900) return;
-      const rect = container.getBoundingClientRect();
-      // Only react if pointer is within a reasonable proximity of the hero area
-      if (
-        e.clientX < rect.left - 240 ||
-        e.clientX > rect.right + 240 ||
-        e.clientY < rect.top - 240 ||
-        e.clientY > rect.bottom + 240
-      ) {
-        quickTiltXRef.current(0);
-        quickTiltYRef.current(0);
-        return;
-      }
-      const x = ((e.clientX - rect.left) / rect.width - 0.5) * 28;
-      const y = ((e.clientY - rect.top) / rect.height - 0.5) * 28;
-      quickTiltXRef.current(x * 0.35);
-      quickTiltYRef.current(-y * 0.35);
+      if (window.scrollY > 800) return;
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        ticking = false;
+        if (!container) return;
+        const rect = container.getBoundingClientRect();
+        // Only react if pointer is within a reasonable proximity of the hero area
+        if (
+          e.clientX < rect.left - 240 ||
+          e.clientX > rect.right + 240 ||
+          e.clientY < rect.top - 240 ||
+          e.clientY > rect.bottom + 240
+        ) {
+          quickTiltXRef.current?.(0);
+          quickTiltYRef.current?.(0);
+          return;
+        }
+        const x = ((e.clientX - rect.left) / rect.width - 0.5) * 28;
+        const y = ((e.clientY - rect.top) / rect.height - 0.5) * 28;
+        quickTiltXRef.current?.(x * 0.35);
+        quickTiltYRef.current?.(-y * 0.35);
+      });
     };
 
     const onWindowLeave = () => {

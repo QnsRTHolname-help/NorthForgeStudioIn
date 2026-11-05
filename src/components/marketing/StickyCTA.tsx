@@ -25,7 +25,8 @@ export function StickyCTA() {
     const onScroll = () => {
       if (!ticking) {
         window.requestAnimationFrame(() => {
-          setScrolled(window.scrollY > window.innerHeight * 0.5);
+          const next = window.scrollY > window.innerHeight * 0.5;
+          setScrolled((prev) => (prev === next ? prev : next));
           ticking = false;
         });
         ticking = true;

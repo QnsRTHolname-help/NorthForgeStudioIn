@@ -24,6 +24,26 @@
     {
       "source": "/me",
       "destination": "/index.html"
+    },
+    {
+      "source": "/generative_ui",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/generative-ui",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/boost",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/teamwork-preview",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/application-security-testing",
+      "destination": "/index.html"
     }
   ],
   "headers": [

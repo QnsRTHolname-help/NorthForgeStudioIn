@@ -334,4 +334,15 @@ export const INDEXABLE_ROUTES = ROUTES.filter((route) => route.index);
  * Everything else is prerendered; an unknown URL should be a real 404, not a
  * 200 page that says "not found".
  */
-export const SPA_REWRITES = ['/app', '/app/(.*)', '/portal', '/portal/(.*)', '/me'];
+export const SPA_REWRITES = [
+  '/app',
+  '/app/(.*)',
+  '/portal',
+  '/portal/(.*)',
+  '/me',
+  '/generative_ui',
+  '/generative-ui',
+  '/boost',
+  '/teamwork-preview',
+  '/application-security-testing',
+];

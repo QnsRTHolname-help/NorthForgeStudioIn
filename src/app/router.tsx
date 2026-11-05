@@ -121,6 +121,11 @@ export const AppRoutes: RouteDefinition[] = [
       { path: 'contact', element: <ContactPage /> },
       { path: 'privacy', element: <PrivacyPage /> },
       { path: 'terms', element: <PrivacyPage /> },
+      { path: 'generative_ui', element: <Home /> },
+      { path: 'generative-ui', element: <Home /> },
+      { path: 'boost', element: <Home /> },
+      { path: 'teamwork-preview', element: <Home /> },
+      { path: 'application-security-testing', element: <Home /> },
       { path: 'error', element: <ServerErrorPage /> },
       {
         path: 'login',

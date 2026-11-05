@@ -170,6 +170,9 @@
   .lenis.lenis-smooth {
     scroll-behavior: auto !important;
   }
+  .lenis.lenis-smooth iframe {
+    pointer-events: none;
+  }
   .lenis.lenis-smooth [data-lenis-prevent] {
     overscroll-behavior: contain;
   }

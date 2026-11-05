@@ -40,8 +40,7 @@ export function ProcessTimeline() {
             pin: true,
             scrub: SCRUB,
             invalidateOnRefresh: true,
-            anticipatePin: 1,
-            fastScrollEnd: true,
+            anticipatePin: 0,
           },
         });
 
@@ -154,7 +153,7 @@ export function ProcessTimeline() {
                 key={step.number}
                 data-step
                 className={cn(
-                  'nf-glass-card nf-glass-interactive nf-gpu will-change-[transform,opacity] group relative flex min-h-[300px] w-[300px] shrink-0 flex-col justify-between rounded-2xl border border-white/60 bg-white/80 p-6 shadow-2xs backdrop-blur-sm transition-all duration-300 hover:shadow-md',
+                  'nf-glass-card nf-glass-interactive nf-gpu will-change-[transform,opacity] group relative flex min-h-[300px] w-[300px] shrink-0 flex-col justify-between rounded-2xl border border-white/60 bg-white/80 p-6 shadow-2xs backdrop-blur-sm transition-[box-shadow,border-color,background-color] duration-300 hover:shadow-md',
                   'sm:w-[340px] lg:h-[62vh] lg:max-h-[460px] lg:w-[380px] lg:p-8',
                 )}
                 style={{

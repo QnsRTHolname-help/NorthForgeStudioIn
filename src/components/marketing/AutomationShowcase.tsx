@@ -98,7 +98,6 @@ export function AutomationShowcase() {
           end: 'bottom 55%',
           scrub: true,
           invalidateOnRefresh: true,
-          fastScrollEnd: true,
           onUpdate: (self) => {
             if (clock) clock.textContent = formatElapsed(self.progress);
           },

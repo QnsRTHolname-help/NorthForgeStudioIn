@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   ArrowRight,
   CheckCircle2,
@@ -21,6 +22,7 @@ import {
 import { SectionHeader } from '@/components/ui/Card';
 import { Reveal } from '@/components/motion';
 import { DemoBadge } from '@/components/ui/Badge';
+import { useSmoothScroll } from '@/components/motion/SmoothScroll';
 import { cn } from '@/lib/cn';
 
 interface DemoLead {
@@ -186,6 +188,49 @@ type ViewMode = 'pipeline' | 'team' | 'generative' | 'security' | 'boost';
  */
 export function CrmShowcase() {
   const [viewMode, setViewMode] = useState<ViewMode>('pipeline');
+  const location = useLocation();
+  const { scrollTo } = useSmoothScroll();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const viewParam = params.get('view');
+    const path = location.pathname.toLowerCase().replace(/^\//, '');
+    const hash = location.hash.toLowerCase().replace(/^#/, '');
+
+    let targetMode: ViewMode | null = null;
+    if (viewParam === 'generative' || path === 'generative_ui' || path === 'generative-ui' || hash === 'generative_ui' || hash === 'generative-ui') {
+      targetMode = 'generative';
+    } else if (viewParam === 'boost' || path === 'boost' || hash === 'boost') {
+      targetMode = 'boost';
+    } else if (viewParam === 'team' || path === 'teamwork-preview' || path === 'teamwork' || hash === 'teamwork-preview' || hash === 'teamwork') {
+      targetMode = 'team';
+    } else if (viewParam === 'security' || path === 'application-security-testing' || hash === 'application-security-testing' || hash === 'appsec') {
+      targetMode = 'security';
+    } else if (viewParam === 'pipeline' || hash === 'pipeline') {
+      targetMode = 'pipeline';
+    }
+
+    if (targetMode) {
+      setViewMode(targetMode);
+      if (
+        path === 'generative_ui' ||
+        path === 'generative-ui' ||
+        path === 'boost' ||
+        path === 'teamwork-preview' ||
+        path === 'application-security-testing' ||
+        hash === 'systems' ||
+        hash === 'showcase' ||
+        hash === targetMode
+      ) {
+        requestAnimationFrame(() => {
+          const section = document.getElementById('systems');
+          if (section) {
+            scrollTo(section, { offset: -80 });
+          }
+        });
+      }
+    }
+  }, [location.pathname, location.search, location.hash, scrollTo]);
 
   // Generative UI state
   const [genPrompt, setGenPrompt] = useState<'booking' | 'roi' | 'triage'>('booking');
@@ -198,7 +243,7 @@ export function CrmShowcase() {
   const [activeProof, setActiveProof] = useState<'honeypot' | 'idor' | 'sqli'>('honeypot');
 
   return (
-    <section className="nf-shell py-20 lg:py-28">
+    <section id="systems" data-showcase className="nf-shell scroll-mt-28 py-20 lg:py-28">
       <SectionHeader
         eyebrow="Interactive Studio Console"
         title="Explore the systems running behind NorthForge."
