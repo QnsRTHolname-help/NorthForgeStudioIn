@@ -536,6 +536,18 @@
       inset 0 1px 0 rgb(255 255 255 / 0.12);
   }
 
+  /* ── Lit rim for solid surfaces ────────────────────────────────
+     Glass cards carry `inset 0 1px 0` highlights already; plain
+     `bg-surface` panels (Card, Panel, KpiCard, BentoItem) had none, so
+     they sat flatter than the glass beside them. This token adds the same
+     rim light to any surface so the depth language is consistent. */
+  .nf-rim {
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5);
+  }
+  [data-theme='dark'] .nf-rim {
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+  }
+
   /* ── Apple Glowing Border & CTA Utility ─────────────────────── */
   .nf-glass-glow {
     position: relative;

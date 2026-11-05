@@ -16,7 +16,8 @@ import { PricingTable } from '@/components/marketing/PricingTable';
 import { FaqSection } from '@/components/marketing/FaqSection';
 import { SectionHeader } from '@/components/ui/Card';
 import { usePageMeta } from '@/hooks/usePageMeta';
-import { organizationSchema } from '@/data/site';
+import { organizationSchema, serviceSchema } from '@/data/site';
+import { SERVICE_GROUPS } from '@shared/catalog';
 
 export default function Home() {
   usePageMeta({
@@ -30,11 +31,18 @@ export default function Home() {
   });
 
   useEffect(() => {
-    const script = document.createElement('script');
-    script.type = 'application/ld+json';
-    script.text = JSON.stringify(organizationSchema());
-    document.head.appendChild(script);
-    return () => script.remove();
+    const schemas = [organizationSchema(), serviceSchema(SERVICE_GROUPS)];
+    const scripts: HTMLScriptElement[] = [];
+    for (const schema of schemas) {
+      const script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.text = JSON.stringify(schema);
+      document.head.appendChild(script);
+      scripts.push(script);
+    }
+    return () => {
+      for (const script of scripts) script.remove();
+    };
   }, []);
 
   return (

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { INDEXABLE_ROUTES, ROUTES, SPA_REWRITES } from './routes';
 
 /**
@@ -19,6 +19,18 @@ import { INDEXABLE_ROUTES, ROUTES, SPA_REWRITES } from './routes';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const readPage = (page: string) => fs.readFileSync(path.join(root, page), 'utf8');
+
+/**
+ * The schema tests read the *baked* HTML under `dist/`, which only exists
+ * after `npm run build`. Rather than silently skip when it is absent, build it
+ * first so the test is deterministic either way — a fresh checkout and a
+ * post-build run both exercise the same seam.
+ */
+beforeAll(async () => {
+  if (fs.existsSync(path.join(root, 'dist', 'schema.json'))) return;
+  const { execFileSync } = await import('node:child_process');
+  execFileSync('npm', ['run', 'build'], { cwd: root, stdio: 'ignore' });
+});
 
 describe('route manifest', () => {
   it('defines every route with the fields the build steps rely on', () => {
@@ -73,5 +85,55 @@ describe('route manifest', () => {
     }
     expect(SPA_REWRITES).toContain('/app/(.*)');
     expect(SPA_REWRITES).toContain('/portal/(.*)');
+  });
+});
+
+/**
+ * Guards the baked JSON-LD seam. The schemas are emitted by vite.config into
+ * `dist/schema.json` and baked into every indexable page's prerendered HTML by
+ * `scripts/prerender.mjs`. They are also injected at runtime by `useEffect` in
+ * the pages themselves. Those are three copies of one fact — and unlike the
+ * title/description table, a drift here is invisible: a missing schema simply
+ * means Google never gets rich results, nothing breaks in the browser.
+ *
+ * Reading the baked file back is the cheapest way to make that drift fail.
+ */
+describe('baked schema', () => {
+  const readBuilt = (p: string) => fs.readFileSync(path.join(root, 'dist', p), 'utf8');
+
+  it('bakes organization + service schema onto every indexable page', () => {
+    for (const route of INDEXABLE_ROUTES) {
+      const file = route.path === '/' ? 'index.html' : `${route.path}.html`;
+      const html = readBuilt(file);
+      expect(html, `${route.path} should carry baked JSON-LD`).toContain(
+        'application/ld+json',
+      );
+      expect(html, `${route.path} should describe the business`).toContain(
+        '"@type":"ProfessionalService"',
+      );
+      expect(html, `${route.path} should list its services`).toContain(
+        '"@type":"ItemList"',
+      );
+    }
+  });
+
+  it('bakes the FAQPage schema only onto the FAQ route', () => {
+    const faq = readBuilt('faq.html');
+    expect(faq).toContain('"@type":"FAQPage"');
+
+    for (const route of INDEXABLE_ROUTES) {
+      if (route.path === '/faq') continue;
+      const file = route.path === '/' ? 'index.html' : `${route.path}.html`;
+      expect(readBuilt(file), `${route.path} should not carry the FAQ schema`).not.toContain(
+        '"@type":"FAQPage"',
+      );
+    }
+  });
+
+  it('bakes no schema onto non-indexable routes', () => {
+    // Auth and error screens are never baked, so they carry no schema at all.
+    for (const file of ['404.html']) {
+      expect(readBuilt(file)).not.toContain('application/ld+json');
+    }
   });
 });

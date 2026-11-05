@@ -6,7 +6,6 @@ import { LinkButton, Button } from '@/components/ui/Button';
 import { Magnetic } from '@/components/motion';
 import { SplitText, CountUp } from '@/components/motion/primitives';
 import { GrowthSystem, GrowthChain } from './GrowthSystem';
-import { Hero3D } from './Hero3D';
 import { whatsappLink } from '@/data/site';
 import { useReducedMotion } from '@/hooks';
 import { trackEvent } from '@/lib/analytics';
@@ -189,9 +188,15 @@ export function Hero() {
 
           {/* ── System panel ───────────────────────────────────── */}
           <div data-hero-system className="relative">
-            {/* 3D Visual Layer - Behind the system panel */}
-            <div className="absolute inset-0 -z-10 pointer-events-none" aria-hidden="true">
-              <Hero3D className="w-full h-full" />
+            {/* Quiet CSS-only atmosphere behind the panel — the same
+                floating-geometry language as the 3D hero, at a fraction of
+                the cost, and it never competes with the loop it frames. */}
+            <div
+              data-hero-glow
+              className="pointer-events-none absolute -inset-10 -z-10 opacity-60"
+              aria-hidden
+            >
+              <HeroAtmosphere />
             </div>
 
             {/* Apple-grade frosted glass console with connected operating flow */}
@@ -266,5 +271,52 @@ export function Hero() {
         </Link>
       </div>
     </section>
+  );
+}
+
+/**
+ * Quiet CSS-only atmosphere behind the system panel.
+ *
+ * The old hero shipped a 3D wireframe cube, eight floating shapes, twenty
+ * particles and a connection polygon — all decorative, and the heaviest
+ * element in the first viewport. The Growth System loop is the actual
+ * product story, so it now owns the panel. This is what's left of the
+ * atmosphere: a few slow, translucent shapes that give the panel a sense of
+ * space without competing with it. Pure CSS, zero JS, and fully suppressed
+ * under prefers-reduced-motion.
+ */
+function HeroAtmosphere() {
+  const shapes = [
+    { kind: 'ring', size: 140, left: '8%', top: '12%', duration: 18, delay: 0 },
+    { kind: 'ring', size: 90, left: '78%', top: '62%', duration: 24, delay: -6 },
+    { kind: 'dot', size: 14, left: '22%', top: '74%', duration: 9, delay: -3 },
+    { kind: 'dot', size: 22, left: '68%', top: '18%', duration: 11, delay: -5 },
+    { kind: 'line', width: 80, height: 1, left: '44%', top: '30%', duration: 14, delay: -2 },
+  ];
+
+  return (
+    <div className="relative h-full w-full" aria-hidden>
+      {shapes.map((shape, index) => {
+        const base = 'absolute rounded-full bg-brand/20';
+        const motion = `hero-float ${shape.duration}s ease-in-out infinite`;
+        return (
+          <span
+            key={index}
+            className={shape.kind === 'line' ? 'bg-brand/15' : base}
+            style={{
+              width: shape.kind === 'line' ? shape.width : shape.size,
+              height: shape.kind === 'line' ? shape.height : shape.size,
+              left: shape.left,
+              top: shape.top,
+              animation: `${motion}`,
+              animationDelay: `${shape.delay}s`,
+              ...(shape.kind === 'ring'
+                ? { border: '1.5px solid rgb(var(--nf-blue) / 0.25)', background: 'transparent' }
+                : {}),
+            }}
+          />
+        );
+      })}
+    </div>
   );
 }

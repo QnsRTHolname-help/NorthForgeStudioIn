@@ -1,5 +1,6 @@
 import { FaqSection } from '@/components/marketing/FaqSection';
 import { FinalCta } from '@/components/marketing/Sections';
+import { StickyCTA } from '@/components/marketing/StickyCTA';
 import { usePageMeta } from '@/hooks/usePageMeta';
 
 export default function Faq() {
@@ -29,6 +30,7 @@ export default function Faq() {
         title="Ask us directly."
         description="Tell us what your business does and where it loses time. We will reply with specifics, not a brochure."
       />
+      <StickyCTA />
     </>
   );
 }

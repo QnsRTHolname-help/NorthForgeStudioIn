@@ -9,7 +9,23 @@
 
 export const PLACEHOLDER_CONTACT = false;
 
-const WHATSAPP_DIGITS = import.meta.env.VITE_WHATSAPP_NUMBER ?? '919187006703';
+/**
+ * Read a `VITE_*` variable safely. `import.meta.env` is a real object inside
+ * the app bundle, but is `undefined` when this module is imported at Vite
+ * *config* load time (the schema emitter does that) — guarding here keeps
+ * both call sites working instead of special-casing the config.
+ */
+function viteEnv(key: string): string | undefined {
+  try {
+    // `import.meta.env` may be undefined in non-browser contexts; the
+    // optional chain avoids a hard crash at module-evaluation time.
+    return (import.meta as { env?: Record<string, string | undefined> }).env?.[key];
+  } catch {
+    return undefined;
+  }
+}
+
+const WHATSAPP_DIGITS = viteEnv('VITE_WHATSAPP_NUMBER') ?? '919187006703';
 
 export const SITE = {
   name: 'NorthForge',
@@ -19,7 +35,7 @@ export const SITE = {
   discipline: 'WEB · AUTOMATION · AI · GROWTH',
   description:
     'NorthForge is a premium digital systems studio. We design premium websites and connect them to AI, lead capture, WhatsApp, automation and analytics — turning your digital presence into a system that helps your business grow.',
-  url: (import.meta.env.VITE_SITE_URL as string) || 'https://northforgestudioin.vercel.app',
+  url: viteEnv('VITE_SITE_URL') || 'https://northforgestudioin.vercel.app',
   locale: 'en_IN',
 } as const;
 
@@ -113,5 +129,35 @@ export function organizationSchema() {
       'AI customer support',
       'Custom SaaS development',
     ],
+  };
+}
+
+/**
+ * Offer catalog (spec §94). An `ItemList` of the five capability groups so
+ * Google can surface "services" rich results. Read from the same catalog
+ * that renders the services page — the copy can never drift.
+ *
+ * The caller passes the group list (rather than this module importing the
+ * catalog) to keep `site.ts` free of a dependency on `@shared/catalog`:
+ * `site.ts` is imported by every page, and a circular import here would be
+ * silent and hard to debug.
+ */
+export function serviceSchema(
+  groups: ReadonlyArray<{ label: string; blurb: string }>,
+) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'NorthForge services',
+    description: SITE.description,
+    url: SITE.url,
+    numberOfItems: groups.length,
+    itemListElement: groups.map((group, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: group.label,
+      description: group.blurb,
+      url: `${SITE.url}/#services`,
+    })),
   };
 }

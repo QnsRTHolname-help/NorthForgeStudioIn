@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react';
 import path from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { INDEXABLE_ROUTES, ROUTES, SPA_REWRITES } from './shared/routes';
+import { FAQS } from './src/data/content';
+import { SERVICE_GROUPS } from './shared/catalog';
+import { organizationSchema, serviceSchema } from './src/data/site';
 
 /**
  * Emits the route table into `dist/route-meta.json` at build time.
@@ -24,6 +27,45 @@ function emitRouteMeta(): Plugin {
             routes: ROUTES,
             indexable: INDEXABLE_ROUTES.map((route) => route.path),
             spaRewrites: SPA_REWRITES,
+          },
+          null,
+          2,
+        ),
+      });
+    },
+  };
+}
+
+/**
+ * Emits the JSON-LD payloads into `dist/schema.json` at build time.
+ *
+ * The schemas are injected into the DOM by `useEffect` at runtime, which
+ * means they only ever appear in pages Googlebot actually executes — link
+ * previews (WhatsApp, LinkedIn), AI crawlers and most other consumers read
+ * the raw HTML and saw nothing. Baking them into the prerendered output
+ * fixes that, and this plugin is the single source of truth for both the
+ * baked and the runtime copies.
+ */
+function emitSchema(): Plugin {
+  return {
+    name: 'northforge:emit-schema',
+    generateBundle() {
+      this.emitFile({
+        type: 'asset',
+        fileName: 'schema.json',
+        source: JSON.stringify(
+          {
+            organization: organizationSchema(),
+            service: serviceSchema(SERVICE_GROUPS),
+            faq: {
+              '@context': 'https://schema.org',
+              '@type': 'FAQPage',
+              mainEntity: FAQS.map((item) => ({
+                '@type': 'Question',
+                name: item.question,
+                acceptedAnswer: { '@type': 'Answer', text: item.answer },
+              })),
+            },
           },
           null,
           2,
@@ -78,7 +120,7 @@ function enquiryRelayPlugin(): Plugin {
  * 0017 has not yet been applied.
  */
 export default defineConfig({
-  plugins: [react(), emitRouteMeta(), enquiryRelayPlugin()],
+  plugins: [react(), emitRouteMeta(), emitSchema(), enquiryRelayPlugin()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

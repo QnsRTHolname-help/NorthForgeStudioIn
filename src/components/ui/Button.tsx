@@ -7,7 +7,7 @@ type Variant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'subtl
 type Size = 'sm' | 'md' | 'lg';
 
 const BASE =
-  'relative inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-xl font-medium tracking-tight backdrop-blur-xl active:scale-[0.97] transition-[background-color,border-color,color,transform,box-shadow,backdrop-filter] duration-150 ease-forge focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:pointer-events-none disabled:opacity-45';
+  'relative inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-xl font-medium tracking-tight backdrop-blur-xl active:scale-[0.96] active:shadow-[0_2px_8px_-4px_rgb(0_0_0/0.4)] transition-[background-color,border-color,color,transform,box-shadow,backdrop-filter] duration-150 ease-forge focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:pointer-events-none disabled:opacity-45';
 
 const VARIANTS: Record<Variant, string> = {
   // Brand blue with a violet sheen — Apple liquid-glass rim light.

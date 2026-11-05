@@ -13,7 +13,7 @@ export function Card({ interactive, padded = true, className, children, ...props
   return (
     <div
       className={cn(
-        'relative rounded-lg border border-line bg-surface transition-[border-color,box-shadow,transform] duration-300 ease-forge',
+        'relative rounded-lg border border-line bg-surface nf-rim transition-[border-color,box-shadow,transform] duration-300 ease-forge',
         padded && 'p-5',
         interactive && 'hover:-translate-y-0.5 hover:border-line-strong hover:shadow-lift',
         className,
@@ -113,7 +113,7 @@ export function KpiCard({
     <Tag
       {...(onClick ? { onClick, type: 'button' as const } : {})}
       className={cn(
-        'group relative flex flex-col gap-3 rounded-lg border border-line bg-surface p-5 text-left transition-colors duration-300 ease-forge',
+        'group relative flex flex-col gap-3 rounded-lg border border-line bg-surface nf-rim p-5 text-left transition-colors duration-300 ease-forge',
         onClick && 'hover:border-line-strong hover:bg-elevated',
       )}
     >
@@ -166,7 +166,7 @@ export function Panel({
   bodyClassName?: string;
 }) {
   return (
-    <section className={cn('overflow-hidden rounded-lg border border-line bg-surface', className)}>
+    <section className={cn('overflow-hidden rounded-lg border border-line bg-surface nf-rim', className)}>
       {title ? (
         <header className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
           <div className="min-w-0">

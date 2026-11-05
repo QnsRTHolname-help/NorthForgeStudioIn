@@ -199,35 +199,6 @@ export function TextScramble({
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   SHINY TEXT — a light sweep across a word or short phrase
-   ═══════════════════════════════════════════════════════════════ */
-
-export function ShinyText({ children, className }: { children: ReactNode; className?: string }) {
-  const reduced = useReducedMotion();
-  return (
-    <span
-      className={cn('relative inline-block', className)}
-      style={
-        reduced
-          ? undefined
-          : {
-              backgroundImage:
-                'linear-gradient(105deg, rgb(var(--nf-muted)) 30%, rgb(var(--nf-fg)) 45%, rgb(var(--nf-blue)) 55%, rgb(var(--nf-muted)) 70%)',
-              backgroundSize: '220% 100%',
-              backgroundPosition: '120% 0',
-              WebkitBackgroundClip: 'text',
-              backgroundClip: 'text',
-              color: 'transparent',
-              animation: 'nf-shiny 5.5s ease-in-out infinite',
-            }
-      }
-    >
-      {children}
-    </span>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════
    TILT CARD — pointer-tracked 3D tilt (desktop, motion-allowed only)
    ═══════════════════════════════════════════════════════════════ */
 
@@ -278,7 +249,7 @@ export function TiltCard({
       ref={ref}
       onPointerMove={onMove}
       onPointerLeave={onLeave}
-      className={cn('relative will-change-transform', className)}
+      className={cn('group relative will-change-transform', className)}
       style={{ transformStyle: 'preserve-3d' }}
     >
       {children}
@@ -292,6 +263,57 @@ export function TiltCard({
           }}
         />
       ) : null}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SPOTLIGHT — pointer-tracked radial glow, CSS-only
+   ═══════════════════════════════════════════════════════════════ */
+
+export function Spotlight({
+  children,
+  className,
+  color = 'rgb(var(--nf-blue) / 0.10)',
+  size = 360,
+}: {
+  children?: ReactNode;
+  className?: string;
+  color?: string;
+  size?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const touch = useIsTouch();
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node || touch) return;
+
+    const onMove = (event: MouseEvent) => {
+      const rect = node.getBoundingClientRect();
+      node.style.setProperty('--mx', `${event.clientX - rect.left}px`);
+      node.style.setProperty('--my', `${event.clientY - rect.top}px`);
+    };
+    node.addEventListener('mousemove', onMove);
+    return () => node.removeEventListener('mousemove', onMove);
+  }, [touch]);
+
+  if (touch) return <>{children}</>;
+
+  return (
+    <div
+      ref={ref}
+      className={cn('relative', className)}
+      style={{ ['--mx' as string]: '50%', ['--my' as string]: '50%' }}
+    >
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 rounded-[inherit]"
+        style={{
+          background: `radial-gradient(${size}px circle at var(--mx) var(--my), ${color}, transparent 62%)`,
+        }}
+      />
+      <div className="relative">{children}</div>
     </div>
   );
 }
@@ -345,6 +367,8 @@ export function BentoItem({
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-line-strong to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100"
       />
+      {/* Pointer-tracked spotlight — follows the cursor across the tile. */}
+      <Spotlight className="opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
       {children}
     </div>
   );
@@ -668,21 +692,6 @@ export function CountUp({
   }, [value, duration, reduced, format]);
 
   return <span ref={ref} className={className} />;
-}
-
-/** Registers the shiny-text keyframe once, alongside the token layer. */
-export function MotionStyles() {
-  return (
-    <style>{`
-      @keyframes nf-shiny {
-        0%, 72%, 100% { background-position: 120% 0; }
-        46% { background-position: -20% 0; }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        [style*="nf-shiny"] { animation: none !important; }
-      }
-    `}</style>
-  );
 }
 
 export { ScrollTrigger };

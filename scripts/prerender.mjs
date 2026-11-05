@@ -54,6 +54,35 @@ if (startAt === -1 || endAt === -1) {
 const before = shell.slice(0, startAt);
 const after = shell.slice(endAt + END.length);
 
+/**
+ * Baked JSON-LD. The schemas are injected at runtime by `useEffect`, which
+ * means they only ever reach Googlebot — link previews (WhatsApp, LinkedIn),
+ * AI crawlers and most other consumers read the raw HTML and saw nothing.
+ * Baking them here fixes that. `schema.json` is emitted by vite.config at
+ * build time, so this file and the runtime copy share one source of truth.
+ *
+ * The organization and service schemas describe the business, so they go on
+ * every indexable page. The FAQ schema only describes the FAQ page and would
+ * be noise elsewhere, so it is scoped to `/faq`.
+ */
+const schemaPath = path.join(dist, 'schema.json');
+const schemas = fs.existsSync(schemaPath)
+  ? JSON.parse(fs.readFileSync(schemaPath, 'utf8'))
+  : null;
+
+const schemaBlock = (routePath) => {
+  if (!schemas) return '';
+  const entries = [schemas.organization, schemas.service];
+  if (routePath === '/faq') entries.push(schemas.faq);
+  return (
+    `\n    <!-- nf:schema:start -->\n` +
+    entries
+      .map((schema) => `    <script type="application/ld+json">${JSON.stringify(schema)}</script>`)
+      .join('\n') +
+    `\n    <!-- nf:schema:end -->`
+  );
+};
+
 const escapeHtml = (value) =>
   value
     .replace(/&/g, '&amp;')
@@ -99,7 +128,8 @@ function head({ title, description, index }, canonical) {
   return `${START}\n${tags.join('\n')}\n    ${END}`;
 }
 
-const render = (route, canonical) => before + head(route, canonical) + after;
+const render = (route, canonical) =>
+  before + head(route, canonical) + (route.index ? schemaBlock(route.path) : '') + after;
 
 const urlFor = (routePath) => (routePath === '/' ? `${SITE_URL}/` : `${SITE_URL}${routePath}`);
 

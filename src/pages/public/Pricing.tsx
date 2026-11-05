@@ -3,6 +3,7 @@ import { PricingTable } from '@/components/marketing/PricingTable';
 import { FinalCta, NextSteps } from '@/components/marketing/Sections';
 import { SectionHeader } from '@/components/ui/Card';
 import { FaqSection } from '@/components/marketing/FaqSection';
+import { StickyCTA } from '@/components/marketing/StickyCTA';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { trackEvent } from '@/lib/analytics';
 
@@ -71,6 +72,7 @@ export default function Pricing() {
         title="Start with the plan that fits today."
         description="You can move up a tier whenever your business needs it — the change applies from your next billing cycle."
       />
+      <StickyCTA />
     </>
   );
 }
