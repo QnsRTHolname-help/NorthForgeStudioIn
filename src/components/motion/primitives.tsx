@@ -93,6 +93,7 @@ export function SplitText({
           delay,
           ease: 'expo.out',
           stagger: by === 'char' ? stagger * 0.35 : stagger,
+          clearProps: 'transform,opacity',
           ...(trigger === 'scroll' ? { scrollTrigger: { trigger: node, start, once: true } } : {}),
         },
       );

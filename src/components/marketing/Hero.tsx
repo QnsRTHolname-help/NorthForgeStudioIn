@@ -106,12 +106,13 @@ export function Hero() {
       <div className="nf-grid-bg pointer-events-none absolute inset-0 opacity-[0.35]" aria-hidden />
 
       {/* Soft light behind the system panel — depth without decoration. */}
-      <div
-        data-hero-glow
-        className="pointer-events-none absolute right-0 top-24 h-[520px] w-[620px] translate-x-1/4 rounded-full opacity-[0.10] blur-[130px] nf-gpu will-change-transform"
-        style={{ background: 'radial-gradient(circle, rgb(var(--nf-blue)), transparent 70%)' }}
-        aria-hidden
-      />
+      <div className="pointer-events-none absolute right-0 top-24 h-[520px] w-[620px] translate-x-1/4" aria-hidden>
+        <div
+          data-hero-glow
+          className="h-full w-full rounded-full opacity-[0.10] blur-[130px] nf-gpu will-change-transform"
+          style={{ background: 'radial-gradient(circle, rgb(var(--nf-blue)), transparent 70%)' }}
+        />
+      </div>
 
       <div className="nf-shell relative pb-16 pt-24 sm:pt-28 lg:pb-24 lg:pt-32">
         <div className="grid items-center gap-14 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-16">

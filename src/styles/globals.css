@@ -162,13 +162,20 @@
     scroll-behavior: auto !important;
     overscroll-behavior-y: none;
   }
+  .lenis:not(.lenis-autoToggle).lenis-stopped {
+    overflow: clip;
+  }
   .lenis.lenis-smooth {
     scroll-behavior: auto !important;
   }
   .lenis.lenis-smooth iframe {
     pointer-events: none;
   }
-  .lenis.lenis-smooth [data-lenis-prevent] {
+  .lenis [data-lenis-prevent],
+  .lenis [data-lenis-prevent-wheel],
+  .lenis [data-lenis-prevent-touch],
+  .lenis [data-lenis-prevent-vertical],
+  .lenis [data-lenis-prevent-horizontal] {
     overscroll-behavior: contain;
   }
   .lenis.lenis-stopped {
@@ -605,8 +612,8 @@
   }
   .nf-gpu {
     will-change: transform;
-    transform: translate3d(0, 0, 0);
     backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
   }
   .nf-contain-paint {
     contain: paint layout;

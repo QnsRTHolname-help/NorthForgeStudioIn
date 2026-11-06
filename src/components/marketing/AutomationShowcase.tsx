@@ -96,7 +96,7 @@ export function AutomationShowcase() {
           trigger: track,
           start: 'top 72%',
           end: 'bottom 55%',
-          scrub: 0.6,
+          scrub: true,
           invalidateOnRefresh: true,
           onUpdate: (self) => {
             if (clock) clock.textContent = formatElapsed(self.progress);

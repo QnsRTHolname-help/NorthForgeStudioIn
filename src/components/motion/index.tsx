@@ -68,7 +68,7 @@ export function FadeUp({
   }, [delay, y, duration, once, reduced]);
 
   return (
-    <Tag ref={ref as never} className={className}>
+    <Tag ref={ref as never} className={cn('nf-gpu will-change-[transform,opacity]', className)}>
       {children}
     </Tag>
   );

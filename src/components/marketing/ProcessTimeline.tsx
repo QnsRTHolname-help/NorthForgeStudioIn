@@ -81,7 +81,7 @@ export function ProcessTimeline() {
                 containerAnimation: tl,
                 start: 'left 72%',
                 end: 'left 45%',
-                scrub: 0.5,
+                scrub: true,
               },
             },
           );
@@ -137,12 +137,14 @@ export function ProcessTimeline() {
       </div>
 
       <div ref={sectionRef} className="relative overflow-hidden lg:h-screen">
-        <span
-          data-process-line
-          aria-hidden
-          className="pointer-events-none absolute bottom-4 left-1/2 hidden h-px w-[60%] max-w-2xl -translate-x-1/2 bg-gradient-to-r from-transparent via-brand/60 to-transparent lg:block"
-          style={{ transform: 'translateX(-50%) scaleX(0)' }}
-        />
+        <div className="pointer-events-none absolute bottom-4 left-1/2 hidden w-[60%] max-w-2xl -translate-x-1/2 lg:block">
+          <span
+            data-process-line
+            aria-hidden
+            className="block h-px w-full origin-left bg-gradient-to-r from-transparent via-brand/60 to-transparent"
+            style={{ transform: 'scaleX(0)' }}
+          />
+        </div>
         <div
           ref={trackRef}
           className="nf-scroll-x nf-gpu will-change-transform flex gap-5 px-5 pb-6 sm:px-8 lg:h-screen lg:items-center lg:gap-7 lg:px-12 lg:pb-0 lg:overflow-visible"

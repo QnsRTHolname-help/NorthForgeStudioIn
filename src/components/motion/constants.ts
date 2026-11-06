@@ -51,6 +51,6 @@ export const START = {
   mid: 'top 72%',
 } as const;
 
-/** Scroll scrub smoothing. Tuning to 0.8s allows scrubbed animations to glide
- * with responsive inertia on desktop mouse wheels rather than stepping abruptly per notch. */
-export const SCRUB: boolean | number = 0.8;
+/** Scroll scrub smoothing. With Lenis smooth scrolling active, scrub: true
+ * binds animations 1:1 to the scroll position without double-smoothing lag. */
+export const SCRUB: boolean | number = true;
