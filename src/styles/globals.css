@@ -152,12 +152,7 @@
 
   html {
     -webkit-text-size-adjust: 100%;
-    scroll-behavior: auto;
-  }
-  @media (prefers-reduced-motion: no-preference) {
-    html:not(.lenis) {
-      scroll-behavior: smooth;
-    }
+    scroll-behavior: auto !important;
   }
 
   /* Lenis drives scrolling on the marketing site; native elsewhere. */

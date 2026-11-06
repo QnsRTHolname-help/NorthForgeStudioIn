@@ -32,10 +32,17 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
   useEffect(() => {
     if (!enabled || reduced) return;
 
+    // Mark documentElement so CSS rules (height: auto, scroll-behavior: auto !important) apply
+    document.documentElement.classList.add('lenis', 'lenis-smooth');
+
     const instance = new Lenis({
-      lerp: 0.075,
-      wheelMultiplier: 1.15,
+      duration: 1.2,
+      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: 'vertical',
+      gestureOrientation: 'vertical',
       smoothWheel: true,
+      wheelMultiplier: 1.0,
+      touchMultiplier: 1.0,
       // Leave touch devices on native momentum scrolling — it feels better
       // and avoids fighting the platform (spec §9, §147).
       syncTouch: false,
@@ -52,11 +59,14 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
     };
     instance.on('scroll', onScroll);
 
-    const raf = (time: number) => instance.raf(time * 1000);
+    const raf = (time: number) => {
+      instance.raf(time * 1000);
+    };
     gsap.ticker.add(raf);
     gsap.ticker.lagSmoothing(0);
 
     return () => {
+      document.documentElement.classList.remove('lenis', 'lenis-smooth');
       gsap.ticker.remove(raf);
       gsap.ticker.lagSmoothing(500, 33);
       instance.off('scroll', onScroll);

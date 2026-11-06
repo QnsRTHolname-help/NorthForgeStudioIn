@@ -78,12 +78,14 @@ export function Hero() {
       // Scroll-linked depth: the system panel and its ambient glow drift
       // slightly as the user scrolls out of the hero, giving the panel a
       // sense of physical space rather than a flat sticker.
-      const panel = node.querySelector<HTMLElement>('[data-hero-system]');
+      // Parallax moves the inner console so it never conflicts with the
+      // entrance animation on the outer [data-hero-system] wrapper.
+      const parallaxTarget = node.querySelector<HTMLElement>('[data-hero-system-parallax]');
       const glow = node.querySelector<HTMLElement>('[data-hero-glow]');
-      if (panel || glow) {
-        gsap.to([panel, glow].filter(Boolean), {
+      if (parallaxTarget || glow) {
+        gsap.to([parallaxTarget, glow].filter(Boolean), {
           y: 28,
-          ease: EASE.scrub,
+          ease: 'none',
           immediateRender: false,
           scrollTrigger: {
             trigger: node,
@@ -200,7 +202,8 @@ export function Hero() {
 
             {/* Apple-grade frosted glass console with connected operating flow */}
             <div
-              className="nf-glass-card relative overflow-hidden rounded-2xl border border-white/65 bg-white/85 p-6 shadow-panel backdrop-blur-md isolate transition-all duration-300 sm:p-7"
+              data-hero-system-parallax
+              className="nf-glass-card nf-gpu will-change-transform relative overflow-hidden rounded-2xl border border-white/65 bg-white/85 p-6 shadow-panel backdrop-blur-md isolate transition-all duration-300 sm:p-7"
               style={{
                 boxShadow:
                   '0 28px 72px -16px rgb(60 48 32 / 0.14), 0 4px 16px -4px rgb(60 48 32 / 0.05), inset 0 1px 0 rgb(255 255 255 / 0.95)',

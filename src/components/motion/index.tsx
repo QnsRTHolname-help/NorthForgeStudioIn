@@ -452,9 +452,9 @@ export function PageTransition({
 export function Reveal({
   children,
   className,
-  start = 'top 82%',
+  start = 'top 88%',
   delay = 0,
-  y = 26,
+  y = 20,
 }: {
   children: ReactNode;
   className?: string;
@@ -476,11 +476,11 @@ export function Reveal({
         {
           opacity: 1,
           ...(reduced ? {} : { y: 0 }),
-          duration: reduced ? 0.4 : 0.8,
+          duration: reduced ? 0.4 : 0.7,
           delay,
           ease: 'power3.out',
           clearProps: 'transform,opacity',
-          scrollTrigger: { trigger: node, start, once: true },
+          scrollTrigger: { trigger: node, start, once: true, invalidateOnRefresh: true },
         },
       );
     }, node);
@@ -488,7 +488,7 @@ export function Reveal({
   }, [start, reduced, delay, y]);
 
   return (
-    <div ref={ref} className={className}>
+    <div ref={ref} className={cn('nf-gpu will-change-[transform,opacity]', className)}>
       {children}
     </div>
   );

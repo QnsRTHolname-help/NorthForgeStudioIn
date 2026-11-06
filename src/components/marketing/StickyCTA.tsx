@@ -64,14 +64,15 @@ export function StickyCTA() {
   }
 
   // Desktop: a floating pill, centred, lifted off the viewport floor.
-  // Rendered only once the visitor is past the hero — it is not a popup.
-  if (!visible) return null;
-
+  // Smoothly glides up once past the hero without abrupt popping.
   return (
     <div
       data-sticky-cta
-      className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 nf-gpu pointer-events-none"
-      aria-hidden={false}
+      className={cn(
+        'fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 nf-gpu pointer-events-none transition-all duration-500 ease-out',
+        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5 pointer-events-none'
+      )}
+      aria-hidden={!visible}
     >
       <div className="nf-glass-card nf-glass-elevated pointer-events-auto flex items-center gap-3 rounded-full border border-white/60 px-5 py-2.5 shadow-lg">
         <div className="hidden sm:flex sm:flex-col">

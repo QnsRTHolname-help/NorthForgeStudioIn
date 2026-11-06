@@ -96,7 +96,7 @@ export function AutomationShowcase() {
           trigger: track,
           start: 'top 72%',
           end: 'bottom 55%',
-          scrub: true,
+          scrub: 0.6,
           invalidateOnRefresh: true,
           onUpdate: (self) => {
             if (clock) clock.textContent = formatElapsed(self.progress);
@@ -190,7 +190,7 @@ export function AutomationShowcase() {
                     aria-hidden
                     className="absolute -left-8 top-4 flex h-[15px] w-[15px] items-center justify-center rounded-full border border-line-strong bg-canvas sm:-left-10"
                   >
-                    <span data-step-dot className="h-1.5 w-1.5 rounded-full bg-brand" />
+                    <span data-step-dot className="inline-block h-1.5 w-1.5 rounded-full bg-brand nf-gpu will-change-transform" />
                   </span>
                   <div className="flex items-center gap-4 rounded-xl border border-white/60 bg-white/75 px-4 py-3.5 shadow-2xs backdrop-blur-md transition-all duration-200 hover:border-brand/40 hover:bg-white hover:shadow-xs">
                     <span className="nf-num shrink-0 font-mono text-2xs text-faint">

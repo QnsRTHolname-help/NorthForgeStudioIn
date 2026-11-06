@@ -3,7 +3,7 @@ import { gsap, ScrollTrigger } from '@/components/motion';
 import { PROCESS_STEPS } from '@/data/content';
 import { cn } from '@/lib/cn';
 import { useReducedMotion } from '@/hooks';
-import { EASE, SCRUB } from '@/components/motion/constants';
+import { SCRUB } from '@/components/motion/constants';
 
 /**
  * How it works (spec §21).
@@ -30,9 +30,7 @@ export function ProcessTimeline() {
       mm.add('(min-width: 1024px) and (prefers-reduced-motion: no-preference)', () => {
         const distance = () => Math.max(0, track.scrollWidth - window.innerWidth + 96);
 
-        const tween = gsap.to(track, {
-          x: () => -distance(),
-          ease: 'none',
+        const tl = gsap.timeline({
           scrollTrigger: {
             trigger: section,
             start: 'top top',
@@ -40,29 +38,33 @@ export function ProcessTimeline() {
             pin: true,
             scrub: SCRUB,
             invalidateOnRefresh: true,
-            anticipatePin: 0,
+            anticipatePin: 1,
           },
         });
+
+        tl.to(
+          track,
+          {
+            x: () => -distance(),
+            ease: 'none',
+          },
+          0,
+        );
 
         // A progress rule under the pinned track fills as the storyboard
         // scrolls across — a single, quiet signal of where you are in the
         // sequence without adding another moving element.
         const rule = section.querySelector<HTMLElement>('[data-process-line]');
         if (rule) {
-          gsap.fromTo(
+          tl.fromTo(
             rule,
             { scaleX: 0 },
             {
               scaleX: 1,
-              ease: EASE.scrub,
+              ease: 'none',
               transformOrigin: 'left center',
-              scrollTrigger: {
-                trigger: section,
-                start: 'top top',
-                end: () => `+=${distance()}`,
-                scrub: SCRUB,
-              },
             },
+            0,
           );
         }
 
@@ -76,18 +78,18 @@ export function ProcessTimeline() {
               ease: 'power2.out',
               scrollTrigger: {
                 trigger: card,
-                containerAnimation: tween,
+                containerAnimation: tl,
                 start: 'left 72%',
                 end: 'left 45%',
-                scrub: true,
+                scrub: 0.5,
               },
             },
           );
         });
 
         return () => {
-          tween.scrollTrigger?.kill();
-          tween.kill();
+          tl.scrollTrigger?.kill();
+          tl.kill();
         };
       });
 

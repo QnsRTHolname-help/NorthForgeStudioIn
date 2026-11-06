@@ -37,26 +37,23 @@ export function Hero3D({ className = '' }: { className?: string }) {
     const ctx = gsap.context(() => {
       // Set initial 3D transform orientations
       gsap.set(tilt, { transformPerspective: 1000, transformStyle: 'preserve-3d' });
-      gsap.set('.hero-shape', { opacity: 0, scale: 0.65 });
-      gsap.set('.hero-particle', { opacity: 0, scale: 0 });
 
-      // Clean one-shot entrance timeline
+      // Clean one-shot entrance timeline animating the layers so individual shapes & particles
+      // keep their continuous CSS GPU keyframes completely uninterrupted without style collisions.
       const entranceTl = gsap.timeline({ defaults: { ease: 'power2.out' } });
 
       entranceTl
-        .to('.hero-shape', {
-          opacity: 1,
-          scale: 1,
-          duration: 1.1,
-          stagger: 0.08,
-        }, 0.1)
-        .to('.hero-particle', {
-          opacity: 0.55,
-          scale: 1,
-          duration: 0.8,
-          stagger: 0.02,
-        }, 0.25);
+        .fromTo('[data-shape-layer]', { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1.05, duration: 1.1 }, 0.1)
+        .fromTo('[data-particle-layer]', { opacity: 0 }, { opacity: 1, duration: 0.8 }, 0.25);
     }, container);
+
+    // Cache container geometry to eliminate layout thrashing during mouse movement
+    let containerRect = container.getBoundingClientRect();
+    const updateRect = () => {
+      if (container) containerRect = container.getBoundingClientRect();
+    };
+    window.addEventListener('resize', updateRect, { passive: true });
+    window.addEventListener('scroll', updateRect, { passive: true });
 
     let ticking = false;
     const onWindowMove = (e: MouseEvent) => {
@@ -67,7 +64,7 @@ export function Hero3D({ className = '' }: { className?: string }) {
       requestAnimationFrame(() => {
         ticking = false;
         if (!container) return;
-        const rect = container.getBoundingClientRect();
+        const rect = containerRect;
         // Only react if pointer is within a reasonable proximity of the hero area
         if (
           e.clientX < rect.left - 240 ||
@@ -100,6 +97,8 @@ export function Hero3D({ className = '' }: { className?: string }) {
       ctx.revert();
       quickTiltXRef.current = null;
       quickTiltYRef.current = null;
+      window.removeEventListener('resize', updateRect);
+      window.removeEventListener('scroll', updateRect);
       window.removeEventListener('mousemove', onWindowMove);
       document.removeEventListener('mouseleave', onWindowLeave);
     };
@@ -211,12 +210,12 @@ export function Hero3D({ className = '' }: { className?: string }) {
         style={{ transformStyle: 'preserve-3d' }}
       >
         {/* Deep particle layer */}
-        <div className="absolute inset-0" style={{ transform: 'translateZ(-90px) scale(1.1)' }}>
+        <div data-particle-layer className="absolute inset-0 nf-gpu will-change-transform" style={{ transform: 'translateZ(-90px) scale(1.1)' }}>
           {particles}
         </div>
 
         {/* Floating geometric layer */}
-        <div className="absolute inset-0" style={{ transform: 'translateZ(-45px) scale(1.05)' }}>
+        <div data-shape-layer className="absolute inset-0 nf-gpu will-change-transform" style={{ transform: 'translateZ(-45px) scale(1.05)' }}>
           {floatingShapes}
         </div>
 
