@@ -313,16 +313,31 @@ export function SystemMonitor({ className }: { className?: string }) {
       <div className="border-b border-line/60 px-5 py-4">
         <p className="nf-eyebrow mb-3">Live activity</p>
         <ul className="space-y-2" aria-live="polite">
-          {events.map((event, index) => (
-            <li
-              key={`${event}-${index}`}
-              className="flex items-center gap-2.5 font-mono text-2xs uppercase tracking-wider text-muted"
-              style={{ opacity: 0.35 + (index / Math.max(1, events.length - 1)) * 0.65 }}
-            >
-              <span className="h-1 w-1 shrink-0 rounded-full bg-brand" aria-hidden />
-              {event}
-            </li>
-          ))}
+          {events.map((event, index) => {
+            const isLatest = index === events.length - 1;
+            return (
+              <li
+                key={`${event}-${index}`}
+                className={cn(
+                  'flex items-center gap-2.5 font-mono text-2xs uppercase tracking-wider transition-all duration-300',
+                  isLatest ? 'text-fg font-semibold' : 'text-muted',
+                )}
+                style={{ opacity: 0.35 + (index / Math.max(1, events.length - 1)) * 0.65 }}
+              >
+                <span
+                  className={cn(
+                    'h-1.5 w-1.5 shrink-0 rounded-full transition-all duration-300',
+                    isLatest ? 'bg-success shadow-[0_0_8px_rgb(22,148,92)]' : 'bg-brand',
+                  )}
+                  aria-hidden
+                />
+                <span>{event}</span>
+                {isLatest && !reduced && (
+                  <span className="ml-auto font-mono text-3xs font-bold text-success animate-pulse">JUST NOW</span>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </div>
 

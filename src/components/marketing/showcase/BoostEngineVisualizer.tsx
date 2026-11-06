@@ -24,36 +24,68 @@ export function BoostEngineVisualizer({ className }: BoostEngineVisualizerProps)
   const [liveFps, setLiveFps] = useState(120);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animFrameRef = useRef<number | null>(null);
+  const benchmarkTimersRef = useRef<number[]>([]);
 
-  // Real-time canvas oscilloscope for frame pacing
+  // Cleanup benchmark timers on unmount
   useEffect(() => {
-    if (reduced) return;
+    return () => {
+      benchmarkTimersRef.current.forEach((t) => window.clearTimeout(t));
+      benchmarkTimersRef.current = [];
+    };
+  }, []);
+
+  // Canvas oscilloscope for frame pacing
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    let width = (canvas.width = canvas.offsetWidth * window.devicePixelRatio || 600);
-    let height = (canvas.height = canvas.offsetHeight * window.devicePixelRatio || 160);
+    let width = 0;
+    let height = 0;
+    let dpr = 1;
 
-    const onResize = () => {
-      if (!canvas) return;
-      width = canvas.width = canvas.offsetWidth * window.devicePixelRatio || 600;
-      height = canvas.height = canvas.offsetHeight * window.devicePixelRatio || 160;
-    };
-    window.addEventListener('resize', onResize);
-
+    const maxPoints = 80;
     let offset = 0;
     const history: number[] = [];
-    const maxPoints = 80;
 
-    const render = () => {
+    const updateSize = () => {
+      dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      const w = Math.max(300, rect.width || canvas.offsetWidth || 600);
+      const h = Math.max(100, rect.height || canvas.offsetHeight || 128);
+      width = canvas.width = Math.round(w * dpr);
+      height = canvas.height = Math.round(h * dpr);
+    };
+
+    updateSize();
+
+    // Generate a sample point given current engine mode and offset
+    const getSample = (off: number) => {
+      if (engineMode === 'boost') {
+        // Locked 8.3ms composite pacing: smooth gentle sine wave
+        return height * 0.45 + Math.sin(off) * (height * 0.08);
+      }
+      // Legacy janky pacing: erratic spikes and frame drops
+      const noise = Math.sin(off * 2.3) * 0.25 + (Math.sin(off * 5.7) > 0.4 ? 0.35 : -0.15);
+      return height * 0.58 + noise * (height * 0.35);
+    };
+
+    // Pre-fill history so oscilloscope wave immediately fills the canvas
+    history.length = 0;
+    for (let i = 0; i < maxPoints; i++) {
+      offset += 0.08;
+      history.push(getSample(offset));
+    }
+
+    const drawFrame = () => {
+      if (width === 0 || height === 0) return;
       ctx.clearRect(0, 0, width, height);
 
       // Draw subtle grid lines
       ctx.strokeStyle = engineMode === 'boost' ? 'rgba(36, 88, 197, 0.12)' : 'rgba(240, 106, 116, 0.15)';
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1 * dpr;
       const gridStep = height / 4;
       for (let y = gridStep; y < height; y += gridStep) {
         ctx.beginPath();
@@ -61,21 +93,6 @@ export function BoostEngineVisualizer({ className }: BoostEngineVisualizerProps)
         ctx.lineTo(width, y);
         ctx.stroke();
       }
-
-      // Generate new frame pacing sample
-      offset += 0.08;
-      let sampleHeight: number;
-      if (engineMode === 'boost') {
-        // Locked 8.3ms composite pacing: smooth gentle sine wave
-        sampleHeight = height * 0.45 + Math.sin(offset) * (height * 0.08);
-      } else {
-        // Legacy janky pacing: erratic spikes and frame drops
-        const noise = Math.sin(offset * 2.3) * 0.25 + (Math.random() > 0.85 ? 0.35 : -0.15);
-        sampleHeight = height * 0.6 + noise * (height * 0.4);
-      }
-
-      history.push(sampleHeight);
-      if (history.length > maxPoints) history.shift();
 
       // Draw wave path
       ctx.beginPath();
@@ -87,7 +104,7 @@ export function BoostEngineVisualizer({ className }: BoostEngineVisualizerProps)
       });
 
       ctx.strokeStyle = engineMode === 'boost' ? 'rgb(22, 148, 92)' : 'rgb(203, 58, 74)';
-      ctx.lineWidth = 2.5 * window.devicePixelRatio;
+      ctx.lineWidth = 2.5 * dpr;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.stroke();
@@ -101,7 +118,7 @@ export function BoostEngineVisualizer({ className }: BoostEngineVisualizerProps)
         grad.addColorStop(0, 'rgba(22, 148, 92, 0.18)');
         grad.addColorStop(1, 'rgba(22, 148, 92, 0.01)');
       } else {
-        grad.addColorStop(0, 'rgba(203, 58, 74, 0.2)');
+        grad.addColorStop(0, 'rgba(203, 58, 74, 0.20)');
         grad.addColorStop(1, 'rgba(203, 58, 74, 0.02)');
       }
       ctx.fillStyle = grad;
@@ -112,56 +129,82 @@ export function BoostEngineVisualizer({ className }: BoostEngineVisualizerProps)
         const lastX = (history.length - 1) * stepX;
         const lastY = history[history.length - 1]!;
         ctx.beginPath();
-        ctx.arc(lastX, lastY, 4.5 * window.devicePixelRatio, 0, Math.PI * 2);
+        ctx.arc(lastX, lastY, 4.5 * dpr, 0, Math.PI * 2);
         ctx.fillStyle = engineMode === 'boost' ? 'rgb(22, 148, 92)' : 'rgb(203, 58, 74)';
         ctx.fill();
         ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 1.5 * window.devicePixelRatio;
+        ctx.lineWidth = 1.5 * dpr;
         ctx.stroke();
       }
+    };
 
+    // If reduced motion is requested, render static reference wave once and halt loop
+    if (reduced) {
+      drawFrame();
+      return;
+    }
+
+    const render = () => {
+      offset += 0.08;
+      history.push(getSample(offset));
+      if (history.length > maxPoints) history.shift();
+
+      drawFrame();
       animFrameRef.current = requestAnimationFrame(render);
     };
 
     animFrameRef.current = requestAnimationFrame(render);
 
+    let resizeTimer: number | null = null;
+    const observer = new ResizeObserver(() => {
+      if (resizeTimer) cancelAnimationFrame(resizeTimer);
+      resizeTimer = requestAnimationFrame(() => {
+        updateSize();
+        for (let i = 0; i < history.length; i++) {
+          history[i] = getSample(offset - (history.length - i) * 0.08);
+        }
+        if (reduced) drawFrame();
+      });
+    });
+
+    observer.observe(canvas);
+
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-      window.removeEventListener('resize', onResize);
+      if (resizeTimer) cancelAnimationFrame(resizeTimer);
+      observer.disconnect();
     };
   }, [engineMode, reduced]);
 
-  // Simulated Benchmark Runner
+  // Simulated Benchmark Runner with leak-proof timer tracking
   const runBenchmark = useCallback(() => {
     if (isBenchmarking) return;
+    benchmarkTimersRef.current.forEach((t) => window.clearTimeout(t));
+    benchmarkTimersRef.current = [];
+
     setIsBenchmarking(true);
     setBenchmarkStep('1/4: Analyzing compositing thread...');
 
-    const timer1 = setTimeout(() => {
+    const timer1 = window.setTimeout(() => {
       setBenchmarkStep('2/4: Promoting GPU hardware layers...');
     }, 450);
 
-    const timer2 = setTimeout(() => {
+    const timer2 = window.setTimeout(() => {
       setBenchmarkStep('3/4: Decoupling Lenis scroll delta...');
     }, 900);
 
-    const timer3 = setTimeout(() => {
+    const timer3 = window.setTimeout(() => {
       setBenchmarkStep('4/4: Validating 0.000 CLS stability...');
     }, 1350);
 
-    const timer4 = setTimeout(() => {
+    const timer4 = window.setTimeout(() => {
       setIsBenchmarking(false);
       setBenchmarkStep('Benchmark Complete · 100/100 Core Web Vitals');
       setEngineMode('boost');
       setLiveFps(120);
     }, 1800);
 
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearTimeout(timer3);
-      clearTimeout(timer4);
-    };
+    benchmarkTimersRef.current.push(timer1, timer2, timer3, timer4);
   }, [isBenchmarking]);
 
   return (
@@ -198,7 +241,7 @@ export function BoostEngineVisualizer({ className }: BoostEngineVisualizerProps)
 
         {/* Engine Switcher & Benchmark Action */}
         <div className="flex flex-wrap items-center gap-2.5">
-          <div className="inline-flex rounded-xl border border-line/70 bg-white/60 p-1 shadow-2xs backdrop-blur-md">
+          <div className="inline-flex flex-wrap sm:flex-nowrap rounded-xl border border-line/70 bg-white/60 p-1 shadow-2xs backdrop-blur-md">
             <button
               type="button"
               onClick={() => {
@@ -206,14 +249,14 @@ export function BoostEngineVisualizer({ className }: BoostEngineVisualizerProps)
                 setLiveFps(120);
               }}
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-200',
+                'inline-flex items-center gap-1.5 rounded-lg px-2.5 sm:px-3 py-1.5 text-xs font-semibold transition-all duration-200',
                 engineMode === 'boost'
                   ? 'bg-brand text-white shadow-xs'
                   : 'text-muted hover:text-fg hover:bg-white/50',
               )}
             >
               <Zap className="h-3.5 w-3.5 text-warning" />
-              <span>Boost Engine (120 FPS)</span>
+              <span>Boost (120 FPS)</span>
             </button>
             <button
               type="button"
@@ -222,14 +265,14 @@ export function BoostEngineVisualizer({ className }: BoostEngineVisualizerProps)
                 setLiveFps(38);
               }}
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-200',
+                'inline-flex items-center gap-1.5 rounded-lg px-2.5 sm:px-3 py-1.5 text-xs font-semibold transition-all duration-200',
                 engineMode === 'legacy'
                   ? 'bg-danger text-white shadow-xs'
                   : 'text-muted hover:text-fg hover:bg-white/50',
               )}
             >
               <Flame className="h-3.5 w-3.5" />
-              <span>Legacy Stack (38 FPS)</span>
+              <span>Legacy (38 FPS)</span>
             </button>
           </div>
 
@@ -295,15 +338,15 @@ export function BoostEngineVisualizer({ className }: BoostEngineVisualizerProps)
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
-        <div className="rounded-xl border border-white/70 bg-white/80 p-4 shadow-2xs backdrop-blur-md transition-all hover:shadow-xs">
+      <div className="grid grid-cols-2 gap-3 sm:gap-3.5 lg:grid-cols-4">
+        <div className="min-w-0 rounded-xl border border-white/70 bg-white/80 p-3.5 sm:p-4 shadow-2xs backdrop-blur-md transition-all hover:shadow-xs">
           <div className="flex items-center justify-between text-3xs uppercase tracking-wider text-faint">
-            <span>LCP (Speed)</span>
-            <Gauge className="h-3.5 w-3.5 text-brand" />
+            <span className="truncate">LCP (Speed)</span>
+            <Gauge className="h-3.5 w-3.5 shrink-0 text-brand" />
           </div>
           <p
             className={cn(
-              'mt-2 font-mono text-2xl font-bold tracking-tight',
+              'mt-2 font-mono text-xl sm:text-2xl font-bold tracking-tight',
               engineMode === 'boost' ? 'text-fg' : 'text-danger',
             )}
           >
@@ -311,22 +354,22 @@ export function BoostEngineVisualizer({ className }: BoostEngineVisualizerProps)
           </p>
           <p
             className={cn(
-              'mt-1 text-3xs font-medium',
+              'mt-1 text-3xs font-medium truncate',
               engineMode === 'boost' ? 'text-success' : 'text-danger',
             )}
           >
-            {engineMode === 'boost' ? '99th percentile (< 2.5s target)' : 'Poor: Needs optimization'}
+            {engineMode === 'boost' ? '99th %ile (< 2.5s)' : 'Main thread stall'}
           </p>
         </div>
 
-        <div className="rounded-xl border border-white/70 bg-white/80 p-4 shadow-2xs backdrop-blur-md transition-all hover:shadow-xs">
+        <div className="min-w-0 rounded-xl border border-white/70 bg-white/80 p-3.5 sm:p-4 shadow-2xs backdrop-blur-md transition-all hover:shadow-xs">
           <div className="flex items-center justify-between text-3xs uppercase tracking-wider text-faint">
-            <span>INP (Responsiveness)</span>
-            <Cpu className="h-3.5 w-3.5 text-brand" />
+            <span className="truncate">INP (Response)</span>
+            <Cpu className="h-3.5 w-3.5 shrink-0 text-brand" />
           </div>
           <p
             className={cn(
-              'mt-2 font-mono text-2xl font-bold tracking-tight',
+              'mt-2 font-mono text-xl sm:text-2xl font-bold tracking-tight',
               engineMode === 'boost' ? 'text-fg' : 'text-danger',
             )}
           >
@@ -334,22 +377,22 @@ export function BoostEngineVisualizer({ className }: BoostEngineVisualizerProps)
           </p>
           <p
             className={cn(
-              'mt-1 text-3xs font-medium',
+              'mt-1 text-3xs font-medium truncate',
               engineMode === 'boost' ? 'text-success' : 'text-danger',
             )}
           >
-            {engineMode === 'boost' ? 'Instant response (< 200ms target)' : 'Stalled main thread'}
+            {engineMode === 'boost' ? 'Instant (< 200ms)' : 'Jank detected'}
           </p>
         </div>
 
-        <div className="rounded-xl border border-white/70 bg-white/80 p-4 shadow-2xs backdrop-blur-md transition-all hover:shadow-xs">
+        <div className="min-w-0 rounded-xl border border-white/70 bg-white/80 p-3.5 sm:p-4 shadow-2xs backdrop-blur-md transition-all hover:shadow-xs">
           <div className="flex items-center justify-between text-3xs uppercase tracking-wider text-faint">
-            <span>CLS (Stability)</span>
-            <Layers className="h-3.5 w-3.5 text-brand" />
+            <span className="truncate">CLS (Stability)</span>
+            <Layers className="h-3.5 w-3.5 shrink-0 text-brand" />
           </div>
           <p
             className={cn(
-              'mt-2 font-mono text-2xl font-bold tracking-tight',
+              'mt-2 font-mono text-xl sm:text-2xl font-bold tracking-tight',
               engineMode === 'boost' ? 'text-fg' : 'text-danger',
             )}
           >
@@ -357,22 +400,22 @@ export function BoostEngineVisualizer({ className }: BoostEngineVisualizerProps)
           </p>
           <p
             className={cn(
-              'mt-1 text-3xs font-medium',
+              'mt-1 text-3xs font-medium truncate',
               engineMode === 'boost' ? 'text-success' : 'text-danger',
             )}
           >
-            {engineMode === 'boost' ? 'Zero layout shifts (< 0.1 target)' : 'Visual jitter on render'}
+            {engineMode === 'boost' ? 'Zero shifts (< 0.1)' : 'Layout jitter'}
           </p>
         </div>
 
-        <div className="rounded-xl border border-white/70 bg-white/80 p-4 shadow-2xs backdrop-blur-md transition-all hover:shadow-xs">
+        <div className="min-w-0 rounded-xl border border-white/70 bg-white/80 p-3.5 sm:p-4 shadow-2xs backdrop-blur-md transition-all hover:shadow-xs">
           <div className="flex items-center justify-between text-3xs uppercase tracking-wider text-faint">
-            <span>Hardware Composite</span>
-            <Zap className="h-3.5 w-3.5 text-warning" />
+            <span className="truncate">Hardware Lock</span>
+            <Zap className="h-3.5 w-3.5 shrink-0 text-warning" />
           </div>
           <p
             className={cn(
-              'mt-2 font-mono text-2xl font-bold tracking-tight',
+              'mt-2 font-mono text-xl sm:text-2xl font-bold tracking-tight',
               engineMode === 'boost' ? 'text-fg' : 'text-danger',
             )}
           >
@@ -380,11 +423,11 @@ export function BoostEngineVisualizer({ className }: BoostEngineVisualizerProps)
           </p>
           <p
             className={cn(
-              'mt-1 text-3xs font-medium',
+              'mt-1 text-3xs font-medium truncate',
               engineMode === 'boost' ? 'text-success' : 'text-danger',
             )}
           >
-            {engineMode === 'boost' ? 'GPU thread lock' : 'CPU rasterization fallback'}
+            {engineMode === 'boost' ? 'GPU thread lock' : 'CPU fallback'}
           </p>
         </div>
       </div>

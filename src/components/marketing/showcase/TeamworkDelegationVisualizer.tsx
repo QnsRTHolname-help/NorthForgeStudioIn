@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   Users,
   CheckCircle2,
@@ -126,14 +126,26 @@ export function TeamworkDelegationVisualizer({ className }: { className?: string
   const [columns, setColumns] = useState<TeamCategory[]>(INITIAL_TEAM_COLUMNS);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const syncTimersRef = useRef<number[]>([]);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      syncTimersRef.current.forEach((t) => window.clearTimeout(t));
+      syncTimersRef.current = [];
+    };
+  }, []);
 
   // Simulated Instant Delegation Sync Wave
   const handleSync = useCallback(() => {
     if (isSyncing) return;
+    syncTimersRef.current.forEach((t) => window.clearTimeout(t));
+    syncTimersRef.current = [];
+
     setIsSyncing(true);
     setSyncMessage('Delegation pulse dispatched across 6 specialist streams...');
 
-    setTimeout(() => {
+    const timer1 = window.setTimeout(() => {
       setColumns((prev) =>
         prev.map((col) => ({
           ...col,
@@ -146,8 +158,12 @@ export function TeamworkDelegationVisualizer({ className }: { className?: string
       );
       setSyncMessage('✓ Sync Complete: Owner dashboard and client portal verified in lockstep.');
       setIsSyncing(false);
-      setTimeout(() => setSyncMessage(null), 3000);
+
+      const timer2 = window.setTimeout(() => setSyncMessage(null), 3000);
+      syncTimersRef.current.push(timer2);
     }, 900);
+
+    syncTimersRef.current.push(timer1);
   }, [isSyncing]);
 
   return (
@@ -187,7 +203,11 @@ export function TeamworkDelegationVisualizer({ className }: { className?: string
 
       {/* Sync Status Banner */}
       {syncMessage && (
-        <div className="rounded-xl border border-brand/30 bg-brand/10 p-3 text-xs font-mono text-brand flex items-center justify-between animate-fade-in">
+        <div
+          role="status"
+          aria-live="polite"
+          className="rounded-xl border border-brand/30 bg-brand/10 p-3 text-xs font-mono text-brand flex items-center justify-between animate-fade-in"
+        >
           <span>{syncMessage}</span>
           <span className="text-3xs uppercase tracking-wider text-success font-bold">Latency 14ms</span>
         </div>
@@ -221,6 +241,12 @@ export function TeamworkDelegationVisualizer({ className }: { className?: string
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Mobile Swipe Cue */}
+      <div className="flex items-center justify-between text-3xs font-mono text-faint sm:hidden">
+        <span>← Swipe to inspect specialist streams →</span>
+        <span className="text-brand font-semibold">3 streams</span>
       </div>
 
       {/* 3-Column Task Delegation Matrix */}

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   Code2,
   Calendar,
@@ -24,6 +24,15 @@ export function GenerativeUiVisualizer({ className }: GenerativeUiVisualizerProp
   const [genTab, setGenTab] = useState<'preview' | 'code'>('preview');
   const [isSynthesizing, setIsSynthesizing] = useState(false);
   const [synthesisState, setSynthesisState] = useState('Synthesis Ready');
+  const timersRef = useRef<number[]>([]);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      timersRef.current.forEach((t) => window.clearTimeout(t));
+      timersRef.current = [];
+    };
+  }, []);
 
   // Booking Card State
   const [selectedSlot, setSelectedSlot] = useState<string>('02:00 PM');
@@ -38,22 +47,27 @@ export function GenerativeUiVisualizer({ className }: GenerativeUiVisualizerProp
   // Prompt switcher with simulated streaming AST compilation
   const handlePromptSelect = useCallback((prompt: 'booking' | 'roi' | 'triage') => {
     if (prompt === genPrompt) return;
+    timersRef.current.forEach((t) => window.clearTimeout(t));
+    timersRef.current = [];
+
     setGenPrompt(prompt);
     setBookingConfirmed(false);
     setIsSynthesizing(true);
     setSynthesisState('Compiling TSX AST & Schema...');
 
-    setTimeout(() => {
+    const timer = window.setTimeout(() => {
       setSynthesisState('Hydrated in 11ms · 120 FPS GPU lock');
       setIsSynthesizing(false);
     }, 450);
+    timersRef.current.push(timer);
   }, [genPrompt]);
 
   const copyCodeToClipboard = () => {
     const code = getCodeSnippet(genPrompt, selectedSlot, leadCount);
     navigator.clipboard?.writeText(code).then(() => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      const timer = window.setTimeout(() => setCopied(false), 2000);
+      timersRef.current.push(timer);
     });
   };
 
@@ -326,7 +340,18 @@ export function GenerativeUiVisualizer({ className }: GenerativeUiVisualizerProp
                             strokeWidth="2.5"
                             strokeLinecap="round"
                           />
-                          <circle cx="310" cy={targetY} r="4" fill="rgb(36, 88, 197)" />
+                          <circle cx="310" cy={targetY} r="4.5" fill="rgb(36, 88, 197)" />
+                          {!reduced && (
+                            <circle
+                              cx="310"
+                              cy={targetY}
+                              r="7"
+                              fill="none"
+                              stroke="rgb(36, 88, 197)"
+                              strokeWidth="1.5"
+                              className="animate-ping opacity-60"
+                            />
+                          )}
                         </>
                       );
                     })()}
@@ -334,20 +359,20 @@ export function GenerativeUiVisualizer({ className }: GenerativeUiVisualizerProp
                 </div>
 
                 {/* 3 Metric Readout Cards */}
-                <div className="mt-5 grid grid-cols-3 gap-3 text-center">
-                  <div className="rounded-xl border border-line/60 bg-surface/80 p-3">
-                    <p className="font-mono text-lg font-bold text-brand">{hoursSaved} hrs</p>
-                    <p className="mt-1 text-3xs text-faint">Admin hours saved / wk</p>
+                <div className="mt-5 grid grid-cols-3 gap-2 sm:gap-3 text-center">
+                  <div className="min-w-0 rounded-xl border border-line/60 bg-surface/80 p-2.5 sm:p-3">
+                    <p className="font-mono text-sm sm:text-base lg:text-lg font-bold text-brand truncate">{hoursSaved} hrs</p>
+                    <p className="mt-1 text-3xs text-faint truncate">Hours saved / wk</p>
                   </div>
-                  <div className="rounded-xl border border-line/60 bg-surface/80 p-3">
-                    <p className="font-mono text-lg font-bold text-success">+{extraLeads}</p>
-                    <p className="mt-1 text-3xs text-faint">Extra leads converted</p>
+                  <div className="min-w-0 rounded-xl border border-line/60 bg-surface/80 p-2.5 sm:p-3">
+                    <p className="font-mono text-sm sm:text-base lg:text-lg font-bold text-success truncate">+{extraLeads}</p>
+                    <p className="mt-1 text-3xs text-faint truncate">Extra leads</p>
                   </div>
-                  <div className="rounded-xl border border-line/60 bg-surface/80 p-3">
-                    <p className="font-mono text-lg font-bold text-fg">
+                  <div className="min-w-0 rounded-xl border border-line/60 bg-surface/80 p-2.5 sm:p-3">
+                    <p className="font-mono text-sm sm:text-base lg:text-lg font-bold text-fg truncate">
                       ₹{recoveredRevenue.toLocaleString('en-IN')}
                     </p>
-                    <p className="mt-1 text-3xs text-faint">Recovered revenue / mo</p>
+                    <p className="mt-1 text-3xs text-faint truncate">Recovered / mo</p>
                   </div>
                 </div>
               </div>
@@ -397,7 +422,11 @@ export function GenerativeUiVisualizer({ className }: GenerativeUiVisualizerProp
                       <span className="font-mono font-bold text-success text-sm">94 / 100 (VIP High Intent)</span>
                     </div>
                     <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-line/60">
-                      <div className="h-full w-[94%] rounded-full bg-success" />
+                      <div className="relative h-full w-[94%] rounded-full bg-gradient-to-r from-success to-brand overflow-hidden">
+                        {!reduced && (
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent animate-shimmer-fast" />
+                        )}
+                      </div>
                     </div>
                     <p className="mt-2 text-3xs text-muted leading-relaxed">
                       Instant autonomous sequence: WhatsApp greeting + automated Google Calendar invite dispatched in &lt; 2 minutes.

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   ArrowRight,
@@ -126,14 +126,31 @@ export function CrmShowcase() {
         hash === targetMode
       ) {
         requestAnimationFrame(() => {
-          const section = document.getElementById('systems');
-          if (section) {
-            scrollTo(section, { offset: -80 });
-          }
+          requestAnimationFrame(() => {
+            const section = document.getElementById('systems');
+            if (section) {
+              scrollTo(section, { offset: -80 });
+            }
+          });
         });
       }
     }
   }, [location.pathname, location.search, location.hash, scrollTo]);
+
+  const selectMode = useCallback((mode: ViewMode) => {
+    setViewMode(mode);
+    const modePathMap: Record<ViewMode, string> = {
+      pipeline: '/',
+      team: '/teamwork-preview',
+      generative: '/generative_ui',
+      security: '/application-security-testing',
+      boost: '/boost',
+    };
+    if (typeof window !== 'undefined' && window.history?.replaceState) {
+      const targetUrl = modePathMap[mode] || '/';
+      window.history.replaceState(null, '', targetUrl);
+    }
+  }, []);
 
   // AppSec Proof state
   const [activeProof, setActiveProof] = useState<'honeypot' | 'idor' | 'sqli'>('honeypot');
@@ -152,7 +169,7 @@ export function CrmShowcase() {
         <div className="nf-glass-card inline-flex flex-wrap items-center justify-center gap-1 rounded-2xl border border-white/60 p-1.5 shadow-2xs backdrop-blur-md">
           <button
             type="button"
-            onClick={() => setViewMode('pipeline')}
+            onClick={() => selectMode('pipeline')}
             className={cn(
               'inline-flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all duration-200',
               viewMode === 'pipeline'
@@ -166,7 +183,7 @@ export function CrmShowcase() {
 
           <button
             type="button"
-            onClick={() => setViewMode('team')}
+            onClick={() => selectMode('team')}
             className={cn(
               'inline-flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all duration-200',
               viewMode === 'team'
@@ -180,7 +197,7 @@ export function CrmShowcase() {
 
           <button
             type="button"
-            onClick={() => setViewMode('generative')}
+            onClick={() => selectMode('generative')}
             className={cn(
               'inline-flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all duration-200',
               viewMode === 'generative'
@@ -194,7 +211,7 @@ export function CrmShowcase() {
 
           <button
             type="button"
-            onClick={() => setViewMode('security')}
+            onClick={() => selectMode('security')}
             className={cn(
               'inline-flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all duration-200',
               viewMode === 'security'
@@ -208,7 +225,7 @@ export function CrmShowcase() {
 
           <button
             type="button"
-            onClick={() => setViewMode('boost')}
+            onClick={() => selectMode('boost')}
             className={cn(
               'inline-flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all duration-200',
               viewMode === 'boost'
