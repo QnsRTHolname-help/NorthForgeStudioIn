@@ -404,8 +404,12 @@ export function ScrollProgress({ className }: { className?: string }) {
   }, []);
 
   return (
-    <div className={cn('fixed inset-x-0 top-0 z-[70] h-px bg-transparent', className)} aria-hidden>
-      <div ref={ref} className="h-full origin-left bg-brand nf-gpu will-change-transform" style={{ transform: 'scaleX(0)' }} />
+    <div className={cn('fixed inset-x-0 top-0 z-[70] h-[2px] bg-transparent pointer-events-none', className)} aria-hidden>
+      <div
+        ref={ref}
+        className="h-full origin-left bg-gradient-to-r from-brand via-brand-violet to-brand-cyan shadow-[0_0_10px_1px_rgb(var(--nf-blue)/0.6)] nf-gpu will-change-transform"
+        style={{ transform: 'scaleX(0)' }}
+      />
     </div>
   );
 }

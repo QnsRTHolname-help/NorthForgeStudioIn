@@ -749,6 +749,36 @@
     0%, 72%, 100% { background-position: 120% 0; }
     46% { background-position: -20% 0; }
   }
+  @keyframes nf-laser-scan {
+    0% { transform: translateY(-100%); opacity: 0; }
+    15% { opacity: 0.8; }
+    85% { opacity: 0.8; }
+    100% { transform: translateY(1000%); opacity: 0; }
+  }
+  @keyframes nf-shimmer-fast {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  @keyframes nf-pulse-glow {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 0.9; transform: scale(1.08); }
+  }
+  @keyframes nf-stream-flow {
+    0% { stroke-dashoffset: 60; }
+    100% { stroke-dashoffset: 0; }
+  }
+  .animate-laser-scan {
+    animation: nf-laser-scan 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  .animate-shimmer-fast {
+    animation: nf-shimmer-fast 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  .animate-pulse-glow {
+    animation: nf-pulse-glow 2.4s ease-in-out infinite;
+  }
+  .animate-stream-flow {
+    animation: nf-stream-flow 1.8s linear infinite;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════

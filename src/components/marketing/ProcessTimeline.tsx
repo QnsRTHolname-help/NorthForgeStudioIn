@@ -5,6 +5,42 @@ import { cn } from '@/lib/cn';
 import { useReducedMotion } from '@/hooks';
 import { SCRUB } from '@/components/motion/constants';
 
+const STAGE_GLYPHS = [
+  // Stage 1: Discovery & Audit
+  <svg key="1" viewBox="0 0 24 24" className="h-3.5 w-3.5 text-brand" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <circle cx="12" cy="12" r="9" strokeDasharray="3 3" />
+    <circle cx="12" cy="12" r="4" fill="currentColor" fillOpacity="0.2" />
+    <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
+  </svg>,
+  // Stage 2: Architecture & Foundation
+  <svg key="2" viewBox="0 0 24 24" className="h-3.5 w-3.5 text-brand" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <rect x="3" y="3" width="7" height="7" rx="1.5" />
+    <rect x="14" y="3" width="7" height="7" rx="1.5" />
+    <rect x="14" y="14" width="7" height="7" rx="1.5" />
+    <rect x="3" y="14" width="7" height="7" rx="1.5" />
+    <path d="M10 6.5h4M6.5 10v4M17.5 10v4M10 17.5h4" strokeDasharray="2 2" />
+  </svg>,
+  // Stage 3: Production & Integration
+  <svg key="3" viewBox="0 0 24 24" className="h-3.5 w-3.5 text-brand" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <path d="M4 12h16M14 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M4 6h6M4 18h6" strokeLinecap="round" strokeDasharray="2 2" />
+  </svg>,
+  // Stage 4: Hardening & Testing
+  <svg key="4" viewBox="0 0 24 24" className="h-3.5 w-3.5 text-brand" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    <path d="m9 12 2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>,
+  // Stage 5: Live Launch
+  <svg key="5" viewBox="0 0 24 24" className="h-3.5 w-3.5 text-brand" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeLinecap="round" />
+    <circle cx="12" cy="12" r="3" fill="currentColor" fillOpacity="0.2" />
+  </svg>,
+  // Stage 6: Continuous Improvement
+  <svg key="6" viewBox="0 0 24 24" className="h-3.5 w-3.5 text-success" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l.67-.79" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>,
+];
+
 /**
  * How it works (spec §21).
  *
@@ -166,7 +202,12 @@ export function ProcessTimeline() {
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <span className="nf-num font-mono text-sm font-semibold text-brand">{step.number}</span>
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/70 bg-white/80 shadow-2xs">
+                        {STAGE_GLYPHS[index % STAGE_GLYPHS.length]}
+                      </span>
+                      <span className="nf-num font-mono text-sm font-semibold text-brand">{step.number}</span>
+                    </div>
                     <span className="nf-glass-pill inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-2xs font-semibold uppercase tracking-wider text-muted shadow-2xs">
                       <span className={cn('h-1.5 w-1.5 rounded-full', isLast ? 'bg-success animate-pulse' : 'bg-brand')} aria-hidden />
                       {isLast ? 'Ongoing' : `Stage ${index + 1}`}

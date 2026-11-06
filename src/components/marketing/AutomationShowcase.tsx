@@ -180,8 +180,10 @@ export function AutomationShowcase() {
             <span
               data-packet
               aria-hidden
-              className="absolute left-[3.5px] top-[19.5px] h-2 w-2 rounded-full bg-brand shadow-[0_0_14px_2px_rgb(var(--nf-blue)/0.55)] nf-gpu will-change-transform"
-            />
+              className="absolute left-[3px] top-[19px] h-2.5 w-2.5 rounded-full bg-brand shadow-[0_0_16px_3px_rgb(var(--nf-blue)/0.65)] nf-gpu will-change-transform flex items-center justify-center"
+            >
+              <span className="h-1 w-1 rounded-full bg-white" />
+            </span>
 
             <ol className="space-y-3">
               {AUTOMATION_FLOW.map((step, index) => (
@@ -286,7 +288,17 @@ export function SystemMonitor({ className }: { className?: string }) {
           <StatusIndicator status="active" tone="success" pulse />
           <span className="text-[13px] font-semibold text-fg">NorthForge System</span>
         </div>
-        <span className="font-mono text-2xs uppercase tracking-wider text-success">Active</span>
+        <div className="flex items-center gap-2">
+          {!reduced && (
+            <div className="flex items-center gap-0.5 h-3">
+              <span className="w-0.5 h-2 bg-success/60 rounded-full animate-pulse" />
+              <span className="w-0.5 h-3 bg-success rounded-full animate-pulse" style={{ animationDelay: '0.15s' }} />
+              <span className="w-0.5 h-1.5 bg-success/80 rounded-full animate-pulse" style={{ animationDelay: '0.3s' }} />
+              <span className="w-0.5 h-2.5 bg-success/70 rounded-full animate-pulse" style={{ animationDelay: '0.45s' }} />
+            </div>
+          )}
+          <span className="font-mono text-2xs uppercase tracking-wider text-success">Active</span>
+        </div>
       </header>
 
       <dl className="grid grid-cols-3 divide-x divide-line/60 border-b border-line/60">
