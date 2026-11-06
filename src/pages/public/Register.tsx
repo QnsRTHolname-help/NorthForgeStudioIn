@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { CheckCircle2, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { Input, PasswordInput, FormError, Checkbox } from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
 import { Logo } from '@/components/brand/Logo';
@@ -8,9 +8,7 @@ import { usePageMeta } from '@/hooks/usePageMeta';
 import { useMutation } from '@/hooks/useAsync';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useToast } from '@/app/providers/ToastProvider';
-import { authService } from '@/services/public';
 import { PasswordStrength } from '@/components/ui/PasswordStrength';
-import { useCooldown } from '@/hooks/useCooldown';
 import { PASSWORD_POLICY } from '@shared/password';
 import { normalizeWhatsAppNumber, prettyWhatsAppNumber } from '@/lib/whatsapp';
 import { getLeadCredentials, saveLeadCredentials } from '@/lib/leadStorage';
@@ -21,23 +19,19 @@ export default function Register() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const savedCredentials = getLeadCredentials();
-  const { register, refresh } = useAuth();
+  const { register } = useAuth();
   const toast = useToast();
 
   const [values, setValues] = useState(() => ({
     name: searchParams.get('name') || savedCredentials.name || '',
     businessName: searchParams.get('businessName') || savedCredentials.businessName || '',
-    email: searchParams.get('email') || savedCredentials.email || '',
+    email: searchParams.get('changeEmail') ? '' : (searchParams.get('email') || savedCredentials.email || ''),
     phone: searchParams.get('phone') || savedCredentials.phone || '',
     businessType: searchParams.get('businessType') || savedCredentials.businessType || '',
     password: '',
     confirm: '',
   }));
   const [errors, setErrors] = useState<Record<string, string>>({});
-  /** Email confirmation is enabled: the account exists but needs verifying. */
-  const [needsConfirmation, setNeedsConfirmation] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
-  const [otpError, setOtpError] = useState<string | null>(null);
   /**
    * Age eligibility (spec §10–§11).
    *
@@ -66,29 +60,6 @@ export default function Register() {
       onSuccess: () => {
         toast.success('Account created', 'Tell us about your business to finish setup.');
         navigate('/portal', { replace: true });
-      },
-    },
-  );
-
-  const resend = useMutation((email: string) => authService.resendConfirmation(email));
-  // A short, visible wait: repeated resends burn the provider's per-address
-  // allowance and make the NEXT attempt slower, so we pace it ourselves.
-  const cooldown = useCooldown(45);
-
-  const verifyOtp = useMutation(
-    async (code: string) => {
-      setOtpError(null);
-      const session = await authService.verifySignupOtp(values.email, code);
-      await refresh();
-      return session;
-    },
-    {
-      onSuccess: () => {
-        toast.success('Email confirmed!', 'Welcome to your NorthForge workspace.');
-        navigate('/portal', { replace: true });
-      },
-      onError: (err) => {
-        setOtpError((err as Error).message || 'Invalid or expired confirmation code.');
       },
     },
   );
@@ -133,114 +104,25 @@ export default function Register() {
       await mutation.mutate();
     } catch (error) {
       // With email confirmation on, Supabase returns no session at signup.
-      // That is a SUCCESS path — show an inbox panel, not a red error.
+      // That is a SUCCESS path — route to dedicated verification pending screen.
       if ((error as { code?: string }).code === 'AUTH_EMAIL_NOT_CONFIRMED') {
-        setNeedsConfirmation(true);
+        navigate('/verify/pending', {
+          replace: true,
+          state: { email: values.email, name: values.name },
+        });
+        return;
+      }
+      if ((error as { code?: string }).code === 'AUTH_EMAIL_EXISTS') {
+        setErrors((prev) => ({
+          ...prev,
+          email: 'An account with this email already exists. Try signing in instead.',
+        }));
         return;
       }
       const fields = (error as { fields?: Record<string, string> }).fields;
       if (fields) setErrors(fields);
     }
   };
-
-  if (needsConfirmation) {
-    return (
-      <main className="flex nf-min-h-viewport items-center justify-center px-5 py-14">
-        <div className="w-full max-w-md text-center">
-          <Link to="/" className="mb-10 inline-block">
-            <Logo />
-          </Link>
-          <span className="mb-6 inline-flex h-11 w-11 items-center justify-center rounded-full border border-success/30 bg-success/10 text-success">
-            <CheckCircle2 className="h-5 w-5" />
-          </span>
-                    <h1 className="text-[26px] font-semibold tracking-[-0.02em] text-fg">Confirm your email.</h1>
-          <p className="mt-3 text-[13px] leading-relaxed text-muted">
-            We sent a verification link to <span className="font-medium text-fg">{values.email}</span>. Confirm it to
-            activate your workspace, then sign in.
-          </p>
-          <p className="mt-2 text-xs leading-relaxed text-faint">
-            Not seeing it? Check your <span className="font-medium">spam/junk folder</span> and mark the sender as
-            trusted — new senders are often filtered. It can take a couple of minutes to arrive.
-          </p>
-
-          {/* Direct OTP confirmation box */}
-          <div className="mt-6 rounded-2xl border border-line/70 bg-surface/80 p-5 text-left shadow-xs backdrop-blur-md">
-            <label htmlFor="reg-otp" className="block text-xs font-semibold text-fg">
-              Have the code? Confirm here directly
-            </label>
-            <p className="mt-1 text-2xs text-muted">
-              Enter the numeric code sent in your confirmation email to open your workspace immediately:
-            </p>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (otpCode.trim()) verifyOtp.mutate(otpCode.trim());
-              }}
-              className="mt-3 flex gap-2"
-            >
-              <input
-                id="reg-otp"
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={8}
-                value={otpCode}
-                onChange={(e) => {
-                  setOtpCode(e.target.value);
-                  setOtpError(null);
-                }}
-                placeholder="Enter 6-digit code"
-                className="w-full rounded-lg border border-line bg-canvas px-3 py-2 text-center font-mono text-base tracking-widest text-fg focus:border-brand focus:outline-none"
-              />
-              <Button
-                type="submit"
-                size="sm"
-                loading={verifyOtp.pending}
-                disabled={!otpCode.trim() || verifyOtp.pending}
-              >
-                Verify
-              </Button>
-            </form>
-            {otpError ? <p className="mt-2 text-xs text-danger">{otpError}</p> : null}
-          </div>
-
-          <div className="mt-6 space-y-3">
-            <Button
-              variant="secondary"
-              size="sm"
-              loading={resend.pending}
-              disabled={cooldown.active}
-              onClick={async () => {
-                cooldown.start(45);
-                try {
-                  await resend.mutate(values.email);
-                } catch (error) {
-                  // Supabase told us how long to wait — honour its number.
-                  const retry = (error as { retryAfterSeconds?: number }).retryAfterSeconds;
-                  if (retry) cooldown.start(retry);
-                }
-              }}
-            >
-              {cooldown.active
-                ? `Resend available in ${cooldown.remaining}s`
-                : resend.success
-                  ? 'Email sent again — check your inbox'
-                  : 'Resend verification email'}
-            </Button>
-            {resend.error ? <p className="text-xs text-danger">{resend.error}</p> : null}
-            <div>
-              <Link
-                to="/login"
-                className="text-[13px] font-medium text-brand underline decoration-brand/30 underline-offset-2"
-              >
-                Continue to sign in →
-              </Link>
-            </div>
-          </div>
-        </div>
-      </main>
-    );
-  }
 
   return (
     <main className="flex nf-min-h-viewport items-center justify-center px-5 py-14">

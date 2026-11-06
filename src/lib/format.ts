@@ -151,3 +151,28 @@ export function formatBytes(bytes: number | null | undefined) {
   return `${bytes} B`;
 }
 
+/**
+ * Masks an email address for privacy (e.g. "alex.smith@example.com" -> "al•••••h@example.com").
+ * Preserves the domain and first/last characters of the username so the user recognizes their inbox.
+ */
+export function maskEmail(email: string | null | undefined): string {
+  if (!email || typeof email !== 'string') return '';
+  const trimmed = email.trim();
+  const atIndex = trimmed.indexOf('@');
+  if (atIndex <= 0) return trimmed;
+  const local = trimmed.slice(0, atIndex);
+  const domain = trimmed.slice(atIndex + 1);
+  if (!domain) return trimmed;
+
+  if (local.length <= 2) {
+    return `${local[0]}*@${domain}`;
+  }
+  if (local.length <= 4) {
+    return `${local[0]}**${local[local.length - 1]}@${domain}`;
+  }
+  const prefix = local.slice(0, 2);
+  const suffix = local.slice(-1);
+  const asterisks = '*'.repeat(Math.min(local.length - 3, 5));
+  return `${prefix}${asterisks}${suffix}@${domain}`;
+}
+

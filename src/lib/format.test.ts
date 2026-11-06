@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatMoney, formatMoneyPrecise, formatNumber, formatCompact, formatPercent, formatDate, formatDaysUntil, titleCase, initials } from './format';
+import { formatMoney, formatMoneyPrecise, formatNumber, formatCompact, formatPercent, formatDate, formatDaysUntil, titleCase, initials, maskEmail } from './format';
 
 /**
  * Money formatting is a correctness surface, not a cosmetic one.
@@ -118,5 +118,14 @@ describe('other formatters', () => {
     expect(titleCase('in_progress')).toBe('In Progress');
     expect(initials('Aditi Sharma')).toBe('AS');
     expect(initials(null)).toBe('?');
+  });
+
+  it('masks emails cleanly preserving domain and edge characters', () => {
+    expect(maskEmail('north.forge.studio.in@gmail.com')).toBe('no*****n@gmail.com');
+    expect(maskEmail('alex@studio.in')).toBe('a**x@studio.in');
+    expect(maskEmail('ab@domain.com')).toBe('a*@domain.com');
+    expect(maskEmail('')).toBe('');
+    expect(maskEmail(null)).toBe('');
+    expect(maskEmail('invalid-email')).toBe('invalid-email');
   });
 });

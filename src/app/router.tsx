@@ -38,6 +38,8 @@ const ResetPasswordPage = lazyPage(() => import('@/pages/public/ResetPassword'))
 const MfaVerifyPage = lazyPage(() => import('@/pages/public/MfaVerify'));
 const EmailMfaPage = lazyPage(() => import('@/pages/public/EmailMfa'));
 const AuthCallbackPage = lazyPage(() => import('@/pages/public/AuthCallback'));
+const VerifyPendingPage = lazyPage(() => import('@/pages/public/VerifyPending'));
+const VerifySuccessPage = lazyPage(() => import('@/pages/public/VerifySuccess'));
 const PrivacyPage = lazyPage(() => import('@/pages/public/Legal'));
 const NotFoundPage = lazyPage(() => import('@/pages/errors/NotFound'));
 const UnauthorizedPage = lazyPage(() => import('@/pages/errors/Unauthorized'));
@@ -146,6 +148,11 @@ export const AppRoutes: RouteDefinition[] = [
       /* Where every emailed auth link lands (confirmation, magic link,
          recovery) — never guarded, it must run while signed out. */
       { path: 'auth/callback', element: <AuthCallbackPage /> },
+      { path: 'verify/pending', element: <VerifyPendingPage /> },
+      { path: 'verify/success', element: <VerifySuccessPage /> },
+      { path: 'verify', element: <Navigate to="/verify/pending" replace /> },
+      { path: 'verify-pending', element: <Navigate to="/verify/pending" replace /> },
+      { path: 'verify-success', element: <Navigate to="/verify/success" replace /> },
       { path: 'forgot-password', element: <ForgotPasswordPage /> },
       { path: 'reset-password', element: <ResetPasswordPage /> },
       { path: 'mfa', element: <MfaVerifyPage /> },

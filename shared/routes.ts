@@ -162,6 +162,20 @@ export const ROUTES: RouteMeta[] = [
     page: 'src/pages/public/AuthCallback.tsx',
   },
   {
+    path: '/verify/pending',
+    title: 'Check your inbox',
+    description: "We've sent a verification link to your registered email address.",
+    index: false,
+    page: 'src/pages/public/VerifyPending.tsx',
+  },
+  {
+    path: '/verify/success',
+    title: 'Email Verified Successfully',
+    description: 'Your email address has been verified. Your North Forge Studio account is ready.',
+    index: false,
+    page: 'src/pages/public/VerifySuccess.tsx',
+  },
+  {
     path: '/unauthorized',
     title: 'No access',
     description: 'Your account does not have access to this area.',

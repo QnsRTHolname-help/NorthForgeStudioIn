@@ -85,4 +85,41 @@ export function canonicalUrl(path = '/', options?: { allowLocal?: boolean }): st
 
 /** Where Supabase should send people after they click an emailed link. */
 export const AUTH_CALLBACK_PATH = '/auth/callback';
+export const AUTH_VERIFY_PENDING_PATH = '/verify/pending';
+export const AUTH_VERIFY_SUCCESS_PATH = '/verify/success';
+
+/**
+ * Prevent open redirect vulnerabilities by validating redirect targets.
+ * Only allows relative paths on the same origin (e.g. '/portal', '/verify/success')
+ * or absolute URLs that strictly match the canonical or configured origin.
+ */
+export function isSafeRedirectUrl(url: string | null | undefined): boolean {
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  // Relative paths: must start with single slash, not protocol-relative // or /\
+  if (trimmed.startsWith('/') && !trimmed.startsWith('//') && !trimmed.startsWith('/\\')) {
+    return true;
+  }
+  try {
+    const parsed = new URL(trimmed);
+    const canonical = new URL(CANONICAL_SITE_URL);
+    if (parsed.origin === canonical.origin) return true;
+    if (CONFIGURED) {
+      const configured = new URL(CONFIGURED.includes('://') ? CONFIGURED : `https://${CONFIGURED}`);
+      if (parsed.origin === configured.origin) return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Returns a sanitized redirect destination, falling back to a safe route
+ * when the given URL fails security checks.
+ */
+export function sanitizeRedirectUrl(url: string | null | undefined, fallback = '/portal'): string {
+  if (isSafeRedirectUrl(url)) return url!.trim();
+  return fallback;
+}
 

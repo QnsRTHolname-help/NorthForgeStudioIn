@@ -92,6 +92,17 @@ export function mapAuthError(error: unknown): MappedAuthError {
   const code = err?.code ?? '';
   const status = err?.status ?? 0;
 
+  // Cooldown notice ("…only request this after N seconds"): keep the wait
+  // visible and countable rather than a flat error.
+  const retryAfterSeconds = parseRetrySeconds(err?.message ?? '');
+  if (retryAfterSeconds) {
+    return {
+      code: 'AUTH_RATE_LIMIT',
+      message: `Please wait ${retryAfterSeconds}s before requesting another email.`,
+      retryAfterSeconds,
+    };
+  }
+
   if (KNOWN_CODES.has(code) || (typeof code === 'string' && code.endsWith('_not_confirmed'))) {
     switch (code) {
       case 'invalid_credentials':
@@ -135,17 +146,6 @@ export function mapAuthError(error: unknown): MappedAuthError {
 
   // Some providers return only a message without a code.
   const message = (err?.message ?? '').toLowerCase();
-
-  // Cooldown notice ("…only request this after N seconds"): keep the wait
-  // visible and countable rather than a flat error.
-  const retryAfterSeconds = parseRetrySeconds(err?.message ?? '');
-  if (retryAfterSeconds) {
-    return {
-      code: 'AUTH_RATE_LIMIT',
-      message: `Please wait ${retryAfterSeconds}s before requesting another email.`,
-      retryAfterSeconds,
-    };
-  }
   if (message.includes('invalid login credentials')) {
     return { code: 'AUTH_INVALID_CREDENTIALS', message: 'Email or password is incorrect.' };
   }

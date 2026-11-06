@@ -4,9 +4,11 @@ import {
   CANONICAL_SITE_URL,
   canonicalUrl,
   isLocalHost,
+  isSafeRedirectUrl,
   normalizeOrigin,
   publicOrigin,
   resolvePublicOrigin,
+  sanitizeRedirectUrl,
 } from '@/lib/links';
 
 describe('links & canonical URL generation', () => {
@@ -98,6 +100,33 @@ describe('links & canonical URL generation', () => {
       const url = canonicalUrl('/reset-password');
       expect(url).toBe(`${CANONICAL_SITE_URL}/reset-password`);
       expect(url).not.toContain('localhost');
+    });
+  });
+
+  describe('isSafeRedirectUrl & sanitizeRedirectUrl', () => {
+    it('accepts safe relative paths', () => {
+      expect(isSafeRedirectUrl('/portal')).toBe(true);
+      expect(isSafeRedirectUrl('/app/dashboard')).toBe(true);
+      expect(isSafeRedirectUrl('/verify/success')).toBe(true);
+      expect(sanitizeRedirectUrl('/portal/settings')).toBe('/portal/settings');
+    });
+
+    it('rejects open redirect vectors, protocol-relative URLs, and malicious schemes', () => {
+      expect(isSafeRedirectUrl('//evil.com')).toBe(false);
+      expect(isSafeRedirectUrl('/\\evil.com')).toBe(false);
+      expect(isSafeRedirectUrl('https://evil.com/phishing')).toBe(false);
+      expect(isSafeRedirectUrl('javascript:alert(1)')).toBe(false);
+      expect(isSafeRedirectUrl('data:text/html,<script>alert(1)</script>')).toBe(false);
+      expect(isSafeRedirectUrl(null)).toBe(false);
+      expect(isSafeRedirectUrl('')).toBe(false);
+
+      expect(sanitizeRedirectUrl('//evil.com', '/portal')).toBe('/portal');
+      expect(sanitizeRedirectUrl('https://evil.com', '/fallback')).toBe('/fallback');
+    });
+
+    it('accepts absolute URLs only when matching the canonical domain', () => {
+      expect(isSafeRedirectUrl(`${CANONICAL_SITE_URL}/portal`)).toBe(true);
+      expect(sanitizeRedirectUrl(`${CANONICAL_SITE_URL}/verify/success`)).toBe(`${CANONICAL_SITE_URL}/verify/success`);
     });
   });
 });

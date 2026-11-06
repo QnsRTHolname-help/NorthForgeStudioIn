@@ -33,7 +33,7 @@ export default function AuthCallback() {
   usePageMeta({ title: 'Confirming your email', noIndex: true });
 
   const navigate = useNavigate();
-  const { status, isAdmin } = useAuth();
+  const { status } = useAuth();
   const [phase, setPhase] = useState<Phase>('working');
   const [detail, setDetail] = useState<string | null>(null);
   const [email, setEmail] = useState('');
@@ -88,7 +88,21 @@ export default function AuthCallback() {
         return;
       }
 
-      // 3. Exchange the PKCE code. "Already exchanged" is a success path:
+      // 3. Token hash verification (GoTrue signup/email links)
+      const tokenHash = query.get('token_hash') ?? hash.get('token_hash');
+      const tokenType = (query.get('type') ?? hash.get('type') ?? 'signup') as any;
+      if (tokenHash) {
+        try {
+          const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: tokenType });
+          if (error) {
+            if (!cancelled) setDetail(error.message);
+          }
+        } catch (error) {
+          if (!cancelled) setDetail((error as Error).message);
+        }
+      }
+
+      // 4. Exchange the PKCE code. "Already exchanged" is a success path:
       //    the Supabase client restores the URL session itself on boot.
       const code = query.get('code');
       if (code) {
@@ -102,19 +116,22 @@ export default function AuthCallback() {
         }
       }
 
-      // 4. Give the client a moment to finish restoring the URL session.
+      // 5. Give the client a moment to finish restoring the URL session.
       const deadline = Date.now() + 6_000;
       while (Date.now() < deadline) {
         const { data } = await supabase.auth.getSession();
         if (data.session) {
-          if (!cancelled) setPhase('confirmed');
+          if (!cancelled) {
+            setPhase('confirmed');
+            navigate('/verify/success', { replace: true });
+          }
           return;
         }
         await new Promise((resolve) => setTimeout(resolve, 250));
       }
 
       if (cancelled) return;
-      setPhase(looksExpired(description) ? 'expired' : 'invalid');
+      setPhase(looksExpired(description, detail, errorCode) ? 'expired' : 'invalid');
     };
 
     void run();
@@ -123,12 +140,11 @@ export default function AuthCallback() {
     };
   }, [navigate]);
 
-  // Confirmed AND signed in → walk straight into the workspace.
+  // Confirmed → navigate to dedicated verification success page
   useEffect(() => {
-    if (phase !== 'confirmed' || status !== 'authenticated') return;
-    const timer = window.setTimeout(() => navigate(isAdmin ? '/app' : '/portal', { replace: true }), 1_600);
-    return () => window.clearTimeout(timer);
-  }, [phase, status, isAdmin, navigate]);
+    if (phase !== 'confirmed') return;
+    navigate('/verify/success', { replace: true });
+  }, [phase, navigate]);
 
   return (
     <main className="flex nf-min-h-viewport items-center justify-center px-5 py-14">
@@ -161,10 +177,10 @@ export default function AuthCallback() {
               <Button
                 fullWidth
                 size="lg"
-                onClick={() => navigate(status === 'authenticated' ? (isAdmin ? '/app' : '/portal') : '/login', { replace: true })}
+                onClick={() => navigate('/verify/success', { replace: true })}
                 arrow
               >
-                {status === 'authenticated' ? 'Open my workspace' : 'Continue to sign in'}
+                Continue to verification success
               </Button>
             </div>
           </>
