@@ -76,10 +76,10 @@ export function StickyCTA() {
     >
       <div className="nf-glass-card nf-glass-elevated pointer-events-auto flex items-center gap-3 rounded-full border border-white/60 px-5 py-2.5 shadow-lg">
         <div className="hidden sm:flex sm:flex-col">
-          <span className="text-[13px] font-semibold leading-none text-fg">
+          <span className="text-[13px] font-semibold leading-tight text-fg">
             Still deciding?
           </span>
-          <span className="mt-0.5 text-2xs text-faint">Get a free automation review.</span>
+          <span className="text-2xs text-faint">Get a free automation review.</span>
         </div>
         <LinkButton to="/contact" size="sm" arrow className="nf-glass-glow">
           Start a project

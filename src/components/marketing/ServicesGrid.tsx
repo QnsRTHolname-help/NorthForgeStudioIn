@@ -216,7 +216,7 @@ export function ServiceRows() {
                   <span className="nf-num text-[13px] font-medium tracking-eyebrow text-brand">
                     {String(index + 1).padStart(2, '0')}
                   </span>
-                  <h3 className="text-[clamp(1.6rem,3.6vw,2.6rem)] font-semibold leading-none tracking-[-0.03em] text-fg transition-colors duration-500 group-hover:text-brand sm:mt-4">
+                  <h3 className="text-[clamp(1.6rem,3.6vw,2.6rem)] font-semibold leading-[1.12] tracking-[-0.03em] text-fg transition-colors duration-500 group-hover:text-brand sm:mt-4">
                     {group.label}
                   </h3>
                 </div>

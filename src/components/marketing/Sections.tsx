@@ -87,7 +87,7 @@ export function PromiseSection() {
             <FadeUp key={principle.key} delay={index * 0.08} as="li">
               <div className="group relative h-full border-t border-line pt-6 transition-transform duration-300 hover:-translate-y-0.5">
                 <span className="nf-num text-2xs font-medium tracking-eyebrow text-brand">{principle.number}</span>
-                <h3 className="mt-4 text-[clamp(1.6rem,2.6vw,2.1rem)] font-semibold leading-none tracking-[-0.03em] text-fg">
+                <h3 className="mt-4 text-[clamp(1.6rem,2.6vw,2.1rem)] font-semibold leading-[1.15] tracking-[-0.03em] text-fg">
                   {principle.title}
                 </h3>
                 <p className="mt-3 text-[13px] leading-relaxed text-muted">{principle.body}</p>
