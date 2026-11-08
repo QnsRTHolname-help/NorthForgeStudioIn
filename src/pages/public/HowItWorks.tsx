@@ -2,7 +2,7 @@ import { ProcessTimeline } from '@/components/marketing/ProcessTimeline';
 import { AutomationShowcase } from '@/components/marketing/AutomationShowcase';
 import { FinalCta, NextSteps, ProofStrip } from '@/components/marketing/Sections';
 import { SectionHeader } from '@/components/ui/Card';
-import { Reveal, AtmosphericGlow } from '@/components/motion';
+import { Reveal, AtmosphericGlow, SectionDivider } from '@/components/motion';
 import { usePageMeta } from '@/hooks/usePageMeta';
 
 export default function HowItWorks() {
@@ -29,36 +29,41 @@ export default function HowItWorks() {
       </section>
 
       <ProofStrip />
+      <SectionDivider />
       <ProcessTimeline />
+      <SectionDivider />
       <AutomationShowcase />
+      <SectionDivider />
 
-      <section className="nf-shell py-16 lg:py-24">
-        <SectionHeader
-          eyebrow="Where to next"
-          title="See the detail behind each area."
-          description="Dive into the services, the pricing, or the questions everyone asks first."
-        />
-        <div className="mt-10">
-          <NextSteps
-            items={[
-              {
-                label: 'Services',
-                to: '/#services',
-                description: 'The five capability groups and what each one includes.',
-              },
-              {
-                label: 'Pricing',
-                to: '/pricing',
-                description: 'Three plans — one-time setup plus monthly — and custom work.',
-              },
-              {
-                label: 'FAQ',
-                to: '/faq',
-                description: 'Timelines, domains, hosting, WhatsApp, AI and changes.',
-              },
-            ]}
+      <section className="nf-shell relative py-16 lg:py-24">
+        <Reveal>
+          <SectionHeader
+            eyebrow="Where to next"
+            title="See the detail behind each area."
+            description="Dive into the services, the pricing, or the questions everyone asks first."
           />
-        </div>
+          <div className="mt-10">
+            <NextSteps
+              items={[
+                {
+                  label: 'Services',
+                  to: '/#services',
+                  description: 'The five capability groups and what each one includes.',
+                },
+                {
+                  label: 'Pricing',
+                  to: '/pricing',
+                  description: 'Three plans — one-time setup plus monthly — and custom work.',
+                },
+                {
+                  label: 'FAQ',
+                  to: '/faq',
+                  description: 'Timelines, domains, hosting, WhatsApp, AI and changes.',
+                },
+              ]}
+            />
+          </div>
+        </Reveal>
       </section>
 
       <FinalCta />

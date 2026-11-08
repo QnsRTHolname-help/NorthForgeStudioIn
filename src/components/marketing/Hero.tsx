@@ -130,7 +130,7 @@ export function Hero() {
 
             {/* Type scaled to its COLUMN, not the viewport. */}
             <h1
-              data-hero-copy
+              data-hero-heading
               className="mt-8 max-w-2xl text-[clamp(2.15rem,4.4vw,4.25rem)] font-semibold leading-[1.04] sm:leading-[1.0] tracking-[-0.035em] text-fg [text-wrap:balance]"
             >
               <SplitText

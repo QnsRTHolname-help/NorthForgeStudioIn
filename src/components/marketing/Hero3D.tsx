@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
-import { useReducedMotion } from '@/hooks';
+import { useIsTouch, useReducedMotion } from '@/hooks';
 
 /**
  * 3D Hero Visual Component
@@ -17,11 +17,10 @@ export function Hero3D({ className = '' }: { className?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const tiltRef = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
+  const touch = useIsTouch();
 
   const quickTiltXRef = useRef<((value: number) => void) | null>(null);
   const quickTiltYRef = useRef<((value: number) => void) | null>(null);
-
-
 
   useEffect(() => {
     if (reduced || typeof window === 'undefined') return;
@@ -30,9 +29,11 @@ export function Hero3D({ className = '' }: { className?: string }) {
     const tilt = tiltRef.current;
     if (!container || !tilt) return;
 
-    // Initialize high-performance quickTo dampeners
-    quickTiltXRef.current = gsap.quickTo(tilt, 'rotationY', { duration: 0.7, ease: 'power2.out' });
-    quickTiltYRef.current = gsap.quickTo(tilt, 'rotationX', { duration: 0.7, ease: 'power2.out' });
+    // Initialize high-performance quickTo dampeners only for pointer desktop
+    if (!touch) {
+      quickTiltXRef.current = gsap.quickTo(tilt, 'rotationY', { duration: 0.7, ease: 'power2.out' });
+      quickTiltYRef.current = gsap.quickTo(tilt, 'rotationX', { duration: 0.7, ease: 'power2.out' });
+    }
 
     const ctx = gsap.context(() => {
       // Set initial 3D transform orientations
@@ -105,8 +106,10 @@ export function Hero3D({ className = '' }: { className?: string }) {
       }
     };
 
-    window.addEventListener('mousemove', onWindowMove, { passive: true });
-    document.addEventListener('mouseleave', onWindowLeave, { passive: true });
+    if (!touch) {
+      window.addEventListener('mousemove', onWindowMove, { passive: true });
+      document.addEventListener('mouseleave', onWindowLeave, { passive: true });
+    }
 
     return () => {
       ctx.revert();
@@ -114,10 +117,12 @@ export function Hero3D({ className = '' }: { className?: string }) {
       quickTiltYRef.current = null;
       window.removeEventListener('resize', updateRect);
       window.removeEventListener('scroll', onScrollUpdate);
-      window.removeEventListener('mousemove', onWindowMove);
-      document.removeEventListener('mouseleave', onWindowLeave);
+      if (!touch) {
+        window.removeEventListener('mousemove', onWindowMove);
+        document.removeEventListener('mouseleave', onWindowLeave);
+      }
     };
-  }, [reduced]);
+  }, [reduced, touch]);
 
   // Floating geometric elements (animated via CSS GPU keyframes)
   const floatingShapes = Array.from({ length: 8 }, (_, i) => {

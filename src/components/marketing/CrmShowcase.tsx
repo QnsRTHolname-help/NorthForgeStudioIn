@@ -242,9 +242,11 @@ export function CrmShowcase() {
         </div>
       </div>
 
-      {/* ── MODE 1: LEAD PIPELINE ───────────────────────────────── */}
-      {viewMode === 'pipeline' && (
-        <div className="nf-scroll-x mt-10 pb-2">
+      {/* ── Active Console View with fluid tab transition ─────── */}
+      <div key={viewMode} className="animate-fade-in">
+        {/* ── MODE 1: LEAD PIPELINE ───────────────────────────────── */}
+        {viewMode === 'pipeline' && (
+          <div className="nf-scroll-x mt-10 pb-2">
           <div className="flex min-w-[960px] gap-3">
             {COLUMNS.map((column, index) => (
               <Reveal key={column.status} delay={index * 0.05} className="flex-1">
@@ -479,6 +481,7 @@ export function CrmShowcase() {
           </div>
         </Reveal>
       )}
+      </div>
 
       {/* Footer descriptor matching active mode */}
       <p className="mt-6 text-center text-xs text-faint">

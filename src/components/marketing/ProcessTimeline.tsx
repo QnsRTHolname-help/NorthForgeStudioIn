@@ -175,18 +175,25 @@ export function ProcessTimeline() {
         </Reveal>
       </div>
 
-      <div ref={sectionRef} className="relative overflow-hidden lg:h-screen">
-        <div className="pointer-events-none absolute bottom-4 left-1/2 hidden w-[60%] max-w-2xl -translate-x-1/2 lg:block">
-          <span
-            data-process-line
-            aria-hidden
-            className="block h-[2px] w-full origin-left rounded-full bg-gradient-to-r from-brand/20 via-brand to-brand-violet shadow-[0_0_8px_rgba(var(--nf-blue)/0.4)]"
-            style={{ transform: 'scaleX(0)' }}
-          />
-        </div>
+      <div ref={sectionRef} className={cn('relative overflow-hidden', !reduced && 'lg:h-screen')}>
+        {!reduced ? (
+          <div className="pointer-events-none absolute bottom-4 left-1/2 hidden w-[60%] max-w-2xl -translate-x-1/2 lg:block">
+            <span
+              data-process-line
+              aria-hidden
+              className="block h-[2px] w-full origin-left rounded-full bg-gradient-to-r from-brand/20 via-brand to-brand-violet shadow-[0_0_8px_rgba(var(--nf-blue)/0.4)]"
+              style={{ transform: 'scaleX(0)' }}
+            />
+          </div>
+        ) : null}
         <div
           ref={trackRef}
-          className="nf-scroll-x nf-gpu will-change-transform flex gap-5 px-5 pb-6 sm:px-8 lg:h-screen lg:items-center lg:gap-7 lg:px-12 lg:pb-0 lg:overflow-visible"
+          className={cn(
+            'nf-scroll-x nf-gpu will-change-transform flex gap-5 px-5 pb-6 sm:px-8',
+            reduced
+              ? 'lg:grid lg:grid-cols-3 lg:gap-6 lg:px-12 lg:pb-12'
+              : 'lg:h-screen lg:items-center lg:gap-7 lg:px-12 lg:pb-0 lg:overflow-visible',
+          )}
         >
           {PROCESS_STEPS.map((step, index) => {
             const isLast = index === PROCESS_STEPS.length - 1;

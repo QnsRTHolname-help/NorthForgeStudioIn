@@ -70,13 +70,19 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
       ScrollTrigger.refresh();
     });
 
+    let resizeTimer: number | null = null;
     const onWindowResize = () => {
-      ScrollTrigger.refresh();
+      if (resizeTimer !== null) window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => {
+        ScrollTrigger.refresh();
+        resizeTimer = null;
+      }, 150);
     };
     window.addEventListener('resize', onWindowResize, { passive: true });
 
     return () => {
       cancelAnimationFrame(refreshTimer);
+      if (resizeTimer !== null) window.clearTimeout(resizeTimer);
       window.removeEventListener('resize', onWindowResize);
       document.documentElement.classList.remove('lenis', 'lenis-smooth');
       gsap.ticker.remove(raf);

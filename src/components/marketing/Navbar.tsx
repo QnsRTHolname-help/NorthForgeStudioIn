@@ -226,11 +226,11 @@ export function Navbar() {
 
       {/* ── Mobile panel ─────────────────────────────────────── */}
       {menuOpen ? (
-        <div className="fixed inset-0 z-[59] lg:hidden">
+        <div className="fixed inset-0 z-[59] lg:hidden animate-fade-in">
           <button
             type="button"
             aria-label="Close menu"
-            className="absolute inset-0 bg-[rgb(var(--nf-scrim))] backdrop-blur-sm"
+            className="absolute inset-0 bg-[rgb(var(--nf-scrim))] backdrop-blur-sm transition-opacity"
             onClick={() => setMenuOpen(false)}
           />
 
@@ -239,7 +239,7 @@ export function Navbar() {
             role="dialog"
             aria-modal="true"
             aria-label="Navigation"
-            className="absolute inset-x-3 top-[4.75rem] overflow-hidden rounded-3xl border border-white/60 bg-[rgb(255_255_255/0.94)] p-6 shadow-panel backdrop-blur-2xl"
+            className="absolute inset-x-3 top-[4.75rem] overflow-hidden rounded-3xl border border-white/60 bg-[rgb(255_255_255/0.94)] p-6 shadow-panel backdrop-blur-2xl animate-scale-in"
             style={{
               boxShadow: '0 24px 64px -16px rgb(60 48 32 / 0.18), inset 0 1px 0 rgb(255 255 255 / 0.95)',
             }}

@@ -63,6 +63,6 @@ export const START = {
   late: 'top 65%',
 } as const;
 
-/** Scroll scrub smoothing. With Lenis smooth scrolling active, scrub: 0.6
- * adds an extra layer of buttery deceleration to scrubbed choreographies. */
-export const SCRUB: boolean | number = 0.6;
+/** Scroll scrub smoothing. With Lenis smooth scrolling active, scrub: true
+ * binds animations 1:1 to the scroll position without double-smoothing input lag (spec §3). */
+export const SCRUB: boolean | number = true;

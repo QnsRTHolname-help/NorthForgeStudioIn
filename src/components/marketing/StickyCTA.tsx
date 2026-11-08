@@ -39,14 +39,14 @@ export function StickyCTA() {
 
   const visible = scrolled;
 
-  // Touch: a wide in-flow bar that sits below the fold naturally.
+  // Touch: a wide in-flow bar that sits below the fold naturally with fluid slide-up.
   if (touch) {
     return (
       <div
         data-sticky-cta
         className={cn(
-          'nf-glass-card nf-glass-elevated nf-gpu sticky bottom-0 z-50 flex items-center justify-between gap-4 rounded-t-2xl border border-white/60 px-5 py-3.5 shadow-lg sm:px-6',
-          !visible && 'hidden',
+          'nf-glass-card nf-glass-elevated nf-gpu sticky bottom-0 z-50 flex items-center justify-between gap-4 rounded-t-2xl border border-white/60 px-5 py-3.5 shadow-lg sm:px-6 transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]',
+          visible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none',
         )}
         aria-hidden={!visible}
       >
@@ -69,7 +69,7 @@ export function StickyCTA() {
     <div
       data-sticky-cta
       className={cn(
-        'fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 nf-gpu pointer-events-none transition-all duration-500 ease-out',
+        'fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 nf-gpu pointer-events-none transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]',
         visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5 pointer-events-none'
       )}
       aria-hidden={!visible}

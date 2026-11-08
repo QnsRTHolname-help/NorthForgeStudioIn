@@ -74,7 +74,7 @@ export function SplitText({
   const units = useCallback(() => {
     if (by === 'char') return text.split('');
     if (by === 'line') return text.split('\n');
-    return text.split(' ');
+    return text.split(/\s+/).filter(Boolean);
   }, [text, by])();
 
   useLayoutEffect(() => {
@@ -124,16 +124,17 @@ export function SplitText({
   return (
     <Tag ref={ref as never} className={className}>
       {units.map((unit, index) => (
-        <span
-          key={`${unit}-${index}`}
-          className={cn('inline-block overflow-hidden align-bottom', by === 'word' && 'whitespace-pre')}
-          style={{ paddingBottom: '0.06em', marginBottom: '-0.06em' }}
-          aria-hidden
-        >
-          <span data-split-inner className={cn('inline-block will-change-transform', wordClassName)}>
-            {unit}
+        <span key={`${unit}-${index}`}>
+          <span
+            className="inline-block overflow-hidden align-bottom"
+            style={{ paddingBottom: '0.06em', marginBottom: '-0.06em' }}
+            aria-hidden
+          >
+            <span data-split-inner className={cn('inline-block will-change-transform', wordClassName)}>
+              {unit}
+            </span>
           </span>
-          {by === 'word' && index < units.length - 1 ? ' ' : null}
+          {by === 'word' && index < units.length - 1 ? ' ' : null}
         </span>
       ))}
       <span className="sr-only">{text}</span>
@@ -254,7 +255,7 @@ export function ShinyText({ children, className }: { children: ReactNode; classN
 export function TiltCard({
   children,
   className,
-  max = 7,
+  max = 6,
   glare = true,
 }: {
   children: ReactNode;
@@ -263,30 +264,38 @@ export function TiltCard({
   glare?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
   const touch = useIsTouch();
   const quickRotY = useRef<((value: number) => void) | null>(null);
   const quickRotX = useRef<((value: number) => void) | null>(null);
+  const rectRef = useRef<DOMRect | null>(null);
 
   useEffect(() => {
-    const node = ref.current;
-    if (!node || reduced || touch) return;
+    const card = cardRef.current;
+    if (!card || reduced || touch) return;
 
-    gsap.set(node, { transformPerspective: 900 });
-    quickRotY.current = gsap.quickTo(node, 'rotateY', { duration: 0.5, ease: 'power3.out' });
-    quickRotX.current = gsap.quickTo(node, 'rotateX', { duration: 0.5, ease: 'power3.out' });
+    quickRotY.current = gsap.quickTo(card, 'rotateY', { duration: 0.5, ease: 'power3.out' });
+    quickRotX.current = gsap.quickTo(card, 'rotateX', { duration: 0.5, ease: 'power3.out' });
 
     return () => {
       quickRotY.current = null;
       quickRotX.current = null;
-      gsap.killTweensOf(node);
+      gsap.killTweensOf(card);
     };
   }, [reduced, touch]);
+
+  const onEnter = () => {
+    if (ref.current && !reduced && !touch) {
+      rectRef.current = ref.current.getBoundingClientRect();
+      if (cardRef.current) cardRef.current.style.willChange = 'transform';
+    }
+  };
 
   const onMove = (event: React.PointerEvent<HTMLDivElement>) => {
     const node = ref.current;
     if (!node || reduced || touch || !quickRotY.current || !quickRotX.current) return;
-    const rect = node.getBoundingClientRect();
+    const rect = rectRef.current ?? node.getBoundingClientRect();
     const px = (event.clientX - rect.left) / rect.width;
     const py = (event.clientY - rect.top) / rect.height;
 
@@ -299,19 +308,14 @@ export function TiltCard({
     }
   };
 
-  const onEnter = () => {
-    if (ref.current && !reduced && !touch) {
-      ref.current.style.willChange = 'transform';
-    }
-  };
-
   const onLeave = () => {
+    rectRef.current = null;
     if (quickRotX.current && quickRotY.current) {
       quickRotX.current(0);
       quickRotY.current(0);
     }
-    if (ref.current) {
-      ref.current.style.willChange = 'auto';
+    if (cardRef.current) {
+      cardRef.current.style.willChange = 'auto';
     }
   };
 
@@ -322,19 +326,25 @@ export function TiltCard({
       onPointerMove={onMove}
       onPointerLeave={onLeave}
       className={cn('group relative', className)}
-      style={{ transformStyle: 'preserve-3d' }}
+      style={{ perspective: 1000 }}
     >
-      {children}
-      {glare && !reduced && !touch ? (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-[inherit] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-          style={{
-            background:
-              'radial-gradient(320px circle at var(--nf-tilt-x, 50%) var(--nf-tilt-y, 50%), rgb(var(--nf-blue) / 0.10), transparent 62%)',
-          }}
-        />
-      ) : null}
+      <div
+        ref={cardRef}
+        className="h-full w-full"
+        style={{ transformStyle: 'preserve-3d' }}
+      >
+        {children}
+        {glare && !reduced && !touch ? (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-[inherit] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+            style={{
+              background:
+                'radial-gradient(320px circle at var(--nf-tilt-x, 50%) var(--nf-tilt-y, 50%), rgb(var(--nf-blue) / 0.10), transparent 62%)',
+            }}
+          />
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -356,18 +366,34 @@ export function Spotlight({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const touch = useIsTouch();
+  const rectRef = useRef<DOMRect | null>(null);
 
   useEffect(() => {
     const node = ref.current;
     if (!node || touch) return;
 
+    const onEnter = () => {
+      rectRef.current = node.getBoundingClientRect();
+    };
+
     const onMove = (event: MouseEvent) => {
-      const rect = node.getBoundingClientRect();
+      const rect = rectRef.current ?? node.getBoundingClientRect();
       node.style.setProperty('--mx', `${event.clientX - rect.left}px`);
       node.style.setProperty('--my', `${event.clientY - rect.top}px`);
     };
+
+    const onLeave = () => {
+      rectRef.current = null;
+    };
+
+    node.addEventListener('mouseenter', onEnter);
     node.addEventListener('mousemove', onMove);
-    return () => node.removeEventListener('mousemove', onMove);
+    node.addEventListener('mouseleave', onLeave);
+    return () => {
+      node.removeEventListener('mouseenter', onEnter);
+      node.removeEventListener('mousemove', onMove);
+      node.removeEventListener('mouseleave', onLeave);
+    };
   }, [touch]);
 
   if (touch) return <>{children}</>;
@@ -711,6 +737,7 @@ export function SectionDivider({ className }: { className?: string }) {
 
       if (reduced) {
         gsap.set(line, { scaleX: 1, opacity: 1 });
+        if (glow) gsap.set(glow, { opacity: 0 });
         return;
       }
 
@@ -723,6 +750,7 @@ export function SectionDivider({ className }: { className?: string }) {
           duration: 1.2,
           ease: 'expo.out',
           transformOrigin: 'center center',
+          clearProps: 'transform,opacity',
           scrollTrigger: { trigger: node, start: 'top 92%', once: true },
         },
       );
@@ -732,7 +760,7 @@ export function SectionDivider({ className }: { className?: string }) {
           glow,
           { opacity: 0, scaleX: 0.2 },
           {
-            opacity: 0.6,
+            opacity: 0.5,
             scaleX: 1,
             duration: 1.4,
             ease: 'power3.out',

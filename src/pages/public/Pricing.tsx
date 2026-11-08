@@ -4,7 +4,7 @@ import { FinalCta, NextSteps } from '@/components/marketing/Sections';
 import { SectionHeader } from '@/components/ui/Card';
 import { FaqSection } from '@/components/marketing/FaqSection';
 import { StickyCTA } from '@/components/marketing/StickyCTA';
-import { Reveal, AtmosphericGlow } from '@/components/motion';
+import { Reveal, AtmosphericGlow, SectionDivider } from '@/components/motion';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { trackEvent } from '@/lib/analytics';
 
@@ -51,27 +51,36 @@ export default function Pricing() {
 
       <PricingTable showHeading={false} />
 
-      <section className="nf-shell py-16">
-        <SectionHeader eyebrow="Good to know" title="Before you choose" />
-        <div className="mt-10">
-          <NextSteps
-            items={[
-              {
-                label: 'How long it takes',
-                to: '/how-it-works',
-                description: 'The six stages from first call to launch and growth.',
-              },
-              {
-                label: 'Common questions',
-                to: '/faq',
-                description: 'Upgrades, cancellations, domains and support.',
-              },
-            ]}
-          />
-        </div>
+      <SectionDivider />
+
+      <section className="nf-shell relative py-16">
+        <Reveal>
+          <SectionHeader eyebrow="Good to know" title="Before you choose" />
+          <div className="mt-10">
+            <NextSteps
+              items={[
+                {
+                  label: 'How long it takes',
+                  to: '/how-it-works',
+                  description: 'The six stages from first call to launch and growth.',
+                },
+                {
+                  label: 'Common questions',
+                  to: '/faq',
+                  description: 'Upgrades, cancellations, domains and support.',
+                },
+              ]}
+            />
+          </div>
+        </Reveal>
       </section>
 
+      <SectionDivider />
+
       <FaqSection limit={7} />
+
+      <SectionDivider />
+
       <FinalCta
         title="Start with the plan that fits today."
         description="You can move up a tier whenever your business needs it — the change applies from your next billing cycle."

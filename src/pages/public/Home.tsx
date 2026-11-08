@@ -16,7 +16,7 @@ import { PricingTable } from '@/components/marketing/PricingTable';
 import { FaqSection } from '@/components/marketing/FaqSection';
 import { StickyCTA } from '@/components/marketing/StickyCTA';
 import { SectionHeader } from '@/components/ui/Card';
-import { Reveal, AtmosphericGlow } from '@/components/motion';
+import { Reveal, AtmosphericGlow, SectionDivider } from '@/components/motion';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { organizationSchema, serviceSchema } from '@/data/site';
 import { SERVICE_GROUPS } from '@shared/catalog';
@@ -52,8 +52,11 @@ export default function Home() {
       <Hero />
       <ProofStrip />
       <IntroStatement />
+      <SectionDivider />
       <ProblemSection />
+      <SectionDivider />
       <PromiseSection />
+      <SectionDivider />
 
       <section id="services" className="nf-shell nf-section-smooth relative scroll-mt-28 py-20 lg:py-28 overflow-hidden">
         <AtmosphericGlow color="blue" position="top-left" />
@@ -69,12 +72,19 @@ export default function Home() {
         </div>
       </section>
 
+      <SectionDivider />
       <ProcessTimeline />
+      <SectionDivider />
       <AutomationShowcase />
+      <SectionDivider />
       <CrmShowcase />
+      <SectionDivider />
       <WhyNorthForge />
+      <SectionDivider />
       <PricingTable showDetail={false} />
+      <SectionDivider />
       <FaqSection limit={6} />
+      <SectionDivider />
       <FinalCta />
       <StickyCTA />
     </>

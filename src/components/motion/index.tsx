@@ -320,20 +320,29 @@ export function Magnetic({
 
     const quickX = gsap.quickTo(node, 'x', { duration: 0.5, ease: 'power3.out' });
     const quickY = gsap.quickTo(node, 'y', { duration: 0.5, ease: 'power3.out' });
+    let cachedRect: DOMRect | null = null;
+
+    const onEnter = () => {
+      cachedRect = node.getBoundingClientRect();
+    };
 
     const onMove = (event: MouseEvent) => {
-      const rect = node.getBoundingClientRect();
+      const rect = cachedRect ?? node.getBoundingClientRect();
       quickX((event.clientX - (rect.left + rect.width / 2)) * strength);
       quickY((event.clientY - (rect.top + rect.height / 2)) * strength);
     };
+
     const onLeave = () => {
+      cachedRect = null;
       quickX(0);
       quickY(0);
     };
 
+    node.addEventListener('mouseenter', onEnter);
     node.addEventListener('mousemove', onMove);
     node.addEventListener('mouseleave', onLeave);
     return () => {
+      node.removeEventListener('mouseenter', onEnter);
       node.removeEventListener('mousemove', onMove);
       node.removeEventListener('mouseleave', onLeave);
       gsap.killTweensOf(node);
@@ -357,13 +366,27 @@ export function SpotlightCard({ children, className }: { children: ReactNode; cl
     const node = ref.current;
     if (!node || touch) return;
 
+    let cachedRect: DOMRect | null = null;
+    const onEnter = () => {
+      cachedRect = node.getBoundingClientRect();
+    };
     const onMove = (event: MouseEvent) => {
-      const rect = node.getBoundingClientRect();
+      const rect = cachedRect ?? node.getBoundingClientRect();
       node.style.setProperty('--mx', `${event.clientX - rect.left}px`);
       node.style.setProperty('--my', `${event.clientY - rect.top}px`);
     };
+    const onLeave = () => {
+      cachedRect = null;
+    };
+
+    node.addEventListener('mouseenter', onEnter);
     node.addEventListener('mousemove', onMove);
-    return () => node.removeEventListener('mousemove', onMove);
+    node.addEventListener('mouseleave', onLeave);
+    return () => {
+      node.removeEventListener('mouseenter', onEnter);
+      node.removeEventListener('mousemove', onMove);
+      node.removeEventListener('mouseleave', onLeave);
+    };
   }, [touch]);
 
   return (

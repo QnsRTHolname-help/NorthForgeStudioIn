@@ -3,21 +3,24 @@ import { Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
 import { Logo, LogoTagline } from '@/components/brand/Logo';
 import { CONTACT, FOOTER_NAV, emailLink, whatsappLink } from '@/data/site';
 import { PLACEHOLDER_CONTACT } from '@/data/site';
+import { Reveal, AtmosphericGlow } from '@/components/motion';
 
 /** Public footer (spec §29). */
 export function Footer() {
   return (
-    <footer className="border-t border-line bg-sunken/40">
-      <div className="nf-shell py-14 lg:py-20">
-        <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr_1fr_1.2fr]">
-          <div>
-            <Logo />
-            <LogoTagline className="mt-3 block" />
-            <p className="mt-5 max-w-xs text-[13px] leading-relaxed text-muted">
-              NorthForge builds websites connected to lead capture, WhatsApp, AI, automation and analytics — one system
-              that keeps working after launch.
-            </p>
-          </div>
+    <footer className="relative border-t border-line bg-sunken/40 overflow-hidden">
+      <AtmosphericGlow color="blue" position="top-center" className="opacity-40" />
+      <div className="nf-shell relative py-14 lg:py-20">
+        <Reveal>
+          <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr_1fr_1.2fr]">
+            <div>
+              <Logo />
+              <LogoTagline className="mt-3 block" />
+              <p className="mt-5 max-w-xs text-[13px] leading-relaxed text-muted">
+                NorthForge builds websites connected to lead capture, WhatsApp, AI, automation and analytics — one system
+                that keeps working after launch.
+              </p>
+            </div>
 
           {FOOTER_NAV.map((group) => (
             <nav key={group.title} aria-label={group.title}>
@@ -91,6 +94,7 @@ export function Footer() {
             Built in Mangaluru · Karnataka · India
           </p>
         </div>
+        </Reveal>
       </div>
     </footer>
   );
