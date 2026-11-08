@@ -137,6 +137,9 @@ export function AutomationShowcase() {
         tl.scrollTrigger?.refresh();
       };
       window.addEventListener('resize', onResize);
+      if (document.fonts?.ready) {
+        document.fonts.ready.then(onResize).catch(() => undefined);
+      }
       cleanupResize = () => window.removeEventListener('resize', onResize);
     }, node);
 

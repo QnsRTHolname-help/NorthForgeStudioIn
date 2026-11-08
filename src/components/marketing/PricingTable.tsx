@@ -45,15 +45,15 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
 
       {/* Psychological scarcity & velocity banners */}
       <div className={cn('flex flex-wrap items-center justify-center gap-3', showHeading ? 'mt-10' : 'mt-4')}>
-        <div className="nf-glass-pill inline-flex items-center gap-2 rounded-full border border-warning/30 bg-warning/[0.08] px-3.5 py-1 text-xs font-medium text-fg shadow-2xs">
+        <div className="nf-glass-pill inline-flex max-w-full items-center gap-2 rounded-xl sm:rounded-full border border-warning/30 bg-warning/[0.08] px-3.5 py-1.5 sm:py-1 text-xs font-medium text-fg shadow-2xs">
           <Flame className="h-3.5 w-3.5 text-warning shrink-0" aria-hidden />
           <span>Only {PSYCHOLOGICAL_PRICING.monthlyCohortSpotsRemaining} onboarding spots left this month</span>
         </div>
-        <div className="nf-glass-pill inline-flex items-center gap-2 rounded-full border border-brand/30 bg-brand/[0.08] px-3.5 py-1 text-xs font-medium text-fg shadow-2xs">
+        <div className="nf-glass-pill inline-flex max-w-full items-center gap-2 rounded-xl sm:rounded-full border border-brand/30 bg-brand/[0.08] px-3.5 py-1.5 sm:py-1 text-xs font-medium text-fg shadow-2xs">
           <Gift className="h-3.5 w-3.5 text-brand shrink-0" aria-hidden />
           <span>Founder Beta Pass: Save ₹5,000 on Setup with code <strong className="font-semibold text-brand">{PSYCHOLOGICAL_PRICING.founderPromoCode}</strong></span>
         </div>
-        <div className="nf-glass-pill inline-flex items-center gap-2 rounded-full border border-success/30 bg-success/[0.08] px-3.5 py-1 text-xs font-medium text-fg shadow-2xs">
+        <div className="nf-glass-pill inline-flex max-w-full items-center gap-2 rounded-xl sm:rounded-full border border-success/30 bg-success/[0.08] px-3.5 py-1.5 sm:py-1 text-xs font-medium text-fg shadow-2xs">
           <Zap className="h-3.5 w-3.5 text-success shrink-0" aria-hidden />
           <span>{PSYCHOLOGICAL_PRICING.rapidDeploymentHours}-Hour Rapid Workflow Deployment</span>
         </div>
@@ -206,7 +206,7 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
         <h3 className="text-headline font-semibold text-fg">
           <SplitText text="What each plan includes." stagger={0.04} />
         </h3>
-        <div className="mt-8 overflow-x-auto">
+        <div className="nf-scroll-x mt-8 overflow-x-auto">
           <table className="w-full min-w-[720px] border-collapse text-left">
             <caption className="sr-only">Plan scope comparison</caption>
             <thead>

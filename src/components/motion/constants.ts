@@ -66,3 +66,14 @@ export const START = {
 /** Scroll scrub smoothing. With Lenis smooth scrolling active, scrub: true
  * binds animations 1:1 to the scroll position without double-smoothing input lag (spec §3). */
 export const SCRUB: boolean | number = true;
+
+/** Lenis smooth scroll kinematic tuning (spec §8, §9).
+ * Continuous exponential damping (lerp) produces a silky, notch-free momentum glide. */
+export const LENIS_CONFIG = {
+  lerp: 0.085,
+  wheelMultiplier: 0.95,
+  touchMultiplier: 1.0,
+  syncTouch: false,
+  autoResize: true,
+  anchorDuration: 1.15,
+} as const;

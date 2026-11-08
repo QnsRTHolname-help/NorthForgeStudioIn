@@ -91,7 +91,7 @@ export function SplitText({
       gsap.fromTo(
         inners,
         {
-          yPercent: 118,
+          yPercent: 125,
           ...(fade ? { opacity: 0 } : {}),
           ...(blur ? { filter: 'blur(5px)' } : {}),
         },
@@ -123,20 +123,31 @@ export function SplitText({
 
   return (
     <Tag ref={ref as never} className={className}>
-      {units.map((unit, index) => (
-        <span key={`${unit}-${index}`}>
-          <span
-            className="inline-block overflow-hidden align-bottom"
-            style={{ paddingBottom: '0.06em', marginBottom: '-0.06em' }}
-            aria-hidden
-          >
-            <span data-split-inner className={cn('inline-block will-change-transform', wordClassName)}>
-              {unit}
+      {units.map((unit, index) => {
+        const isSpace = by === 'char' && unit === ' ';
+        return (
+          <span key={`${unit}-${index}`}>
+            <span
+              className={cn(
+                by === 'line' ? 'block' : 'inline-block',
+                'overflow-hidden align-bottom',
+              )}
+              style={{
+                paddingTop: '0.08em',
+                marginTop: '-0.08em',
+                paddingBottom: '0.22em',
+                marginBottom: '-0.22em',
+              }}
+              aria-hidden
+            >
+              <span data-split-inner className={cn('inline-block will-change-transform', wordClassName)}>
+                {isSpace ? '\u00A0' : unit}
+              </span>
             </span>
+            {by === 'word' && index < units.length - 1 ? ' ' : null}
           </span>
-          {by === 'word' && index < units.length - 1 ? ' ' : null}
-        </span>
-      ))}
+        );
+      })}
       <span className="sr-only">{text}</span>
     </Tag>
   );

@@ -39,13 +39,13 @@ export default {
             },
             fontSize: {
                 '2xs': ['0.6875rem', { lineHeight: '1rem', letterSpacing: '0.04em' }],
-                display: ['clamp(2.75rem, 7.2vw, 6.25rem)', { lineHeight: '0.94', letterSpacing: '-0.035em', fontWeight: '600' }],
+                display: ['clamp(2.75rem, 7.2vw, 6.25rem)', { lineHeight: '1.02', letterSpacing: '-0.035em', fontWeight: '600' }],
                 // Editorial hero headline — the type is the design (spec §30).
-                hero: ['clamp(3rem, 8.2vw, 7.25rem)', { lineHeight: '0.96', letterSpacing: '-0.04em', fontWeight: '600' }],
+                hero: ['clamp(3rem, 8.2vw, 7.25rem)', { lineHeight: '1.02', letterSpacing: '-0.04em', fontWeight: '600' }],
                 // Section-level statement heading.
-                'display-lg': ['clamp(2.5rem, 5.2vw, 4.5rem)', { lineHeight: '1.0', letterSpacing: '-0.035em', fontWeight: '600' }],
-                'display-sm': ['clamp(2.1rem, 4.6vw, 3.6rem)', { lineHeight: '1.0', letterSpacing: '-0.03em', fontWeight: '600' }],
-                headline: ['clamp(1.5rem, 2.4vw, 2.125rem)', { lineHeight: '1.15', letterSpacing: '-0.02em', fontWeight: '600' }],
+                'display-lg': ['clamp(2.5rem, 5.2vw, 4.5rem)', { lineHeight: '1.06', letterSpacing: '-0.035em', fontWeight: '600' }],
+                'display-sm': ['clamp(2.1rem, 4.6vw, 3.6rem)', { lineHeight: '1.08', letterSpacing: '-0.03em', fontWeight: '600' }],
+                headline: ['clamp(1.5rem, 2.4vw, 2.125rem)', { lineHeight: '1.18', letterSpacing: '-0.02em', fontWeight: '600' }],
             },
             letterSpacing: {
                 eyebrow: '0.18em',

@@ -27,16 +27,16 @@ interface Node {
 }
 
 const NODES: Node[] = [
-  { id: 'channel', label: 'Website / WhatsApp', x: 40, y: 50, kind: 'start' },
+  { id: 'channel', label: 'Web & WhatsApp', x: 38, y: 50, kind: 'start' },
   { id: 'enquiry', label: 'Enquiry', x: 274, y: 32, kind: 'start' },
   { id: 'ai', label: 'AI qualifies', x: 508, y: 50, kind: 'ai' },
   { id: 'crm', label: 'CRM updated', x: 528, y: 187, kind: 'ai' },
   { id: 'followup', label: 'Follow-up', x: 508, y: 324, kind: 'end' },
   { id: 'booking', label: 'Appointment', x: 274, y: 342, kind: 'end' },
-  { id: 'customer', label: 'Customer', x: 40, y: 324, kind: 'end' },
+  { id: 'customer', label: 'Customer', x: 38, y: 324, kind: 'end' },
 ];
 
-const NODE_W = 132;
+const NODE_W = 140;
 const NODE_H = 46;
 
 /** SVG canvas — sized so every node box, label and connector fits with margin. */
@@ -203,15 +203,15 @@ export function GrowthSystem({ className }: { className?: string }) {
             }
           />
           <text
-            x={node.x + 32}
+            x={node.x + 28}
             y={node.y + NODE_H / 2 + 1}
             dominantBaseline="middle"
-            className="fill-[rgb(var(--nf-fg))] font-sans text-[13px] font-medium tracking-[0.01em]"
+            className="fill-[rgb(var(--nf-fg))] font-sans text-[12px] font-medium tracking-[0.01em]"
           >
             {node.label}
           </text>
           <text
-            x={node.x + NODE_W - 12}
+            x={node.x + NODE_W - 10}
             y={node.y + NODE_H / 2 + 1}
             textAnchor="end"
             dominantBaseline="middle"

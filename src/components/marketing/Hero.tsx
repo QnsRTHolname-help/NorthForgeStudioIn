@@ -119,19 +119,19 @@ export function Hero() {
           {/* ── Statement ─────────────────────────────────────── */}
           <div>
             <div data-hero-eyebrow className="flex items-center gap-2">
-              <span className="nf-glass-pill inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-2xs font-semibold uppercase tracking-wider text-brand shadow-2xs">
-                <span className="relative flex h-1.5 w-1.5" aria-hidden>
+              <span className="nf-glass-pill inline-flex max-w-full items-center gap-2 rounded-full px-3.5 py-1 text-2xs font-semibold uppercase tracking-wider text-brand shadow-2xs">
+                <span className="relative flex h-1.5 w-1.5 shrink-0" aria-hidden>
                   <span className="absolute inline-flex h-full w-full animate-pulse-ring rounded-full bg-brand" />
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-brand" />
                 </span>
-                <ShinyText className="text-brand">WEB · AUTOMATION · AI & GENERATIVE UI · PERFORMANCE BOOST</ShinyText>
+                <ShinyText className="truncate sm:overflow-visible text-brand">WEB · AUTOMATION · AI & GENERATIVE UI · PERFORMANCE BOOST</ShinyText>
               </span>
             </div>
 
             {/* Type scaled to its COLUMN, not the viewport. */}
             <h1
               data-hero-heading
-              className="mt-8 max-w-2xl text-[clamp(2.15rem,4.4vw,4.25rem)] font-semibold leading-[1.04] sm:leading-[1.0] tracking-[-0.035em] text-fg [text-wrap:balance]"
+              className="mt-8 max-w-2xl text-[clamp(2.15rem,4.4vw,4.25rem)] font-semibold leading-[1.08] sm:leading-[1.04] tracking-[-0.035em] text-fg [text-wrap:balance]"
             >
               <SplitText
                 text={'WE BUILD DIGITAL SYSTEMS\nTHAT MOVE YOUR BUSINESS FORWARD.'}

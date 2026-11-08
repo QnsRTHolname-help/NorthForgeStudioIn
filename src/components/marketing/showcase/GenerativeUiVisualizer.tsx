@@ -81,8 +81,8 @@ export function GenerativeUiVisualizer({ className }: GenerativeUiVisualizerProp
       {/* Top Bar: Prompt selector & Telemetry */}
       <div className="flex flex-col gap-4 border-b border-line/60 pb-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="relative flex h-2 w-2 shrink-0">
               <span className="absolute inline-flex h-full w-full rounded-full bg-brand-violet opacity-75 animate-ping" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-violet" />
             </span>

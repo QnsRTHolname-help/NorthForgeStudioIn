@@ -4,12 +4,16 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useReducedMotion } from '@/hooks';
 import { setScrollProgress } from '@/hooks/scrollProgress';
+import { LENIS_CONFIG } from '@/components/motion/constants';
 
 gsap.registerPlugin(ScrollTrigger);
 
 interface SmoothScrollValue {
   lenis: Lenis | null;
-  scrollTo: (target: string | number | HTMLElement, options?: { offset?: number; immediate?: boolean }) => void;
+  scrollTo: (
+    target: string | number | HTMLElement,
+    options?: { offset?: number; immediate?: boolean; duration?: number; easing?: (t: number) => number },
+  ) => void;
   stop: () => void;
   start: () => void;
 }
@@ -19,6 +23,8 @@ const SmoothScrollContext = createContext<SmoothScrollValue | null>(null);
 /**
  * Lenis smooth scrolling, used on the public website only (spec §9).
  *
+ * • Uses frame-independent exponential damping (lerp) for continuous,
+ *   silky-smooth momentum gliding where individual wheel notches blend seamlessly.
  * • Drives GSAP ScrollTrigger from a single ticker so the two never fight.
  * • Never takes over the browser's scroll — native scroll, anchors,
  *   keyboard navigation and find-in-page all keep working.
@@ -32,22 +38,30 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
   useEffect(() => {
     if (!enabled || reduced) return;
 
+    let mounted = true;
+
     // Mark documentElement so CSS rules (height: auto, scroll-behavior: auto !important) apply
     document.documentElement.classList.add('lenis', 'lenis-smooth');
 
+    // Root instance configured with kinematic damping (lerp) rather than fixed duration/easing.
+    // This allows successive mouse wheel notches to smoothly accumulate into targetScroll
+    // and damp continuously without resetting currentTime or creating stepped acceleration jolts.
     const instance = new Lenis({
-      duration: 1.15,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      lerp: LENIS_CONFIG.lerp,
+      wheelMultiplier: LENIS_CONFIG.wheelMultiplier,
       orientation: 'vertical',
       gestureOrientation: 'vertical',
       smoothWheel: true,
       // Leave touch devices on native momentum scrolling — it feels natural
       // and avoids fighting the platform (spec §9, §147).
-      syncTouch: false,
-      touchMultiplier: 1.0,
-      wheelMultiplier: 1.0,
-      autoResize: true,
-      anchors: { offset: -76 },
+      syncTouch: LENIS_CONFIG.syncTouch,
+      touchMultiplier: LENIS_CONFIG.touchMultiplier,
+      autoResize: LENIS_CONFIG.autoResize,
+      anchors: {
+        offset: -76,
+        duration: LENIS_CONFIG.anchorDuration,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      },
       stopInertiaOnNavigate: true,
     });
     instanceRef.current = instance;
@@ -70,6 +84,17 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
       ScrollTrigger.refresh();
     });
 
+    // Re-calculate geometry and refresh triggers once custom webfonts are loaded
+    if (document.fonts?.ready) {
+      document.fonts.ready
+        .then(() => {
+          if (!mounted) return;
+          instance.resize();
+          ScrollTrigger.refresh();
+        })
+        .catch(() => undefined);
+    }
+
     let resizeTimer: number | null = null;
     const onWindowResize = () => {
       if (resizeTimer !== null) window.clearTimeout(resizeTimer);
@@ -81,6 +106,7 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
     window.addEventListener('resize', onWindowResize, { passive: true });
 
     return () => {
+      mounted = false;
       cancelAnimationFrame(refreshTimer);
       if (resizeTimer !== null) window.clearTimeout(resizeTimer);
       window.removeEventListener('resize', onWindowResize);
@@ -100,7 +126,14 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
       scrollTo: (target, options) => {
         const instance = instanceRef.current;
         if (instance) {
-          instance.scrollTo(target as never, { offset: options?.offset ?? 0, immediate: options?.immediate });
+          instance.scrollTo(target as never, {
+            offset: options?.offset ?? 0,
+            immediate: options?.immediate,
+            duration: options?.immediate ? 0 : (options?.duration ?? LENIS_CONFIG.anchorDuration),
+            easing: options?.immediate
+              ? undefined
+              : (options?.easing ?? ((t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)))),
+          });
           return;
         }
         // Fallback for reduced-motion / touch / admin routes.
