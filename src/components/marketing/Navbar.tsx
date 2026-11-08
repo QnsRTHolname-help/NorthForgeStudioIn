@@ -5,6 +5,7 @@ import { gsap } from 'gsap';
 import { cn } from '@/lib/cn';
 import { Logo } from '@/components/brand/Logo';
 import { Button, LinkButton } from '@/components/ui/Button';
+import { Magnetic } from '@/components/motion';
 import { StaggerMenu, StaggerItem } from '@/components/motion/primitives';
 import { PUBLIC_NAV, whatsappLink } from '@/data/site';
 import { useScrolled, useReducedMotion, useFocusTrap } from '@/hooks';
@@ -194,14 +195,18 @@ export function Navbar() {
                 Client login
               </Link>
 
-              <LinkButton
-                to="/contact"
-                size="sm"
-                className="hidden nf-glass-glow shadow-sm hover:shadow-glow transition-all duration-200 sm:inline-flex"
-                onClick={() => trackEvent('get_started_click', { location: 'navbar' })}
-              >
-                Get started
-              </LinkButton>
+              <div className="hidden sm:inline-flex">
+                <Magnetic strength={0.2}>
+                  <LinkButton
+                    to="/contact"
+                    size="sm"
+                    className="nf-glass-glow shadow-sm hover:shadow-glow transition-all duration-200"
+                    onClick={() => trackEvent('get_started_click', { location: 'navbar' })}
+                  >
+                    Get started
+                  </LinkButton>
+                </Magnetic>
+              </div>
 
               <Button
                 variant="ghost"

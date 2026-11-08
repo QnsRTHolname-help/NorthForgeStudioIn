@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from 'react';
-import { gsap, ScrollTrigger } from '@/components/motion';
+import { gsap, ScrollTrigger, Reveal, SplitText, AtmosphericGlow } from '@/components/motion';
 import { PROCESS_STEPS } from '@/data/content';
 import { cn } from '@/lib/cn';
 import { useReducedMotion } from '@/hooks';
@@ -104,18 +104,19 @@ export function ProcessTimeline() {
           );
         }
 
-        // Cards brighten as they cross the middle of the viewport.
+        // Cards brighten and gently scale as they cross the center of the viewport
         gsap.utils.toArray<HTMLElement>('[data-step]').forEach((card) => {
           gsap.fromTo(
             card,
-            { opacity: 0.35 },
+            { opacity: 0.35, scale: 0.95 },
             {
               opacity: 1,
+              scale: 1,
               ease: 'power2.out',
               scrollTrigger: {
                 trigger: card,
                 containerAnimation: tl,
-                start: 'left 72%',
+                start: 'left 75%',
                 end: 'left 45%',
                 scrub: true,
               },
@@ -130,14 +131,15 @@ export function ProcessTimeline() {
       });
 
       mm.add('(max-width: 1023px), (prefers-reduced-motion: reduce)', () => {
-        gsap.utils.toArray<HTMLElement>('[data-step]').forEach((card) => {
+        gsap.utils.toArray<HTMLElement>('[data-step]').forEach((card, idx) => {
           gsap.fromTo(
             card,
             { opacity: 0, y: 18 },
             {
               opacity: 1,
               y: 0,
-              duration: 0.6,
+              duration: 0.65,
+              delay: idx * 0.04,
               ease: 'power3.out',
               scrollTrigger: { trigger: card, start: 'top 88%', once: true },
             },
@@ -162,14 +164,15 @@ export function ProcessTimeline() {
   }, [reduced]);
 
   return (
-    <section id="process" className="scroll-mt-28 border-y border-line bg-sunken/20" aria-labelledby="process-heading">
-      <div className="nf-shell py-16 lg:py-20">
-        <div className="max-w-2xl">
+    <section id="process" className="relative scroll-mt-28 border-y border-line bg-sunken/20 overflow-hidden" aria-labelledby="process-heading">
+      <AtmosphericGlow color="blue" position="top-right" />
+      <div className="nf-shell py-16 lg:py-20 relative">
+        <Reveal className="max-w-2xl">
           <span className="nf-eyebrow">How it works</span>
           <h2 id="process-heading" className="mt-4 text-display-sm font-semibold text-fg">
-            Six steps from first call to a system that keeps improving.
+            <SplitText text="Six steps from first call to a system that keeps improving." by="word" stagger={0.035} blur />
           </h2>
-        </div>
+        </Reveal>
       </div>
 
       <div ref={sectionRef} className="relative overflow-hidden lg:h-screen">

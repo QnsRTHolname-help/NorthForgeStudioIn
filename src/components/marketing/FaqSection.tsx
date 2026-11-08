@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react';
 import { FAQS } from '@/data/content';
 import { SectionHeader } from '@/components/ui/Card';
 import { LinkButton } from '@/components/ui/Button';
+import { Reveal } from '@/components/motion';
 import { cn } from '@/lib/cn';
 
 /** FAQ with structured data for search engines (spec §27, §94). */
@@ -44,19 +45,22 @@ export function FaqSection({ limit }: { limit?: number }) {
     <section id="faq" className="nf-shell scroll-mt-28 py-20 lg:py-28">
       <div className="grid gap-12 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] lg:gap-16">
         <div className="lg:sticky lg:top-24 lg:self-start">
-          <SectionHeader
-            eyebrow="FAQ"
-            title="Straight answers."
-            description="The questions we get asked before almost every project."
-          />
-          <div className="mt-8">
-            <LinkButton to="/contact" variant="secondary" arrow>
-              Ask something else
-            </LinkButton>
-          </div>
+          <Reveal>
+            <SectionHeader
+              eyebrow="FAQ"
+              title="Straight answers."
+              description="The questions we get asked before almost every project."
+            />
+            <div className="mt-8">
+              <LinkButton to="/contact" variant="secondary" arrow>
+                Ask something else
+              </LinkButton>
+            </div>
+          </Reveal>
         </div>
 
-        <div className="nf-glass-card rounded-2xl border border-white/70 p-6 sm:p-8 shadow-sm backdrop-blur-xl">
+        <Reveal delay={0.1}>
+          <div className="nf-glass-card rounded-2xl border border-white/70 p-6 sm:p-8 shadow-sm backdrop-blur-xl">
           <div className="divide-y divide-line/60">
             {items.map((item, index) => {
               const isOpen = openIndexes.includes(index);
@@ -108,6 +112,7 @@ export function FaqSection({ limit }: { limit?: number }) {
             })}
           </div>
         </div>
+        </Reveal>
       </div>
     </section>
   );

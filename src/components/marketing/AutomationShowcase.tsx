@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import { gsap } from '@/components/motion';
+import { gsap, Reveal, AtmosphericGlow, TiltCard } from '@/components/motion';
 import { AUTOMATION_FLOW } from '@/data/content';
 import { SectionHeader } from '@/components/ui/Card';
 import { DemoBadge, StatusIndicator } from '@/components/ui/Badge';
@@ -147,12 +147,15 @@ export function AutomationShowcase() {
   }, [reduced]);
 
   return (
-    <section className="nf-shell py-20 lg:py-28">
-      <SectionHeader
-        eyebrow="Automation"
-        title="What happens in the four minutes after someone enquires."
-        description="No one is online. No one is copying details between apps. The system handles the sequence and only asks a human when it genuinely needs one."
-      />
+    <section className="nf-shell relative py-20 lg:py-28 overflow-hidden">
+      <AtmosphericGlow color="blue" position="top-right" />
+      <Reveal>
+        <SectionHeader
+          eyebrow="Automation"
+          title="What happens in the four minutes after someone enquires."
+          description="No one is online. No one is copying details between apps. The system handles the sequence and only asks a human when it genuinely needs one."
+        />
+      </Reveal>
 
       <div ref={root} className="mt-14 grid gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-16">
         {/* Flow */}
@@ -213,7 +216,9 @@ export function AutomationShowcase() {
 
         {/* Monitor */}
         <div className="lg:sticky lg:top-24 lg:self-start">
-          <SystemMonitor />
+          <TiltCard max={3}>
+            <SystemMonitor />
+          </TiltCard>
         </div>
       </div>
     </section>

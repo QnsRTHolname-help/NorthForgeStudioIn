@@ -458,13 +458,17 @@ export function Reveal({
   className,
   start = 'top 88%',
   delay = 0,
-  y = 20,
+  y = 22,
+  scale = 1,
+  as: Tag = 'div',
 }: {
   children: ReactNode;
   className?: string;
   start?: string;
   delay?: number;
   y?: number;
+  scale?: number;
+  as?: 'div' | 'section' | 'article' | 'header';
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
@@ -473,14 +477,14 @@ export function Reveal({
     const node = ref.current;
     if (!node) return;
     const ctx = gsap.context(() => {
-      // Reduced motion: gentle fade only — no y movement.
+      // Reduced motion: gentle fade only — no y movement or scaling.
       gsap.fromTo(
         node,
-        reduced ? { opacity: 0 } : { opacity: 0, y },
+        reduced ? { opacity: 0 } : { opacity: 0, y, ...(scale !== 1 ? { scale } : {}) },
         {
           opacity: 1,
-          ...(reduced ? {} : { y: 0 }),
-          duration: reduced ? 0.4 : 0.7,
+          ...(reduced ? {} : { y: 0, ...(scale !== 1 ? { scale: 1 } : {}) }),
+          duration: reduced ? 0.4 : 0.8,
           delay,
           ease: 'power3.out',
           clearProps: 'transform,opacity',
@@ -489,13 +493,35 @@ export function Reveal({
       );
     }, node);
     return () => ctx.revert();
-  }, [start, reduced, delay, y]);
+  }, [start, reduced, delay, y, scale]);
 
   return (
-    <div ref={ref} className={cn('nf-gpu will-change-[transform,opacity]', className)}>
+    <Tag ref={ref as never} className={cn('nf-gpu will-change-[transform,opacity]', className)}>
       {children}
-    </div>
+    </Tag>
   );
 }
 
 export { gsap, ScrollTrigger };
+export {
+  SplitText,
+  TextScramble,
+  ShinyText,
+  TiltCard,
+  Spotlight,
+  Bento,
+  BentoItem,
+  CursorGlow,
+  ScrollStack,
+  RevealPanel,
+  RevealImage,
+  SectionDivider,
+  AtmosphericGlow,
+  StaggerMenu,
+  HoverLift,
+  AnimatedRule,
+  CountUp,
+} from './primitives';
+export { useSmoothScroll, SmoothScrollProvider } from './SmoothScroll';
+export { EASE, DURATION, STAGGER, DISTANCE, START, SCRUB } from './constants';
+

@@ -3,7 +3,7 @@ import { ArrowRight, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { Marquee, Reveal, Stagger, StaggerItem, FadeUp } from '@/components/motion';
 import { Magnetic } from '@/components/motion';
-import { SplitText, AnimatedRule } from '@/components/motion/primitives';
+import { SplitText, AnimatedRule, AtmosphericGlow } from '@/components/motion/primitives';
 import { LinkButton, Button } from '@/components/ui/Button';
 import { SectionHeader } from '@/components/ui/Card';
 import { PROOF_ITEMS, PROBLEMS, PRINCIPLES, WHY_POINTS } from '@/data/content';
@@ -19,7 +19,10 @@ export function ProofStrip() {
       <Marquee speed={52}>
         {PROOF_ITEMS.map((item) => (
           <span key={item} className="flex items-center gap-3 text-[13px] text-muted">
-            <span className="h-1 w-1 rounded-full bg-brand" aria-hidden />
+            <span className="relative flex h-1.5 w-1.5" aria-hidden>
+              <span className="absolute inline-flex h-full w-full animate-pulse-ring rounded-full bg-brand" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-brand" />
+            </span>
             {item}
           </span>
         ))}
@@ -34,17 +37,19 @@ export function ProofStrip() {
 
 export function ProblemSection() {
   return (
-    <section className="nf-shell py-20 lg:py-28">
-      <SectionHeader
-        eyebrow="The real problem"
-        title="Most websites look finished. Very few of them do anything."
-        description="A website that only displays information creates work instead of removing it. These are the gaps NorthForge closes."
-      />
+    <section className="nf-shell relative py-20 lg:py-28">
+      <Reveal>
+        <SectionHeader
+          eyebrow="The real problem"
+          title="Most websites look finished. Very few of them do anything."
+          description="A website that only displays information creates work instead of removing it. These are the gaps NorthForge closes."
+        />
+      </Reveal>
 
       <Stagger className="mt-14 grid gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-2 lg:grid-cols-3">
         {PROBLEMS.map((problem) => (
           <StaggerItem key={problem.title} className="bg-surface">
-            <div className="group h-full p-6 transition-colors duration-300 hover:bg-elevated">
+            <div className="group h-full p-6 transition-all duration-300 hover:bg-elevated hover:shadow-soft">
               <div className="flex items-start gap-3">
                 <span className="mt-1.5 h-px w-6 shrink-0 bg-brand transition-[width] duration-300 ease-forge group-hover:w-10" aria-hidden />
                 <div>
@@ -69,16 +74,18 @@ export function PromiseSection() {
     <section className="relative overflow-hidden border-y border-line bg-sunken/20 py-20 lg:py-28">
       <div className="nf-dot-bg pointer-events-none absolute inset-0 opacity-50" aria-hidden />
       <div className="nf-shell relative">
-        <SectionHeader
-          eyebrow="The NorthForge promise"
-          title="Four things we do with every business we work with."
-          description="Not a methodology slide. The actual sequence of work that turns a website into a system."
-        />
+        <Reveal>
+          <SectionHeader
+            eyebrow="The NorthForge promise"
+            title="Four things we do with every business we work with."
+            description="Not a methodology slide. The actual sequence of work that turns a website into a system."
+          />
+        </Reveal>
 
         <ol className="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {PRINCIPLES.map((principle, index) => (
             <FadeUp key={principle.key} delay={index * 0.08} as="li">
-              <div className="group relative h-full border-t border-line pt-6">
+              <div className="group relative h-full border-t border-line pt-6 transition-transform duration-300 hover:-translate-y-0.5">
                 <span className="nf-num text-2xs font-medium tracking-eyebrow text-brand">{principle.number}</span>
                 <h3 className="mt-4 text-[clamp(1.6rem,2.6vw,2.1rem)] font-semibold leading-none tracking-[-0.03em] text-fg">
                   {principle.title}
@@ -302,30 +309,33 @@ const SYSTEM_PIECES = [
 
 export function IntroStatement() {
   return (
-    <section className="nf-shell py-24 lg:py-36">
+    <section className="nf-shell relative py-24 lg:py-36">
+      <AtmosphericGlow color="violet" position="top-right" />
       <Reveal>
         <span className="nf-eyebrow">The system, not the page</span>
-        <p className="mt-10 text-display-lg font-semibold tracking-[-0.03em] text-fg">
-          A website is the front door.
-        </p>
+        <h2 className="mt-10 text-display-lg font-semibold tracking-[-0.03em] text-fg">
+          <SplitText text="A website is the front door." by="word" stagger={0.04} blur />
+        </h2>
         <p className="mt-4 text-display-lg font-semibold tracking-[-0.03em] text-muted">
-          The system behind it is what makes it work.
+          <SplitText text="The system behind it is what makes it work." by="word" stagger={0.04} delay={0.15} blur />
         </p>
         <p className="mt-10 max-w-2xl text-[15px] leading-relaxed text-muted">
           NorthForge connects the pieces businesses normally manage separately — so a customer journey
           stops depending on anyone remembering to check a spreadsheet.
         </p>
 
-        <div className="mt-16 grid gap-px overflow-hidden rounded-md border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
+        <Stagger className="mt-16 grid gap-px overflow-hidden rounded-md border border-line bg-line sm:grid-cols-2 lg:grid-cols-4" stagger={0.05}>
           {SYSTEM_PIECES.map((piece, index) => (
-            <div key={piece} className="bg-surface px-6 py-6">
-              <span className="nf-num text-2xs font-medium tracking-eyebrow text-faint">
-                {String(index + 1).padStart(2, '0')}
-              </span>
-              <p className="mt-2 text-[15px] font-semibold tracking-tight text-fg">{piece}</p>
-            </div>
+            <StaggerItem key={piece} className="bg-surface">
+              <div className="group relative h-full bg-surface px-6 py-6 transition-all duration-300 hover:bg-elevated hover:-translate-y-0.5">
+                <span className="nf-num text-2xs font-medium tracking-eyebrow text-faint group-hover:text-brand transition-colors duration-200">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <p className="mt-2 text-[15px] font-semibold tracking-tight text-fg">{piece}</p>
+              </div>
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
       </Reveal>
     </section>
   );

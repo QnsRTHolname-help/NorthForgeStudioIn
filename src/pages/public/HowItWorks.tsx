@@ -2,6 +2,7 @@ import { ProcessTimeline } from '@/components/marketing/ProcessTimeline';
 import { AutomationShowcase } from '@/components/marketing/AutomationShowcase';
 import { FinalCta, NextSteps, ProofStrip } from '@/components/marketing/Sections';
 import { SectionHeader } from '@/components/ui/Card';
+import { Reveal, AtmosphericGlow } from '@/components/motion';
 import { usePageMeta } from '@/hooks/usePageMeta';
 
 export default function HowItWorks() {
@@ -14,13 +15,16 @@ export default function HowItWorks() {
 
   return (
     <>
-      <section className="border-b border-line py-16 lg:py-24">
-        <div className="nf-shell">
-          <SectionHeader
-            eyebrow="How it works"
-            title="A clear process, with nothing hidden in the middle."
-            description="You always know which stage the work is in, what is happening next, and what we need from you. Clients see the same stages inside their portal."
-          />
+      <section className="relative border-b border-line py-16 lg:py-24 overflow-hidden">
+        <AtmosphericGlow color="blue" position="top-center" />
+        <div className="nf-shell relative">
+          <Reveal>
+            <SectionHeader
+              eyebrow="How it works"
+              title="A clear process, with nothing hidden in the middle."
+              description="You always know which stage the work is in, what is happening next, and what we need from you. Clients see the same stages inside their portal."
+            />
+          </Reveal>
         </div>
       </section>
 

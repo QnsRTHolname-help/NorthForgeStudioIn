@@ -42,9 +42,10 @@ export function SplitText({
   start = 'top 85%',
   trigger = 'scroll',
   fade = true,
+  blur = false,
 }: {
   text: string;
-  as?: 'span' | 'h1' | 'h2' | 'h3' | 'p';
+  as?: 'span' | 'h1' | 'h2' | 'h3' | 'h4' | 'p' | 'div';
   by?: 'word' | 'char' | 'line';
   className?: string;
   wordClassName?: string;
@@ -61,6 +62,10 @@ export function SplitText({
    * sliding them up on transform alone reads the same and paints immediately.
    */
   fade?: boolean;
+  /**
+   * Optional cinematic optical focus reveal (camera unblur from 5px to 0px).
+   */
+  blur?: boolean;
 }) {
   const ref = useRef<HTMLElement>(null);
   const reduced = useReducedMotion();
@@ -77,7 +82,7 @@ export function SplitText({
     if (!node) return;
 
     if (reduced) {
-      gsap.set(node.querySelectorAll('[data-split-inner]'), { yPercent: 0, opacity: 1 });
+      gsap.set(node.querySelectorAll('[data-split-inner]'), { yPercent: 0, opacity: 1, filter: 'none', clearProps: 'all' });
       return;
     }
 
@@ -85,22 +90,36 @@ export function SplitText({
       const inners = node.querySelectorAll('[data-split-inner]');
       gsap.fromTo(
         inners,
-        fade ? { yPercent: 118, opacity: 0 } : { yPercent: 118 },
+        {
+          yPercent: 118,
+          ...(fade ? { opacity: 0 } : {}),
+          ...(blur ? { filter: 'blur(5px)' } : {}),
+        },
         {
           yPercent: 0,
           opacity: 1,
+          ...(blur ? { filter: 'blur(0px)' } : {}),
           duration,
           delay,
           ease: 'expo.out',
           stagger: by === 'char' ? stagger * 0.35 : stagger,
-          clearProps: 'transform,opacity',
-          ...(trigger === 'scroll' ? { scrollTrigger: { trigger: node, start, once: true } } : {}),
+          clearProps: 'transform,opacity,filter',
+          ...(trigger === 'scroll'
+            ? {
+                scrollTrigger: {
+                  trigger: node,
+                  start,
+                  once: true,
+                  invalidateOnRefresh: true,
+                },
+              }
+            : {}),
         },
       );
     }, node);
 
     return () => ctx.revert();
-  }, [reduced, by, delay, stagger, duration, start, trigger, fade, units.length]);
+  }, [reduced, by, delay, stagger, duration, start, trigger, fade, blur, units.length]);
 
   return (
     <Tag ref={ref as never} className={className}>
@@ -583,6 +602,200 @@ export function RevealPanel({
     <div ref={ref} className={className}>
       {children}
     </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   REVEAL IMAGE — editorial wipe with subtle zoom-out settle
+   ═══════════════════════════════════════════════════════════════ */
+
+export function RevealImage({
+  src,
+  alt,
+  className,
+  imageClassName,
+  aspectRatio = '16/9',
+  delay = 0,
+  start = 'top 85%',
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  imageClassName?: string;
+  aspectRatio?: string;
+  delay?: number;
+  start?: string;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const reduced = useReducedMotion();
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    const img = imgRef.current;
+    if (!container || !img) return;
+
+    const ctx = gsap.context(() => {
+      if (reduced) {
+        gsap.fromTo(
+          container,
+          { opacity: 0 },
+          { opacity: 1, duration: 0.4, delay, ease: 'power2.out', scrollTrigger: { trigger: container, start, once: true } },
+        );
+        return;
+      }
+
+      gsap.fromTo(
+        container,
+        { clipPath: 'inset(0% 0% 100% 0%)', opacity: 0.5 },
+        {
+          clipPath: 'inset(0% 0% 0% 0%)',
+          opacity: 1,
+          duration: 1.15,
+          delay,
+          ease: 'expo.out',
+          scrollTrigger: { trigger: container, start, once: true },
+        },
+      );
+
+      gsap.fromTo(
+        img,
+        { scale: 1.08 },
+        {
+          scale: 1,
+          duration: 1.35,
+          delay,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: container, start, once: true },
+        },
+      );
+    }, container);
+
+    return () => ctx.revert();
+  }, [reduced, delay, start]);
+
+  return (
+    <div
+      ref={containerRef}
+      className={cn('relative overflow-hidden rounded-xl border border-line bg-surface nf-gpu', className)}
+      style={{ aspectRatio }}
+    >
+      <img
+        ref={imgRef}
+        src={src}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        className={cn('h-full w-full object-cover will-change-transform', imageClassName)}
+      />
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION DIVIDER — animated hairline glow on scroll entry
+   ═══════════════════════════════════════════════════════════════ */
+
+export function SectionDivider({ className }: { className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const reduced = useReducedMotion();
+
+  useLayoutEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+
+    const ctx = gsap.context(() => {
+      const line = node.querySelector<HTMLElement>('[data-divider-line]');
+      const glow = node.querySelector<HTMLElement>('[data-divider-glow]');
+      if (!line) return;
+
+      if (reduced) {
+        gsap.set(line, { scaleX: 1, opacity: 1 });
+        return;
+      }
+
+      gsap.fromTo(
+        line,
+        { scaleX: 0, opacity: 0 },
+        {
+          scaleX: 1,
+          opacity: 1,
+          duration: 1.2,
+          ease: 'expo.out',
+          transformOrigin: 'center center',
+          scrollTrigger: { trigger: node, start: 'top 92%', once: true },
+        },
+      );
+
+      if (glow) {
+        gsap.fromTo(
+          glow,
+          { opacity: 0, scaleX: 0.2 },
+          {
+            opacity: 0.6,
+            scaleX: 1,
+            duration: 1.4,
+            ease: 'power3.out',
+            transformOrigin: 'center center',
+            scrollTrigger: { trigger: node, start: 'top 92%', once: true },
+          },
+        );
+      }
+    }, node);
+
+    return () => ctx.revert();
+  }, [reduced]);
+
+  return (
+    <div ref={ref} className={cn('relative my-2 w-full overflow-hidden py-3', className)} aria-hidden>
+      <div
+        data-divider-glow
+        className="pointer-events-none absolute inset-x-1/4 top-1/2 -translate-y-1/2 h-8 rounded-full bg-brand/15 blur-xl will-change-transform"
+      />
+      <div
+        data-divider-line
+        className="h-px w-full bg-gradient-to-r from-transparent via-line-strong to-transparent will-change-transform"
+      />
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ATMOSPHERIC GLOW — gentle background depth without distraction
+   ═══════════════════════════════════════════════════════════════ */
+
+export function AtmosphericGlow({
+  color = 'blue',
+  position = 'top-center',
+  className,
+}: {
+  color?: 'blue' | 'violet' | 'amber';
+  position?: 'top-center' | 'top-right' | 'top-left' | 'center';
+  className?: string;
+}) {
+  const positions = {
+    'top-center': 'left-1/2 top-0 -translate-x-1/2 -translate-y-1/2',
+    'top-right': 'right-0 top-0 translate-x-1/3 -translate-y-1/3',
+    'top-left': 'left-0 top-0 -translate-x-1/3 -translate-y-1/3',
+    'center': 'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
+  };
+
+  const gradients = {
+    blue: 'radial-gradient(circle, rgb(var(--nf-blue) / 0.12), transparent 70%)',
+    violet: 'radial-gradient(circle, rgb(var(--nf-violet) / 0.10), transparent 70%)',
+    amber: 'radial-gradient(circle, rgb(var(--nf-amber) / 0.08), transparent 70%)',
+  };
+
+  return (
+    <div
+      className={cn(
+        'pointer-events-none absolute h-[460px] w-[620px] rounded-full blur-[120px] nf-gpu will-change-transform select-none',
+        positions[position],
+        className,
+      )}
+      style={{ background: gradients[color] }}
+      aria-hidden
+    />
   );
 }
 

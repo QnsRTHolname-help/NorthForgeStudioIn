@@ -16,6 +16,7 @@ import { PricingTable } from '@/components/marketing/PricingTable';
 import { FaqSection } from '@/components/marketing/FaqSection';
 import { StickyCTA } from '@/components/marketing/StickyCTA';
 import { SectionHeader } from '@/components/ui/Card';
+import { Reveal, AtmosphericGlow } from '@/components/motion';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { organizationSchema, serviceSchema } from '@/data/site';
 import { SERVICE_GROUPS } from '@shared/catalog';
@@ -54,12 +55,15 @@ export default function Home() {
       <ProblemSection />
       <PromiseSection />
 
-      <section id="services" className="nf-shell nf-section-smooth scroll-mt-28 py-20 lg:py-28">
-        <SectionHeader
-          eyebrow="Services"
-          title="What we build."
-          description="Premium websites, then the systems behind them — lead capture, AI, WhatsApp, automation and analytics, working as one."
-        />
+      <section id="services" className="nf-shell nf-section-smooth relative scroll-mt-28 py-20 lg:py-28 overflow-hidden">
+        <AtmosphericGlow color="blue" position="top-left" />
+        <Reveal>
+          <SectionHeader
+            eyebrow="Services"
+            title="What we build."
+            description="Premium websites, then the systems behind them — lead capture, AI, WhatsApp, automation and analytics, working as one."
+          />
+        </Reveal>
         <div className="mt-14">
           <ServiceRows />
         </div>

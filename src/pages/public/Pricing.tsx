@@ -4,6 +4,7 @@ import { FinalCta, NextSteps } from '@/components/marketing/Sections';
 import { SectionHeader } from '@/components/ui/Card';
 import { FaqSection } from '@/components/marketing/FaqSection';
 import { StickyCTA } from '@/components/marketing/StickyCTA';
+import { Reveal, AtmosphericGlow } from '@/components/motion';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { trackEvent } from '@/lib/analytics';
 
@@ -23,25 +24,28 @@ export default function Pricing() {
 
   return (
     <>
-      <section className="border-b border-line py-16 lg:py-24">
-        <div className="nf-shell">
-          <SectionHeader
-            eyebrow="Pricing"
-            title="Simple plans. No surprise line items."
-            description="Hosting, SSL and a custom domain come with every plan. Third-party costs are passed through at cost and always shown separately."
-          />
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-warning/30 bg-warning/[0.08] px-3 py-1 text-xs font-semibold text-fg">
-              <span className="h-2 w-2 rounded-full bg-warning animate-pulse" />
-              Only 3 onboarding spots left this month
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/[0.08] px-3 py-1 text-xs font-semibold text-fg">
-              Founder Beta Pass: Save ₹5,000 on Setup with code FOUNDER5K
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success/[0.08] px-3 py-1 text-xs font-semibold text-fg">
-              Quarterly Commitment: 15% discount + 1 complimentary seat
-            </span>
-          </div>
+      <section className="relative border-b border-line py-16 lg:py-24 overflow-hidden">
+        <AtmosphericGlow color="blue" position="top-right" />
+        <div className="nf-shell relative">
+          <Reveal>
+            <SectionHeader
+              eyebrow="Pricing"
+              title="Simple plans. No surprise line items."
+              description="Hosting, SSL and a custom domain come with every plan. Third-party costs are passed through at cost and always shown separately."
+            />
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-warning/30 bg-warning/[0.08] px-3 py-1 text-xs font-semibold text-fg">
+                <span className="h-2 w-2 rounded-full bg-warning animate-pulse" />
+                Only 3 onboarding spots left this month
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/[0.08] px-3 py-1 text-xs font-semibold text-fg">
+                Founder Beta Pass: Save ₹5,000 on Setup with code FOUNDER5K
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success/[0.08] px-3 py-1 text-xs font-semibold text-fg">
+                Quarterly Commitment: 15% discount + 1 complimentary seat
+              </span>
+            </div>
+          </Reveal>
         </div>
       </section>
 

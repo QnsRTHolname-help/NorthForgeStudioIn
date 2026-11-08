@@ -34,11 +34,13 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
   return (
     <section id="pricing" className={cn(showHeading ? 'nf-shell scroll-mt-28 py-20 lg:py-28' : 'scroll-mt-28')}>
       {showHeading ? (
-        <SectionHeader
-          eyebrow="Pricing"
-          title="A one-time setup fee. Then a monthly subscription."
-          description="The setup fee covers discovery, mapping, configuration, integration, testing and handover. The monthly fee keeps it monitored, maintained, supported and improving."
-        />
+        <Reveal>
+          <SectionHeader
+            eyebrow="Pricing"
+            title="A one-time setup fee. Then a monthly subscription."
+            description="The setup fee covers discovery, mapping, configuration, integration, testing and handover. The monthly fee keeps it monitored, maintained, supported and improving."
+          />
+        </Reveal>
       ) : null}
 
       {/* Psychological scarcity & velocity banners */}

@@ -4,7 +4,7 @@ import { ArrowRight, MessageCircle } from 'lucide-react';
 import { gsap } from 'gsap';
 import { LinkButton, Button } from '@/components/ui/Button';
 import { Magnetic } from '@/components/motion';
-import { SplitText, CountUp, ShinyText } from '@/components/motion/primitives';
+import { SplitText, CountUp, ShinyText, TiltCard } from '@/components/motion/primitives';
 import { GrowthSystem, GrowthChain } from './GrowthSystem';
 import { Hero3D } from './Hero3D';
 import { whatsappLink } from '@/data/site';
@@ -244,34 +244,39 @@ export function Hero() {
           className="mt-14 grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6"
         >
           {PROOF.map((item) => (
-            <div
-              key={item.label}
-              className="nf-glass-card nf-glass-interactive group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/60 bg-white/70 p-5 shadow-2xs backdrop-blur-md transition-all duration-300 sm:p-6"
-              style={{
-                boxShadow:
-                  '0 12px 32px -8px rgb(60 48 32 / 0.08), inset 0 1px 0 rgb(255 255 255 / 0.95)',
-              }}
-            >
-              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent" aria-hidden />
-              <dd className="nf-num text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
-                <CountUp value={item.value} format={(value) => `${Math.round(value)}${item.suffix}`} />
-              </dd>
-              <dt className="mt-3 border-t border-line/50 pt-2.5 text-2xs uppercase tracking-eyebrow text-faint">
-                {item.label}
-              </dt>
-            </div>
+            <TiltCard key={item.label} max={4} className="h-full">
+              <div
+                className="nf-glass-card nf-glass-interactive group relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-white/60 bg-white/70 p-5 shadow-2xs backdrop-blur-md transition-all duration-300 sm:p-6"
+                style={{
+                  boxShadow:
+                    '0 12px 32px -8px rgb(60 48 32 / 0.08), inset 0 1px 0 rgb(255 255 255 / 0.95)',
+                }}
+              >
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent" aria-hidden />
+                <dd className="nf-num text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
+                  <CountUp value={item.value} format={(value) => `${Math.round(value)}${item.suffix}`} />
+                </dd>
+                <dt className="mt-3 border-t border-line/50 pt-2.5 text-2xs uppercase tracking-eyebrow text-faint">
+                  {item.label}
+                </dt>
+              </div>
+            </TiltCard>
           ))}
         </dl>
 
         {/* Scroll cue: tactile frosted glass pill */}
-        <Link
-          to="/#services"
-          className="nf-focus nf-glass-pill mt-12 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/60 bg-white/70 px-4 text-[13px] text-muted shadow-2xs backdrop-blur-md transition-all hover:border-brand/40 hover:bg-white hover:text-fg"
-          style={{ boxShadow: '0 2px 8px -2px rgb(60 48 32 / 0.06), inset 0 1px 0 rgb(255 255 255 / 0.85)' }}
-        >
-          See what we build
-          <ArrowRight className="h-3.5 w-3.5 rotate-90 text-brand" aria-hidden />
-        </Link>
+        <div className="mt-12">
+          <Magnetic strength={0.22}>
+            <Link
+              to="/#services"
+              className="nf-focus nf-glass-pill inline-flex min-h-11 items-center gap-2 rounded-full border border-white/60 bg-white/70 px-4 text-[13px] text-muted shadow-2xs backdrop-blur-md transition-all hover:border-brand/40 hover:bg-white hover:text-fg"
+              style={{ boxShadow: '0 2px 8px -2px rgb(60 48 32 / 0.06), inset 0 1px 0 rgb(255 255 255 / 0.85)' }}
+            >
+              See what we build
+              <ArrowRight className="h-3.5 w-3.5 rotate-90 text-brand transition-transform duration-200 group-hover:translate-y-0.5" aria-hidden />
+            </Link>
+          </Magnetic>
+        </div>
       </div>
     </section>
   );

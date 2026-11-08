@@ -36,13 +36,16 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
     document.documentElement.classList.add('lenis', 'lenis-smooth');
 
     const instance = new Lenis({
-      lerp: 0.1,
-      wheelMultiplier: 1.0,
-      touchMultiplier: 1.0,
+      duration: 1.15,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: 'vertical',
+      gestureOrientation: 'vertical',
       smoothWheel: true,
-      // Leave touch devices on native momentum scrolling — it feels better
+      // Leave touch devices on native momentum scrolling — it feels natural
       // and avoids fighting the platform (spec §9, §147).
       syncTouch: false,
+      touchMultiplier: 1.0,
+      wheelMultiplier: 1.0,
       autoResize: true,
       anchors: { offset: -76 },
       stopInertiaOnNavigate: true,
@@ -63,9 +66,18 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
     gsap.ticker.lagSmoothing(0);
 
     // Ensure triggers calculate exact geometry with Lenis active
-    requestAnimationFrame(() => ScrollTrigger.refresh());
+    const refreshTimer = requestAnimationFrame(() => {
+      ScrollTrigger.refresh();
+    });
+
+    const onWindowResize = () => {
+      ScrollTrigger.refresh();
+    };
+    window.addEventListener('resize', onWindowResize, { passive: true });
 
     return () => {
+      cancelAnimationFrame(refreshTimer);
+      window.removeEventListener('resize', onWindowResize);
       document.documentElement.classList.remove('lenis', 'lenis-smooth');
       gsap.ticker.remove(raf);
       gsap.ticker.lagSmoothing(500, 33);

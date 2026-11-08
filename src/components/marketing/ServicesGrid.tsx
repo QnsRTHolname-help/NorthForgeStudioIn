@@ -201,51 +201,52 @@ export function ServiceRows() {
         if (!services.length) return null;
 
         return (
-          <div
-            key={group.key}
-            className="group relative border-b border-line"
-          >
-            {/* Accent rule that grows across the row on hover. */}
-            <span
-              aria-hidden
-              className="pointer-events-none absolute inset-x-0 -top-px h-px origin-left scale-x-0 bg-gradient-to-r from-brand via-brand-violet to-transparent transition-transform duration-700 ease-forge group-hover:scale-x-100"
-            />
-
-            <div className="grid gap-4 py-8 transition-colors duration-500 sm:grid-cols-[auto_minmax(0,0.9fr)_minmax(0,1.1fr)] sm:items-start sm:gap-10 sm:py-10 lg:py-12">
-              <div className="flex items-center gap-4 sm:block">
-                <span className="nf-num text-[13px] font-medium tracking-eyebrow text-brand">
-                  {String(index + 1).padStart(2, '0')}
-                </span>
-                <h3 className="text-[clamp(1.6rem,3.6vw,2.6rem)] font-semibold leading-none tracking-[-0.03em] text-fg transition-colors duration-500 group-hover:text-brand sm:mt-4">
-                  {group.label}
-                </h3>
-              </div>
-
-              <p className="max-w-md text-[14px] leading-relaxed text-muted sm:pt-2">{group.blurb}</p>
-
-              {/* Detail: revealed on hover/focus, always shown without hover. */}
-              <ul className="flex flex-wrap gap-2.5 sm:pt-2">
-                {services.map((service) => (
-                  <li key={service.id}>
-                    <span
-                      title={service.description}
-                      className="nf-glass-pill inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium text-muted transition-all duration-300 ease-forge hover:border-white/90 hover:text-fg hover:shadow-2xs group-hover:text-fg shadow-2xs"
-                    >
-                      <span className="h-1.5 w-1.5 rounded-full bg-brand/70" aria-hidden />
-                      {service.name}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {reduced ? null : (
+          <Reveal key={group.key} delay={index * 0.05} y={16}>
+            <div
+              className="group relative border-b border-line transition-colors duration-300"
+            >
+              {/* Accent rule that grows across the row on hover. */}
               <span
                 aria-hidden
-                className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-brand/[0.05] to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                className="pointer-events-none absolute inset-x-0 -top-px h-px origin-left scale-x-0 bg-gradient-to-r from-brand via-brand-violet to-transparent transition-transform duration-700 ease-forge group-hover:scale-x-100"
               />
-            )}
-          </div>
+
+              <div className="grid gap-4 py-8 transition-colors duration-500 sm:grid-cols-[auto_minmax(0,0.9fr)_minmax(0,1.1fr)] sm:items-start sm:gap-10 sm:py-10 lg:py-12">
+                <div className="flex items-center gap-4 sm:block">
+                  <span className="nf-num text-[13px] font-medium tracking-eyebrow text-brand">
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                  <h3 className="text-[clamp(1.6rem,3.6vw,2.6rem)] font-semibold leading-none tracking-[-0.03em] text-fg transition-colors duration-500 group-hover:text-brand sm:mt-4">
+                    {group.label}
+                  </h3>
+                </div>
+
+                <p className="max-w-md text-[14px] leading-relaxed text-muted sm:pt-2">{group.blurb}</p>
+
+                {/* Detail: revealed on hover/focus, always shown without hover. */}
+                <ul className="flex flex-wrap gap-2.5 sm:pt-2">
+                  {services.map((service) => (
+                    <li key={service.id}>
+                      <span
+                        title={service.description}
+                        className="nf-glass-pill inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium text-muted transition-all duration-300 ease-forge hover:border-white/90 hover:text-fg hover:shadow-2xs group-hover:text-fg shadow-2xs"
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full bg-brand/70" aria-hidden />
+                        {service.name}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {reduced ? null : (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-brand/[0.05] to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                />
+              )}
+            </div>
+          </Reveal>
         );
       })}
     </div>

@@ -13,7 +13,7 @@ import {
   Check,
 } from 'lucide-react';
 import { SectionHeader } from '@/components/ui/Card';
-import { Reveal } from '@/components/motion';
+import { Reveal, AtmosphericGlow } from '@/components/motion';
 import { DemoBadge } from '@/components/ui/Badge';
 import { useSmoothScroll } from '@/components/motion/SmoothScroll';
 import { cn } from '@/lib/cn';
@@ -156,13 +156,16 @@ export function CrmShowcase() {
   const [activeProof, setActiveProof] = useState<'honeypot' | 'idor' | 'sqli'>('honeypot');
 
   return (
-    <section id="systems" data-showcase className="nf-shell scroll-mt-28 py-20 lg:py-28">
-      <SectionHeader
-        eyebrow="Interactive Studio Console"
-        title="Explore the systems running behind NorthForge."
-        description="Switch between the lead pipeline, team delegation workspace, real-time generative UI engine, enterprise AppSec defense, and performance boost telemetry."
-        action={<DemoBadge />}
-      />
+    <section id="systems" data-showcase className="nf-shell relative scroll-mt-28 py-20 lg:py-28 overflow-hidden">
+      <AtmosphericGlow color="blue" position="top-center" />
+      <Reveal>
+        <SectionHeader
+          eyebrow="Interactive Studio Console"
+          title="Explore the systems running behind NorthForge."
+          description="Switch between the lead pipeline, team delegation workspace, real-time generative UI engine, enterprise AppSec defense, and performance boost telemetry."
+          action={<DemoBadge />}
+        />
+      </Reveal>
 
       {/* Interactive 5-Mode Switcher: Apple frosted glass pill */}
       <div className="mt-8 flex items-center justify-center">
