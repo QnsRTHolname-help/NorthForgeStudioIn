@@ -361,6 +361,7 @@ export default function Contact() {
                   value={values.monthlyEnquiries}
                   onChange={set('monthlyEnquiries')}
                   options={ENQUIRY_VOLUMES.map((volume) => ({ value: volume, label: volume }))}
+                  containerClassName="sm:col-span-2"
                 />
               </div>
 

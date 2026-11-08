@@ -223,7 +223,7 @@ export function ProcessTimeline() {
                       {isLast ? 'Ongoing' : `Stage ${index + 1}`}
                     </span>
                   </div>
-                  <h3 className="mt-6 text-[clamp(1.4rem,2vw,1.75rem)] font-semibold tracking-[-0.02em] text-fg transition-colors duration-300 group-hover:text-brand">
+                  <h3 className="mt-6 text-[clamp(1.4rem,2vw,1.75rem)] font-semibold leading-tight tracking-[-0.02em] text-fg transition-colors duration-300 group-hover:text-brand">
                     {step.title}
                   </h3>
                   <p className="mt-3 text-[13px] leading-relaxed text-muted">{step.body}</p>

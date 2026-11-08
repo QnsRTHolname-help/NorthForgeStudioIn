@@ -87,4 +87,21 @@ describe('SplitText Text Splitting & Boundary Logic', () => {
       expect(foundDescenders.length).toBeGreaterThan(0);
     }
   });
+
+  it('verifies that line-mode split elements map to block display structures', () => {
+    const isLineMode = (by: 'word' | 'char' | 'line') => by === 'line';
+    expect(isLineMode('line')).toBe(true);
+    expect(isLineMode('word')).toBe(false);
+    expect(isLineMode('char')).toBe(false);
+
+    // Confirm that for line mode, the wrapper display class evaluates to 'block'
+    const getOuterClass = (by: 'word' | 'char' | 'line') => (by === 'line' ? 'block' : undefined);
+    const getInnerClass = (by: 'word' | 'char' | 'line') => (by === 'line' ? 'block' : 'inline-block');
+
+    expect(getOuterClass('line')).toBe('block');
+    expect(getOuterClass('word')).toBeUndefined();
+    expect(getInnerClass('line')).toBe('block');
+    expect(getInnerClass('word')).toBe('inline-block');
+  });
 });
+

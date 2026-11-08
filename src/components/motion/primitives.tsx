@@ -1,7 +1,7 @@
 import {
-  useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -71,11 +71,11 @@ export function SplitText({
   const reduced = useReducedMotion();
 
   // Splitting is pure string work — safe to memoise on content + mode.
-  const units = useCallback(() => {
+  const units = useMemo(() => {
     if (by === 'char') return text.split('');
     if (by === 'line') return text.split('\n');
     return text.split(/\s+/).filter(Boolean);
-  }, [text, by])();
+  }, [text, by]);
 
   useLayoutEffect(() => {
     const node = ref.current;
@@ -119,17 +119,18 @@ export function SplitText({
     }, node);
 
     return () => ctx.revert();
-  }, [reduced, by, delay, stagger, duration, start, trigger, fade, blur, units.length]);
+  }, [reduced, by, delay, stagger, duration, start, trigger, fade, blur, units]);
 
   return (
     <Tag ref={ref as never} className={className}>
       {units.map((unit, index) => {
         const isSpace = by === 'char' && unit === ' ';
+        const isLine = by === 'line';
         return (
-          <span key={`${unit}-${index}`}>
+          <span key={`${unit}-${index}`} className={isLine ? 'block' : undefined}>
             <span
               className={cn(
-                by === 'line' ? 'block' : 'inline-block',
+                isLine ? 'block' : 'inline-block',
                 'overflow-hidden align-bottom',
               )}
               style={{
@@ -140,7 +141,14 @@ export function SplitText({
               }}
               aria-hidden
             >
-              <span data-split-inner className={cn('inline-block will-change-transform', wordClassName)}>
+              <span
+                data-split-inner
+                className={cn(
+                  isLine ? 'block' : 'inline-block',
+                  'will-change-transform',
+                  wordClassName,
+                )}
+              >
                 {isSpace ? '\u00A0' : unit}
               </span>
             </span>

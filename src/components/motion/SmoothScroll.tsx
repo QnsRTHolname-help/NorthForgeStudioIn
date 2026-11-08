@@ -12,7 +12,13 @@ interface SmoothScrollValue {
   lenis: Lenis | null;
   scrollTo: (
     target: string | number | HTMLElement,
-    options?: { offset?: number; immediate?: boolean; duration?: number; easing?: (t: number) => number },
+    options?: {
+      offset?: number;
+      immediate?: boolean;
+      duration?: number;
+      easing?: (t: number) => number;
+      lock?: boolean;
+    },
   ) => void;
   stop: () => void;
   start: () => void;
@@ -99,6 +105,8 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
     const onWindowResize = () => {
       if (resizeTimer !== null) window.clearTimeout(resizeTimer);
       resizeTimer = window.setTimeout(() => {
+        if (!mounted) return;
+        instance.resize();
         ScrollTrigger.refresh();
         resizeTimer = null;
       }, 150);
@@ -133,6 +141,7 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
             easing: options?.immediate
               ? undefined
               : (options?.easing ?? ((t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)))),
+            lock: options?.lock,
           });
           return;
         }

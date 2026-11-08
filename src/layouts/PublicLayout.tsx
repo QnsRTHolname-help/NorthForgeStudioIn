@@ -60,6 +60,9 @@ export function PublicLayout() {
       }
     }
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    requestAnimationFrame(() => {
+      ScrollTrigger.refresh();
+    });
   }, [pathname, hash]);
 
   // ScrollTrigger measurements taken at mount can go stale once the webfont
