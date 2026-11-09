@@ -19,6 +19,8 @@ describe('Motion System & Smooth Scroll Tuning', () => {
     expect(LENIS_CONFIG.touchMultiplier).toBe(1.0);
     expect(LENIS_CONFIG.autoResize).toBe(true);
     expect(LENIS_CONFIG.anchorDuration).toBeGreaterThanOrEqual(1.0);
+    expect(LENIS_CONFIG.duration).toBeGreaterThanOrEqual(1.0);
+    expect(typeof LENIS_CONFIG.easing).toBe('function');
   });
 
   it('verifies SCRUB is true to prevent double-smoothed lag with Lenis', () => {

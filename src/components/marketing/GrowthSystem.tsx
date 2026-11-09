@@ -27,16 +27,16 @@ interface Node {
 }
 
 const NODES: Node[] = [
-  { id: 'channel', label: 'Web & WhatsApp', x: 38, y: 50, kind: 'start' },
-  { id: 'enquiry', label: 'Enquiry', x: 274, y: 32, kind: 'start' },
-  { id: 'ai', label: 'AI qualifies', x: 508, y: 50, kind: 'ai' },
-  { id: 'crm', label: 'CRM updated', x: 528, y: 187, kind: 'ai' },
-  { id: 'followup', label: 'Follow-up', x: 508, y: 324, kind: 'end' },
-  { id: 'booking', label: 'Appointment', x: 274, y: 342, kind: 'end' },
-  { id: 'customer', label: 'Customer', x: 38, y: 324, kind: 'end' },
+  { id: 'channel', label: 'Web & WhatsApp', x: 34, y: 50, kind: 'start' },
+  { id: 'enquiry', label: 'Enquiry', x: 268, y: 32, kind: 'start' },
+  { id: 'ai', label: 'AI qualifies', x: 500, y: 50, kind: 'ai' },
+  { id: 'crm', label: 'CRM updated', x: 500, y: 187, kind: 'ai' },
+  { id: 'followup', label: 'Follow-up', x: 500, y: 324, kind: 'end' },
+  { id: 'booking', label: 'Appointment', x: 268, y: 342, kind: 'end' },
+  { id: 'customer', label: 'Customer', x: 34, y: 324, kind: 'end' },
 ];
 
-const NODE_W = 140;
+const NODE_W = 152;
 const NODE_H = 46;
 
 /** SVG canvas — sized so every node box, label and connector fits with margin. */
@@ -191,7 +191,7 @@ export function GrowthSystem({ className }: { className?: string }) {
             strokeWidth={active === node.id ? 1.6 : 1}
           />
           <circle
-            cx={node.x + 18}
+            cx={node.x + 14}
             cy={node.y + NODE_H / 2}
             r="3.5"
             fill={
@@ -203,7 +203,7 @@ export function GrowthSystem({ className }: { className?: string }) {
             }
           />
           <text
-            x={node.x + 28}
+            x={node.x + 23}
             y={node.y + NODE_H / 2 + 1}
             dominantBaseline="middle"
             className="fill-[rgb(var(--nf-fg))] font-sans text-[12px] font-medium tracking-[0.01em]"

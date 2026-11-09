@@ -351,15 +351,15 @@ function WireframeCube() {
  */
 function ConnectionLines() {
   const points = [
-    { x: '14%', y: '20%' },
-    { x: '34%', y: '16%' },
-    { x: '56%', y: '32%' },
-    { x: '76%', y: '20%' },
-    { x: '86%', y: '44%' },
-    { x: '72%', y: '66%' },
-    { x: '48%', y: '78%' },
-    { x: '28%', y: '70%' },
-    { x: '12%', y: '54%' },
+    { x: 14, y: 20 },
+    { x: 34, y: 16 },
+    { x: 56, y: 32 },
+    { x: 76, y: 20 },
+    { x: 86, y: 44 },
+    { x: 72, y: 66 },
+    { x: 48, y: 78 },
+    { x: 28, y: 70 },
+    { x: 12, y: 54 },
   ];
 
   return (
@@ -374,7 +374,7 @@ function ConnectionLines() {
 
       {/* Outer constellation perimeter */}
       <polygon
-        points={points.map((p) => `${p.x} ${p.y}`).join(' ')}
+        points={points.map((p) => `${p.x},${p.y}`).join(' ')}
         fill="none"
         stroke="url(#nf-conn-grad)"
         strokeWidth="0.8"
@@ -390,8 +390,8 @@ function ConnectionLines() {
           key={i}
           x1={p.x}
           y1={p.y}
-          x2="50%"
-          y2="50%"
+          x2={50}
+          y2={50}
           stroke="rgb(var(--nf-blue))"
           strokeWidth="0.5"
           strokeDasharray="4 4"

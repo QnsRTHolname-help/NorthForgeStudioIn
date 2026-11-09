@@ -49,10 +49,12 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
     // Mark documentElement so CSS rules (height: auto, scroll-behavior: auto !important) apply
     document.documentElement.classList.add('lenis', 'lenis-smooth');
 
-    // Root instance configured with kinematic damping (lerp) rather than fixed duration/easing.
-    // This allows successive mouse wheel notches to smoothly accumulate into targetScroll
-    // and damp continuously without resetting currentTime or creating stepped acceleration jolts.
+    // Root instance configured with kinematic duration and continuous exponential damping.
+    // This allows successive mouse wheel notches to smoothly ease out into targetScroll
+    // without resetting currentTime or creating stepped acceleration jolts.
     const instance = new Lenis({
+      duration: LENIS_CONFIG.duration,
+      easing: LENIS_CONFIG.easing,
       lerp: LENIS_CONFIG.lerp,
       wheelMultiplier: LENIS_CONFIG.wheelMultiplier,
       orientation: 'vertical',
@@ -66,7 +68,7 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
       anchors: {
         offset: -76,
         duration: LENIS_CONFIG.anchorDuration,
-        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        easing: LENIS_CONFIG.easing,
       },
       stopInertiaOnNavigate: true,
     });

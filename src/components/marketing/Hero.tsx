@@ -48,31 +48,30 @@ export function Hero() {
         // Statement + subcopy together — the headline is the design.
         .fromTo(
           '[data-hero-copy]',
-          { y: DISTANCE.ui },
-          { y: 0, duration: DURATION.slow },
+          { opacity: 0, y: DISTANCE.ui },
+          { opacity: 1, y: 0, duration: DURATION.section },
           0.1,
         )
-        // System panel — the most expensive element, so it arrives last and
-        // carries the longest, most expressive ease.
-        .fromTo(
-          '[data-hero-system]',
-          { opacity: 0, y: DISTANCE.section },
-          { opacity: 1, y: 0, duration: DURATION.panel, ease: EASE.expressive },
-          0.55,
-        )
-        // Actions stagger in right after the panel starts its rise.
+        // Actions stagger in promptly so CTA buttons are never blank
         .fromTo(
           '[data-hero-actions] > *',
           { opacity: 0, y: DISTANCE.ui },
           { opacity: 1, y: 0, duration: DURATION.ui, stagger: STAGGER.standard },
-          0.95,
+          0.2,
         )
-        // KPI cards — last, so the eye lands on them as the resolution.
+        // System panel — rises smoothly as the central visual
+        .fromTo(
+          '[data-hero-system]',
+          { opacity: 0, y: DISTANCE.section },
+          { opacity: 1, y: 0, duration: DURATION.panel, ease: EASE.expressive },
+          0.25,
+        )
+        // KPI proof cards — resolve cleanly right below actions
         .fromTo(
           '[data-hero-meta] > *',
           { opacity: 0, y: DISTANCE.ui },
           { opacity: 1, y: 0, duration: DURATION.ui, stagger: STAGGER.proof },
-          1.25,
+          0.35,
         );
 
       // Scroll-linked depth: the system panel, 3D layer, and ambient glow drift

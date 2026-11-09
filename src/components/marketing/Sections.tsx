@@ -311,7 +311,7 @@ export function IntroStatement() {
   return (
     <section className="nf-shell relative py-24 lg:py-36 overflow-hidden">
       <AtmosphericGlow color="violet" position="top-right" />
-      <Reveal>
+      <Reveal y={0}>
         <span className="nf-eyebrow">The system, not the page</span>
         <h2 className="mt-10 text-display-lg font-semibold tracking-[-0.03em] text-fg">
           <SplitText text="A website is the front door." by="word" stagger={0.04} blur />
