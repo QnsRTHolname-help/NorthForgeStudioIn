@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Trash2 } from 'lucide-react';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
 import { Badge } from '@/components/ui/Badge';
@@ -23,11 +23,12 @@ export default function Clients() {
   usePageMeta({ title: 'Clients', noIndex: true });
   const navigate = useNavigate();
   const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState(() => searchParams.get('new') === '1');
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
 
   const state = useAsync(
@@ -181,10 +182,31 @@ export default function Clients() {
         pending={remove.pending}
       />
 
-      <Modal open={creating} onClose={() => setCreating(false)} title="New client">
+      <Modal
+        open={creating}
+        onClose={() => {
+          setCreating(false);
+          if (searchParams.get('new') === '1') {
+            setSearchParams((prev) => {
+              const next = new URLSearchParams(prev);
+              next.delete('new');
+              return next;
+            }, { replace: true });
+          }
+        }}
+        title="New client"
+      >
         <ClientForm
+          key="new-client"
           onDone={async () => {
             setCreating(false);
+            if (searchParams.get('new') === '1') {
+              setSearchParams((prev) => {
+                const next = new URLSearchParams(prev);
+                next.delete('new');
+                return next;
+              }, { replace: true });
+            }
             toast.success('Client created');
             await state.refetch().catch(() => undefined);
           }}

@@ -34,8 +34,8 @@ export function ClientSelect({
 
   const state = useAsync(
     () => clientsService.list({ q: query.trim() || undefined, pageSize: 50 }),
-    [query],
-    { enabled: open },
+    [query, open],
+    { enabled: open || Boolean(value) },
   );
   const items = useMemo(() => state.data?.items ?? [], [state.data]);
 
@@ -45,7 +45,22 @@ export function ClientSelect({
       return;
     }
     const found = items.find((client) => client.id === value);
-    if (found) setSelectedName(found.businessName);
+    if (found) {
+      setSelectedName(found.businessName);
+    } else {
+      let active = true;
+      clientsService
+        .get(value)
+        .then((res) => {
+          if (active && res?.client?.businessName) {
+            setSelectedName(res.client.businessName);
+          }
+        })
+        .catch(() => undefined);
+      return () => {
+        active = false;
+      };
+    }
   }, [value, items]);
 
   // Close the list when clicking anywhere outside the control.

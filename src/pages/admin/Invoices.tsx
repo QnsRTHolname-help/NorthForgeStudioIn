@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { FilePlus2, Pencil, Plus, Receipt, Trash2 } from 'lucide-react';
 import { Panel, KpiCard } from '@/components/ui/Card';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
@@ -41,10 +41,11 @@ const DUE_OPTIONS = [
 export default function Invoices() {
   usePageMeta({ title: 'Invoices', noIndex: true });
   const toast = useToast();
+  const [searchParams] = useSearchParams();
   const [status, setStatusFilter] = useState('');
   const [query, setQuery] = useState('');
   const [detail, setDetail] = useState<Invoice | null>(null);
-  const [generating, setGenerating] = useState(false);
+  const [generating, setGenerating] = useState(() => searchParams.get('new') === '1');
   const [invoiceClientId, setInvoiceClientId] = useState('');
   const [invoicePlanId, setInvoicePlanId] = useState('');
   const [invoiceSubId, setInvoiceSubId] = useState('');
@@ -177,7 +178,7 @@ export default function Invoices() {
       <AdminHeader
         title="Invoices"
         description="Invoices built from catalog pricing — setup fee and management cycle, always reconciled. No GST."
-        crumbs={[{ label: 'Billing', to: '/app/invoices' }, { label: 'Invoices' }]}
+        crumbs={[{ label: 'Billing' }, { label: 'Invoices' }]}
         action={
           <Button size="md" iconLeft={<FilePlus2 className="h-3.5 w-3.5" />} onClick={() => setGenerating(true)}>
             Generate invoice
@@ -186,10 +187,28 @@ export default function Invoices() {
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="Collected" value={formatMoney(collected, { compact: true })} />
-        <KpiCard label="Outstanding" value={formatMoney(outstanding, { compact: true })} hint="Open and uncollectible invoices" />
-        <KpiCard label="Overdue" value={overdue} hint={overdue ? 'Past the due date' : 'Nothing overdue'} />
-        <KpiCard label="Invoices" value={items.length} />
+        <KpiCard
+          label="Collected"
+          value={formatMoney(collected, { compact: true })}
+          onClick={() => setStatusFilter((curr) => (curr === 'paid' ? '' : 'paid'))}
+        />
+        <KpiCard
+          label="Outstanding"
+          value={formatMoney(outstanding, { compact: true })}
+          hint="Open and uncollectible invoices"
+          onClick={() => setStatusFilter((curr) => (curr === 'open' ? '' : 'open'))}
+        />
+        <KpiCard
+          label="Overdue"
+          value={overdue}
+          hint={overdue ? 'Past the due date' : 'Nothing overdue'}
+          onClick={() => setStatusFilter((curr) => (curr === 'open' ? '' : 'open'))}
+        />
+        <KpiCard
+          label="Invoices"
+          value={items.length}
+          onClick={() => setStatusFilter('')}
+        />
       </div>
 
       <ListToolbar

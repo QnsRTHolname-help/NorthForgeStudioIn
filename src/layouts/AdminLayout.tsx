@@ -45,8 +45,16 @@ import { useCommandPalette } from '@/components/ui/CommandPalette';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { usePageMeta } from '@/hooks/usePageMeta';
+import { useScrollLock } from '@/hooks';
 import { titleForPath } from '@/app/config/titles';
-import { insightsService, announcementsService, requestsService, mfaService } from '@/services';
+import {
+  insightsService,
+  announcementsService,
+  requestsService,
+  mfaService,
+  tasksService,
+  ticketsService,
+} from '@/services';
 import { supabase } from '@/lib/supabase';
 import { useAsync } from '@/hooks/useAsync';
 
@@ -144,10 +152,22 @@ export function AdminLayout() {
   usePageMeta({ title: titleForPath(location.pathname) ?? 'NorthForge OS', noIndex: true });
 
   useEffect(() => setMobileOpen(false), [location.pathname]);
+  useScrollLock(mobileOpen);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [mobileOpen]);
 
   const notifications = useAsync(() => insightsService.notifications(), [location.pathname]);
   const announcements = useAsync(() => announcementsService.list(), [location.pathname]);
   const requests = useAsync(() => requestsService.list(), [location.pathname]);
+  const tasks = useAsync(() => tasksService.list(), [location.pathname]);
+  const tickets = useAsync(() => ticketsService.list(), [location.pathname]);
 
   /**
    * Second-factor state (migration 0008/0010). Client business data is
@@ -178,12 +198,19 @@ export function AdminLayout() {
   const openRequests = (requests.data?.items ?? []).filter(
     (item) => item.status === 'open' || item.status === 'in_progress' || item.status === 'blocked',
   ).length;
+  const openTasks = (tasks.data?.items ?? []).filter(
+    (item) => item.status !== 'done',
+  ).length;
+  const hasOpenTickets = (tickets.data?.items ?? []).some(
+    (item) => item.status === 'open',
+  );
 
   /** Latest-activity dot per nav item (real backend data, no fake state). */
   const hasDot = (to: string): boolean => {
     if (to === '/app/notifications') return unread > 0;
     if (to === '/app/announcements') return freshAnnouncement;
     if (to === '/app/leads') return unreadLeads;
+    if (to === '/app/support') return hasOpenTickets;
     return false;
   };
 
@@ -242,6 +269,9 @@ export function AdminLayout() {
                         <span className={cn('flex-1 truncate', collapsed && 'sr-only')}>{item.label}</span>
                         {item.badge === 'requests' && openRequests > 0 ? (
                           <span className="nf-num rounded bg-sunken px-1.5 text-2xs text-muted">{openRequests}</span>
+                        ) : null}
+                        {item.badge === 'tasks' && openTasks > 0 ? (
+                          <span className="nf-num rounded bg-sunken px-1.5 text-2xs text-muted">{openTasks}</span>
                         ) : null}
                       </>
                     );
@@ -372,6 +402,7 @@ export function AdminLayout() {
                 onSelect: async () => {
                   await insightsService.markRead();
                   notifications.refetch();
+                  toast.success('All notifications marked as read');
                 },
               },
             ]}

@@ -153,7 +153,14 @@ export default function ClientDetail() {
                     label: 'Delivery',
                     content: (
                       <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                        <Panel title="Project">
+                        <Panel
+                          title="Project"
+                          action={
+                            <Link to="/app/projects" className="text-xs text-brand hover:underline">
+                              All projects →
+                            </Link>
+                          }
+                        >
                           {detail.project ? (
                             <div className="space-y-3">
                               <div>
@@ -172,7 +179,14 @@ export default function ClientDetail() {
                           )}
                         </Panel>
 
-                        <Panel title="Tasks">
+                        <Panel
+                          title="Tasks"
+                          action={
+                            <Link to="/app/tasks" className="text-xs text-brand hover:underline">
+                              All tasks →
+                            </Link>
+                          }
+                        >
                           {detail.tasks.length ? (
                             <ul className="space-y-2">
                               {detail.tasks.slice(0, 8).map((task) => (
@@ -194,7 +208,14 @@ export default function ClientDetail() {
                     label: 'Billing',
                     content: (
                       <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                        <Panel title="Invoices">
+                        <Panel
+                          title="Invoices"
+                          action={
+                            <Link to="/app/invoices" className="text-xs text-brand hover:underline">
+                              All invoices →
+                            </Link>
+                          }
+                        >
                           {detail.invoices.length ? (
                             <ul className="space-y-2">
                               {detail.invoices.map((invoice) => (
@@ -222,7 +243,14 @@ export default function ClientDetail() {
                     label: 'Requests',
                     content: (
                       <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                        <Panel title="Client requests">
+                        <Panel
+                          title="Client requests"
+                          action={
+                            <Link to="/app/requests" className="text-xs text-brand hover:underline">
+                              All requests →
+                            </Link>
+                          }
+                        >
                           {detail.requests.length ? (
                             <ul className="space-y-2">
                               {detail.requests.map((request) => (
@@ -240,7 +268,14 @@ export default function ClientDetail() {
                           )}
                         </Panel>
 
-                        <Panel title="Bookings">
+                        <Panel
+                          title="Bookings"
+                          action={
+                            <Link to="/app/bookings" className="text-xs text-brand hover:underline">
+                              All bookings →
+                            </Link>
+                          }
+                        >
                           {detail.bookings.length ? (
                             <ul className="space-y-2">
                               {detail.bookings.slice(0, 8).map((booking) => (
@@ -300,6 +335,7 @@ export default function ClientDetail() {
       {detail ? (
         <Modal open={editing} onClose={() => setEditing(false)} title="Edit client">
           <ClientForm
+            key={detail.client.id}
             client={detail.client}
             onDone={async () => {
               setEditing(false);

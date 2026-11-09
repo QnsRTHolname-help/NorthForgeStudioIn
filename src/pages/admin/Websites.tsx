@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ExternalLink, Plus, Trash2 } from 'lucide-react';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
 import { Badge, StatusIndicator } from '@/components/ui/Badge';
@@ -23,10 +23,11 @@ export default function Websites() {
   usePageMeta({ title: 'Websites', noIndex: true });
   const navigate = useNavigate();
   const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('');
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState(() => searchParams.get('new') === '1');
   const [editing, setEditing] = useState<Website | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
 
@@ -179,10 +180,31 @@ export default function Websites() {
         )}
       </AsyncBoundary>
 
-      <Modal open={creating} onClose={() => setCreating(false)} title="New website">
+      <Modal
+        open={creating}
+        onClose={() => {
+          setCreating(false);
+          if (searchParams.get('new') === '1') {
+            setSearchParams((prev) => {
+              const next = new URLSearchParams(prev);
+              next.delete('new');
+              return next;
+            }, { replace: true });
+          }
+        }}
+        title="New website"
+      >
         <WebsiteForm
+          key="new-website"
           onDone={async () => {
             setCreating(false);
+            if (searchParams.get('new') === '1') {
+              setSearchParams((prev) => {
+                const next = new URLSearchParams(prev);
+                next.delete('new');
+                return next;
+              }, { replace: true });
+            }
             toast.success('Website created');
             await state.refetch().catch(() => undefined);
           }}
@@ -314,7 +336,7 @@ export function WebsiteForm({
 function WebsiteEditModal({ website, onClose, onDone }: { website: Website | null; onClose: () => void; onDone: () => void }) {
   return (
     <Modal open={!!website} onClose={onClose} title="Edit website">
-      {website ? <WebsiteForm website={website} onDone={onDone} /> : null}
+      {website ? <WebsiteForm key={website.id} website={website} onDone={onDone} /> : null}
     </Modal>
   );
 }

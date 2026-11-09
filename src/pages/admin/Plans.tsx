@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { KpiCard, Panel } from '@/components/ui/Card';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
 import { Badge } from '@/components/ui/Badge';
@@ -27,7 +28,7 @@ export default function Plans() {
       <AdminHeader
         title="Plans"
         description="What each plan costs, what it includes, and how many clients are on it."
-        crumbs={[{ label: 'Billing', to: '/app/invoices' }, { label: 'Plans' }]}
+        crumbs={[{ label: 'Billing' }, { label: 'Plans' }]}
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
@@ -76,9 +77,17 @@ export default function Plans() {
                   ))}
                 </ul>
 
-                <p className="mt-4 border-t border-line pt-3 text-xs font-medium text-fg/75">
-                  {plan.subscribers} subscriber{plan.subscribers === 1 ? '' : 's'}
-                </p>
+                <div className="mt-4 flex items-center justify-between border-t border-line pt-3 text-xs font-medium text-fg/75">
+                  <span>
+                    {plan.subscribers} subscriber{plan.subscribers === 1 ? '' : 's'}
+                  </span>
+                  <Link
+                    to={`/app/subscriptions?plan=${encodeURIComponent(plan.name)}`}
+                    className="text-xs font-medium text-brand hover:underline"
+                  >
+                    View subscriptions →
+                  </Link>
+                </div>
               </div>
             ))}
           </div>

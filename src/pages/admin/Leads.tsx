@@ -41,7 +41,7 @@ export default function Leads() {
   const [source, setSource] = useState(() => searchParams.get('source') ?? '');
   const [sort, setSort] = useState(() => searchParams.get('sort') ?? 'created_desc');
   const [page, setPage] = useState(1);
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState(() => searchParams.get('new') === '1');
   const [qualifying, setQualifying] = useState<string | null>(null);
 
   /** Keep the address bar in step with the filters (refresh-safe, shareable). */
@@ -218,11 +218,24 @@ export default function Leads() {
         )}
       </AsyncBoundary>
 
-      <Modal open={creating} onClose={() => setCreating(false)} title="Add a lead">
+      <Modal
+        open={creating}
+        onClose={() => {
+          setCreating(false);
+          if (searchParams.get('new') === '1') {
+            syncUrl({ q: query, status, source, sort });
+          }
+        }}
+        title="Add a lead"
+      >
         <LeadForm
+          key="new-lead"
           clients={(clients.data?.items ?? []).map((client) => ({ id: client.id, name: client.businessName }))}
           onDone={async () => {
             setCreating(false);
+            if (searchParams.get('new') === '1') {
+              syncUrl({ q: query, status, source, sort });
+            }
             await state.refetch().catch(() => undefined);
           }}
         />

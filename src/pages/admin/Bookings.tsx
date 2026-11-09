@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { CalendarDays, Plus } from 'lucide-react';
 import { Panel, KpiCard } from '@/components/ui/Card';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
@@ -21,10 +21,11 @@ const STATUSES = ['pending', 'confirmed', 'completed', 'cancelled', 'no_show'];
 export default function Bookings() {
   usePageMeta({ title: 'Bookings', noIndex: true });
   const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [status, setStatus] = useState('');
   const [query, setQuery] = useState('');
   const [detail, setDetail] = useState<Booking | null>(null);
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState(() => searchParams.get('new') === '1');
   const [confirmCancel, setConfirmCancel] = useState<Booking | null>(null);
 
   const state = useAsync(() => bookingsService.list(false), []);
@@ -199,31 +200,70 @@ export default function Bookings() {
               </div>
             </div>
 
-            <Link to="/app/calendar" className="inline-block text-[13px] text-brand hover:underline">
-              View in calendar →
-            </Link>
+            <div className="flex items-center justify-between border-t border-line pt-4">
+              <Link to="/app/calendar" className="text-[13px] text-brand hover:underline">
+                View in calendar →
+              </Link>
+              {detail.status !== 'cancelled' ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-danger hover:bg-danger/10 hover:text-danger"
+                  onClick={() => setConfirmCancel(detail)}
+                >
+                  Cancel booking
+                </Button>
+              ) : null}
+            </div>
           </div>
         ) : null}
       </Drawer>
 
-      <Drawer open={creating} onClose={() => setCreating(false)} title="Add a booking" width="md">
+      <Drawer
+        open={creating}
+        onClose={() => {
+          setCreating(false);
+          if (searchParams.get('new') === '1') {
+            setSearchParams((prev) => {
+              const next = new URLSearchParams(prev);
+              next.delete('new');
+              return next;
+            }, { replace: true });
+          }
+        }}
+        title="Add a booking"
+        width="md"
+      >
         <form
           onSubmit={async (event) => {
             event.preventDefault();
             const data = new FormData(event.currentTarget);
+            const rawStartsAt = String(data.get('startsAt') ?? '');
+            const parsedStartsAt = new Date(rawStartsAt);
+            if (!rawStartsAt || isNaN(parsedStartsAt.getTime())) {
+              toast.error('Invalid date', 'Please select a valid date and time for the booking.');
+              return;
+            }
             try {
               await bookingsService.create({
                 customerName: String(data.get('customerName') ?? ''),
                 customerPhone: String(data.get('customerPhone') ?? '') || undefined,
                 email: String(data.get('email') ?? '') || undefined,
                 service: String(data.get('service') ?? '') || undefined,
-                startsAt: new Date(String(data.get('startsAt') ?? '')).toISOString(),
+                startsAt: parsedStartsAt.toISOString(),
                 durationMins: Number(data.get('durationMins') ?? 30),
                 notes: String(data.get('notes') ?? '') || undefined,
                 clientId: String(data.get('clientId') ?? '') || undefined,
               });
               toast.success('Booking created');
               setCreating(false);
+              if (searchParams.get('new') === '1') {
+                setSearchParams((prev) => {
+                  const next = new URLSearchParams(prev);
+                  next.delete('new');
+                  return next;
+                }, { replace: true });
+              }
               await state.refetch().catch(() => undefined);
             } catch {
               /* surfaced by toast */

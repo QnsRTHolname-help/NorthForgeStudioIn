@@ -227,6 +227,25 @@ export const leadsService = {
     );
     return { followUp: mapFollowUp(rows![0]) };
   },
+
+  updateFollowUp: async (followUpId: string, input: Partial<FollowUp>): Promise<{ followUp: FollowUp }> => {
+    const rows = await run<Record<string, unknown>[]>('leads.updateFollowUp', () =>
+      supabase
+        .from('follow_ups')
+        .update(
+          compact({
+            title: input.title,
+            status: input.status,
+            due_at: input.dueAt,
+            notes: input.notes,
+          }),
+        )
+        .eq('id', followUpId)
+        .select(),
+    );
+    if (!rows?.[0]) throw new ApiError("We couldn't find that record.", 404, 'not_found');
+    return { followUp: mapFollowUp(rows[0]) };
+  },
 };
 
 
@@ -449,6 +468,9 @@ export const projectsService = {
     );
     if (!rows?.[0]) throw new ApiError("We couldn't find that record.", 404, 'not_found');
     return { project: mapProject(rows[0]) };
+  },
+  remove: async (id: string): Promise<void> => {
+    await run('projects.remove', () => supabase.from('projects').delete().eq('id', id));
   },
 };
 
@@ -1739,7 +1761,7 @@ export const insightsService = {
       run<Record<string, unknown>[]>('dashboard.admin.clients', () => supabase.from('clients').select('status')),
       run<Record<string, unknown>[]>('dashboard.admin.leads', () => supabase.from('leads').select('status, value, created_at')),
       run<Record<string, unknown>[]>('dashboard.admin.projects', () => supabase.from('projects').select('status')),
-      run<Record<string, unknown>[]>('dashboard.admin.tasks', () => supabase.from('tasks').select('id, title, status, priority, due_date').neq('status', 'done').limit(20)),
+      run<Record<string, unknown>[]>('dashboard.admin.tasks', () => supabase.from('tasks').select('id, title, status, priority, due_date').neq('status', 'done').order('created_at', { ascending: false })),
       run<Record<string, unknown>[]>('dashboard.admin.subscriptions', () => supabase.from('subscriptions').select('status, plan_id')),
       run<Record<string, unknown>[]>('dashboard.admin.invoices', () => supabase.from('invoices').select('total, status, paid_at')),
       run<Record<string, unknown>[]>('dashboard.admin.workflows', () => supabase.from('workflows').select('*').order('created_at', { ascending: false }).limit(10)),
@@ -1759,6 +1781,18 @@ export const insightsService = {
     const won = leadRows.filter((row) => row.status === 'won').length;
     const closed = leadRows.filter((row) => row.status === 'won' || row.status === 'lost').length;
 
+    // Aggregate revenue by date so multiple invoices paid on the same day form a single coherent point
+    const dailyRevenue = new Map<string, number>();
+    for (const row of paidInvoices) {
+      const d = String(row.paid_at ?? '').slice(0, 10);
+      if (d) {
+        dailyRevenue.set(d, (dailyRevenue.get(d) ?? 0) + Number(row.total ?? 0));
+      }
+    }
+    const series = Array.from(dailyRevenue.entries())
+      .map(([date, value]) => ({ date, value }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
     return {
       dashboard: {
         metrics: {
@@ -1775,10 +1809,7 @@ export const insightsService = {
           const inStage = leadRows.filter((row) => row.status === status);
           return { status, count: inStage.length, value: inStage.reduce((sum, row) => sum + Number(row.value ?? 0), 0) };
         }),
-        series: paidInvoices
-          .map((row) => ({ date: String(row.paid_at ?? '').slice(0, 10), value: Number(row.total ?? 0) }))
-          .filter((point) => point.date)
-          .sort((a, b) => a.date.localeCompare(b.date)),
+        series,
         recentActivity: (activity ?? []).map(mapActivity),
         openTasks: (tasks ?? []).map(mapTask),
         workflows: (workflows ?? []).map((row) => mapWorkflow(row, [])),

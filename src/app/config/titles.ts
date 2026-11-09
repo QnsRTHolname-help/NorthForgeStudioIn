@@ -64,6 +64,10 @@ export const TITLES: Record<string, string> = {
   '/app/support': 'Support',
   '/app/system-health': 'System health',
   '/app/settings': 'Settings',
+  '/app/leads/:id': 'Lead details',
+  '/app/clients/:id': 'Client details',
+  '/app/websites/:id': 'Website details',
+  '/app/workflows/:id': 'Workflow builder',
 };
 
 export function titleForPath(pathname: string) {

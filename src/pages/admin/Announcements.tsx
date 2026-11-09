@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Plus, Trash2 } from 'lucide-react';
 import { Panel } from '@/components/ui/Card';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
@@ -29,7 +30,8 @@ const AUDIENCES = [
 export default function Announcements() {
   usePageMeta({ title: 'Announcements', noIndex: true });
   const toast = useToast();
-  const [creating, setCreating] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [creating, setCreating] = useState(() => searchParams.get('new') === '1');
   const [audience, setAudience] = useState('all_clients');
 
   const state = useAsync(() => announcementsService.list(), []);
@@ -74,6 +76,14 @@ export default function Announcements() {
     const form = new FormData(event.currentTarget);
     const audience = String(form.get('audience') ?? 'all_clients');
     const clientIds = form.getAll('clientIds').map(String);
+    const rawEndsAt = String(form.get('endsAt') ?? '');
+    let endsAt: string | null = null;
+    if (rawEndsAt) {
+      const parsed = new Date(rawEndsAt);
+      if (!isNaN(parsed.getTime())) {
+        endsAt = parsed.toISOString();
+      }
+    }
     await create
       .mutate({
         title: String(form.get('title') ?? ''),
@@ -81,9 +91,16 @@ export default function Announcements() {
         priority: String(form.get('priority') ?? 'normal'),
         audience,
         clientIds: audience === 'selected_clients' ? clientIds : [],
-        endsAt: String(form.get('endsAt') ?? '') || null,
+        endsAt,
       })
       .catch(() => undefined);
+    if (searchParams.get('new') === '1') {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('new');
+        return next;
+      }, { replace: true });
+    }
   };
 
   return (
@@ -142,7 +159,21 @@ export default function Announcements() {
         )}
       </AsyncBoundary>
 
-      <Drawer open={creating} onClose={() => setCreating(false)} title="New announcement" width="md">
+      <Drawer
+        open={creating}
+        onClose={() => {
+          setCreating(false);
+          if (searchParams.get('new') === '1') {
+            setSearchParams((prev) => {
+              const next = new URLSearchParams(prev);
+              next.delete('new');
+              return next;
+            }, { replace: true });
+          }
+        }}
+        title="New announcement"
+        width="md"
+      >
         <form onSubmit={submit} className="space-y-4">
           <Input label="Title" name="title" required placeholder="e.g. Scheduled maintenance this weekend" />
           <Textarea

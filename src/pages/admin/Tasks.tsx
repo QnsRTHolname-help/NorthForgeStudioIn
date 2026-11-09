@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Check, Plus, Trash2 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Check, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Panel } from '@/components/ui/Card';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
 import { Badge } from '@/components/ui/Badge';
@@ -23,9 +24,11 @@ const PRIORITIES = ['low', 'medium', 'high', 'urgent'];
 export default function Tasks() {
   usePageMeta({ title: 'Tasks', noIndex: true });
   const toast = useToast();
-  const [status, setStatus] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [status, setStatus] = useState(() => searchParams.get('status') ?? '');
   const [query, setQuery] = useState('');
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState(() => searchParams.get('new') === '1');
+  const [editing, setEditing] = useState<Task | null>(null);
   const [deleting, setDeleting] = useState<Task | null>(null);
 
   const state = useAsync(() => tasksService.list(status || undefined), [status]);
@@ -123,6 +126,14 @@ export default function Tasks() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      aria-label="Edit task"
+                      onClick={() => setEditing(task)}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       aria-label="Delete task"
                       onClick={() => setDeleting(task)}
                     >
@@ -147,14 +158,49 @@ export default function Tasks() {
         )}
       </AsyncBoundary>
 
-      <Modal open={creating} onClose={() => setCreating(false)} title="New task">
+      <Modal
+        open={creating}
+        onClose={() => {
+          setCreating(false);
+          if (searchParams.get('new') === '1') {
+            setSearchParams((prev) => {
+              const next = new URLSearchParams(prev);
+              next.delete('new');
+              return next;
+            }, { replace: true });
+          }
+        }}
+        title="New task"
+      >
         <TaskForm
+          key="new-task"
           projects={(projects.data?.items ?? []).map((project) => ({ id: project.id, name: project.name }))}
           onDone={async () => {
             setCreating(false);
+            if (searchParams.get('new') === '1') {
+              setSearchParams((prev) => {
+                const next = new URLSearchParams(prev);
+                next.delete('new');
+                return next;
+              }, { replace: true });
+            }
             await state.refetch().catch(() => undefined);
           }}
         />
+      </Modal>
+
+      <Modal open={!!editing} onClose={() => setEditing(null)} title="Edit task">
+        {editing ? (
+          <TaskForm
+            key={editing.id}
+            task={editing}
+            projects={(projects.data?.items ?? []).map((project) => ({ id: project.id, name: project.name }))}
+            onDone={async () => {
+              setEditing(null);
+              await state.refetch().catch(() => undefined);
+            }}
+          />
+        ) : null}
       </Modal>
 
       <ConfirmDialog
@@ -173,21 +219,29 @@ export default function Tasks() {
   );
 }
 
-function TaskForm({ projects, onDone }: { projects: { id: string; name: string }[]; onDone: () => void }) {
+function TaskForm({
+  projects,
+  task,
+  onDone,
+}: {
+  projects: { id: string; name: string }[];
+  task?: Task;
+  onDone: () => void;
+}) {
   const toast = useToast();
   const [form, setForm] = useState({
-    title: '',
-    description: '',
-    status: 'todo',
-    priority: 'medium',
-    projectId: '',
-    dueDate: '',
-    clientId: '',
+    title: task?.title ?? '',
+    description: task?.description ?? '',
+    status: (task?.status ?? 'todo') as Task['status'],
+    priority: (task?.priority ?? 'medium') as Task['priority'],
+    projectId: task?.projectId ?? '',
+    dueDate: task?.dueDate ? task.dueDate.slice(0, 10) : '',
+    clientId: task?.clientId ?? '',
   });
 
   const mutation = useMutation(
-    () =>
-      tasksService.create({
+    () => {
+      const payload = {
         title: form.title.trim(),
         description: form.description.trim() || undefined,
         status: form.status as Task['status'],
@@ -195,10 +249,12 @@ function TaskForm({ projects, onDone }: { projects: { id: string; name: string }
         projectId: form.projectId || undefined,
         clientId: form.clientId || undefined,
         dueDate: form.dueDate || undefined,
-      }),
+      };
+      return task ? tasksService.update(task.id, payload) : tasksService.create(payload);
+    },
     {
       onSuccess: () => {
-        toast.success('Task created');
+        toast.success(task ? 'Task updated' : 'Task created');
         onDone();
       },
     },
@@ -215,8 +271,8 @@ function TaskForm({ projects, onDone }: { projects: { id: string; name: string }
       <Input label="Title" required value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
       <Textarea label="Description" rows={3} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
       <div className="grid gap-4 sm:grid-cols-2">
-        <Select label="Status" value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} options={STATUSES.map((value) => ({ value, label: titleCase(value) }))} />
-        <Select label="Priority" value={form.priority} onChange={(event) => setForm({ ...form, priority: event.target.value })} options={PRIORITIES.map((value) => ({ value, label: titleCase(value) }))} />
+        <Select label="Status" value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as Task['status'] })} options={STATUSES.map((value) => ({ value, label: titleCase(value) }))} />
+        <Select label="Priority" value={form.priority} onChange={(event) => setForm({ ...form, priority: event.target.value as Task['priority'] })} options={PRIORITIES.map((value) => ({ value, label: titleCase(value) }))} />
         <Select label="Project" value={form.projectId} onChange={(event) => setForm({ ...form, projectId: event.target.value })} options={[{ value: '', label: 'No project' }, ...projects.map((project) => ({ value: project.id, label: project.name }))]} />
         <Input label="Due date" type="date" value={form.dueDate} onChange={(event) => setForm({ ...form, dueDate: event.target.value })} />
       </div>
@@ -226,7 +282,7 @@ function TaskForm({ projects, onDone }: { projects: { id: string; name: string }
           Cancel
         </Button>
         <Button size="sm" type="submit" loading={mutation.pending} disabled={!form.title.trim()}>
-          Create task
+          {task ? 'Save changes' : 'Create task'}
         </Button>
       </div>
     </form>

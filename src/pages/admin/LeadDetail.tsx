@@ -217,6 +217,7 @@ export default function LeadDetail() {
       {lead ? (
         <Modal open={editing} onClose={() => setEditing(false)} title="Edit lead">
           <EditLeadForm
+            key={lead.id}
             lead={lead}
             onDone={async () => {
               setEditing(false);
@@ -262,8 +263,26 @@ function FollowUps({ leadId, onChanged }: { leadId: string; onChanged: () => voi
   const [title, setTitle] = useState('');
   const [dueAt, setDueAt] = useState('');
   const followUps = useAsync(() => leadsService.get(leadId), [leadId]);
+
+  const toggleDone = useMutation(
+    (followUp: { id: string; status: string }) =>
+      leadsService.updateFollowUp(followUp.id, {
+        status: followUp.status === 'done' ? 'pending' : 'done',
+      }),
+    {
+      onSuccess: () => {
+        onChanged();
+        followUps.refetch().catch(() => undefined);
+      },
+    },
+  );
+
   const add = useMutation(
-    () => leadsService.addFollowUp(leadId, { title: title.trim(), dueAt: new Date(dueAt).toISOString() }),
+    () => {
+      const parsed = new Date(dueAt);
+      const iso = isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+      return leadsService.addFollowUp(leadId, { title: title.trim(), dueAt: iso });
+    },
     {
       onSuccess: () => {
         setTitle('');
@@ -288,9 +307,19 @@ function FollowUps({ leadId, onChanged }: { leadId: string; onChanged: () => voi
                   {followUp.status === 'done' ? 'Done' : `Due ${formatDateTime(followUp.dueAt)}`}
                 </span>
               </span>
-              <Badge tone={followUp.status === 'done' ? 'success' : followUp.status === 'missed' ? 'danger' : 'warning'}>
-                {titleCase(followUp.status)}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => toggleDone.mutate({ id: followUp.id, status: followUp.status })}
+                  className="nf-focus rounded px-1.5 py-0.5 text-xs font-medium text-brand hover:underline"
+                  title={followUp.status === 'done' ? 'Reopen follow-up' : 'Mark as done'}
+                >
+                  {followUp.status === 'done' ? 'Reopen' : 'Mark done'}
+                </button>
+                <Badge tone={followUp.status === 'done' ? 'success' : followUp.status === 'missed' ? 'danger' : 'warning'}>
+                  {titleCase(followUp.status)}
+                </Badge>
+              </div>
             </li>
           ))}
         </ul>
@@ -303,6 +332,8 @@ function FollowUps({ leadId, onChanged }: { leadId: string; onChanged: () => voi
         onSubmit={async (event) => {
           event.preventDefault();
           if (!title.trim() || !dueAt) return;
+          const parsed = new Date(dueAt);
+          if (isNaN(parsed.getTime())) return;
           await add.mutate().catch(() => undefined);
         }}
       >

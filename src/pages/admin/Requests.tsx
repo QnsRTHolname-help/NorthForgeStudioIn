@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { MessageSquare } from 'lucide-react';
 import { Panel } from '@/components/ui/Card';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
@@ -21,13 +22,22 @@ const TYPES = ['website_change', 'content_change', 'technical_issue', 'automatio
 export default function Requests() {
   usePageMeta({ title: 'Client requests', noIndex: true });
   const toast = useToast();
-  const [status, setStatus] = useState('');
+  const [searchParams] = useSearchParams();
+  const [status, setStatus] = useState(() => searchParams.get('status') ?? '');
   const [query, setQuery] = useState('');
   const [detail, setDetail] = useState<ClientRequest | null>(null);
 
   const state = useAsync(() => requestsService.list(), []);
   const clients = useAsync(() => clientsService.list({ pageSize: 200 }), []);
   const clientName = (id: string) => clients.data?.items.find((client) => client.id === id)?.businessName ?? 'Unassigned';
+
+  useEffect(() => {
+    const id = searchParams.get('id');
+    if (id && state.data?.items && !detail) {
+      const found = state.data.items.find((r) => r.id === id);
+      if (found) setDetail(found);
+    }
+  }, [searchParams, state.data, detail]);
 
   const items = (state.data?.items ?? []).filter((request) => {
     const matchesQuery =
@@ -58,10 +68,27 @@ export default function Requests() {
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        {/* Labelled "Matching", not "Total": these describe the filtered set. */}
-        <Kpi label="Matching" value={items.length} />
-        <Kpi label="Open" value={open.length} tone="warning" />
-        <Kpi label="Blocked" value={items.filter((request) => request.status === 'blocked').length} tone="danger" />
+        <button
+          type="button"
+          onClick={() => setStatus('')}
+          className="text-left transition-opacity hover:opacity-90"
+        >
+          <Kpi label="Matching" value={items.length} />
+        </button>
+        <button
+          type="button"
+          onClick={() => setStatus((prev) => (prev === 'open' ? '' : 'open'))}
+          className="text-left transition-opacity hover:opacity-90"
+        >
+          <Kpi label="Open" value={open.length} tone="warning" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setStatus((prev) => (prev === 'blocked' ? '' : 'blocked'))}
+          className="text-left transition-opacity hover:opacity-90"
+        >
+          <Kpi label="Blocked" value={items.filter((request) => request.status === 'blocked').length} tone="danger" />
+        </button>
       </div>
 
       <ListToolbar

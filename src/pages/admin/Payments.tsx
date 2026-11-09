@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { CreditCard, FilePlus2, Trash2 } from 'lucide-react';
 import { Panel, KpiCard } from '@/components/ui/Card';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
@@ -18,10 +19,16 @@ import type { PaymentStatus } from '@/types';
 export default function Payments() {
   usePageMeta({ title: 'Payments', noIndex: true });
   const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState('');
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState(() => searchParams.get('new') === '1');
   const [settleInvoice, setSettleInvoice] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [paymentClientId, setPaymentClientId] = useState('');
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('succeeded');
+  const [paymentMethod, setPaymentMethod] = useState('bank_transfer');
+  const [paymentInvoiceId, setPaymentInvoiceId] = useState('');
 
   const state = useAsync(() => billingService.payments(), []);
   const clients = useAsync(() => clientsService.list({ pageSize: 200 }), []);
@@ -49,6 +56,9 @@ export default function Payments() {
           result.invoiceSettled ? 'The linked invoice is now marked paid.' : undefined,
         );
         setCreating(false);
+        setPaymentClientId('');
+        setPaymentAmount('');
+        setPaymentInvoiceId('');
         await Promise.all([
           state.refetch().catch(() => undefined),
           result.invoiceSettled ? invoices.refetch().catch(() => undefined) : Promise.resolve(),
@@ -78,9 +88,18 @@ export default function Payments() {
       <AdminHeader
         title="Payments"
         description="Money received, with method and status for every transaction."
-        crumbs={[{ label: 'Billing', to: '/app/invoices' }, { label: 'Payments' }]}
+        crumbs={[{ label: 'Billing' }, { label: 'Payments' }]}
         action={
-          <Button size="md" iconLeft={<FilePlus2 className="h-3.5 w-3.5" />} onClick={() => setCreating(true)}>
+          <Button
+            size="md"
+            iconLeft={<FilePlus2 className="h-3.5 w-3.5" />}
+            onClick={() => {
+              setPaymentClientId('');
+              setPaymentAmount('');
+              setPaymentInvoiceId('');
+              setCreating(true);
+            }}
+          >
             Record payment
           </Button>
         }
@@ -157,40 +176,92 @@ export default function Payments() {
         </p>
       </Panel>
 
-      <Modal open={creating} onClose={() => setCreating(false)} title="Record a payment">
+      <Modal
+        open={creating}
+        onClose={() => {
+          setCreating(false);
+          if (searchParams.get('new') === '1') {
+            setSearchParams((prev) => {
+              const next = new URLSearchParams(prev);
+              next.delete('new');
+              return next;
+            }, { replace: true });
+          }
+        }}
+        title="Record a payment"
+      >
         <form
           onSubmit={async (event) => {
             event.preventDefault();
-            const data = new FormData(event.currentTarget);
-            const rupees = Number(data.get('amount') ?? 0);
-            if (!rupees || rupees <= 0) return;
+            const rupees = Number(paymentAmount);
+            if (!rupees || rupees <= 0 || !paymentClientId) {
+              toast.error('Validation error', 'Please select a client and enter a valid positive amount.');
+              return;
+            }
             await record
               .mutate({
-                clientId: String(data.get('clientId') ?? ''),
+                clientId: paymentClientId,
                 amount: Math.round(rupees * 100),
-                status: String(data.get('status') ?? 'succeeded'),
-                method: String(data.get('method') ?? 'manual'),
-                invoiceId: String(data.get('invoiceId') ?? ''),
+                status: paymentStatus,
+                method: paymentMethod,
+                invoiceId: paymentInvoiceId,
               })
               .catch(() => undefined);
           }}
           className="space-y-4"
         >
           <Select
+            label="Link to invoice (optional)"
+            name="invoiceId"
+            value={paymentInvoiceId}
+            onChange={(e) => {
+              const selectedId = e.target.value;
+              setPaymentInvoiceId(selectedId);
+              if (selectedId) {
+                const inv = invoices.data?.items.find((i) => i.id === selectedId);
+                if (inv) {
+                  if (inv.clientId) setPaymentClientId(inv.clientId);
+                  if (typeof inv.total === 'number') setPaymentAmount(String(inv.total / 100));
+                }
+              }
+            }}
+            options={[
+              { value: '', label: 'No invoice' },
+              ...(invoices.data?.items ?? []).map((invoice) => ({
+                value: invoice.id,
+                label: `${invoice.number} · ${formatMoney(invoice.total)} · ${titleCase(invoice.status)}`,
+              })),
+            ]}
+            hint="Selecting an invoice auto-fills the client and amount due."
+          />
+          <Select
             label="Client"
             name="clientId"
+            value={paymentClientId}
+            onChange={(e) => setPaymentClientId(e.target.value)}
             required
             options={[
               { value: '', label: 'Select a client…' },
               ...(clients.data?.items ?? []).map((client) => ({ value: client.id, label: client.businessName })),
             ]}
           />
-          <Input label="Amount (₹)" name="amount" type="number" min="1" step="0.01" required placeholder="15000" />
+          <Input
+            label="Amount (₹)"
+            name="amount"
+            type="number"
+            min="1"
+            step="0.01"
+            required
+            placeholder="15000"
+            value={paymentAmount}
+            onChange={(e) => setPaymentAmount(e.target.value)}
+          />
           <div className="grid gap-4 sm:grid-cols-2">
             <Select
               label="Status"
               name="status"
-              defaultValue="succeeded"
+              value={paymentStatus}
+              onChange={(e) => setPaymentStatus(e.target.value as PaymentStatus)}
               options={[
                 { value: 'succeeded', label: 'Succeeded' },
                 { value: 'pending', label: 'Pending' },
@@ -201,7 +272,8 @@ export default function Payments() {
             <Select
               label="Method"
               name="method"
-              defaultValue="bank_transfer"
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value)}
               options={[
                 { value: 'bank_transfer', label: 'Bank transfer' },
                 { value: 'upi', label: 'UPI' },
@@ -211,18 +283,6 @@ export default function Payments() {
               ]}
             />
           </div>
-          <Select
-            label="Link to invoice (optional)"
-            name="invoiceId"
-            options={[
-              { value: '', label: 'No invoice' },
-              ...(invoices.data?.items ?? []).map((invoice) => ({
-                value: invoice.id,
-                label: `${invoice.number} · ${titleCase(invoice.status)}`,
-              })),
-            ]}
-            hint="Linking a payment keeps the invoice and the ledger reconciled."
-          />
           <Checkbox
             checked={settleInvoice}
             onChange={setSettleInvoice}
@@ -231,7 +291,20 @@ export default function Payments() {
           />
           {record.error ? <p className="text-xs text-danger">{record.error}</p> : null}
           <div className="flex justify-end gap-2 border-t border-line pt-4">
-            <Button variant="ghost" size="sm" onClick={() => setCreating(false)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setCreating(false);
+                if (searchParams.get('new') === '1') {
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    next.delete('new');
+                    return next;
+                  }, { replace: true });
+                }
+              }}
+            >
               Cancel
             </Button>
             <Button size="sm" type="submit" loading={record.pending}>

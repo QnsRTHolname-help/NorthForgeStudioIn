@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { Panel, KpiCard } from '@/components/ui/Card';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
@@ -35,9 +35,10 @@ const STATUS_LABELS: Record<string, string> = {
 export default function Subscriptions() {
   usePageMeta({ title: 'Subscriptions', noIndex: true });
   const toast = useToast();
-  const [status, setStatus] = useState('');
-  const [query, setQuery] = useState('');
-  const [creating, setCreating] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [status, setStatus] = useState(() => searchParams.get('status') ?? '');
+  const [query, setQuery] = useState(() => searchParams.get('plan') ?? searchParams.get('q') ?? '');
+  const [creating, setCreating] = useState(() => searchParams.get('new') === '1');
   const [newClientId, setNewClientId] = useState('');
   const [newPlanId, setNewPlanId] = useState('');
   const [newStatus, setNewStatus] = useState('active');
@@ -109,7 +110,7 @@ export default function Subscriptions() {
       <AdminHeader
         title="Subscriptions"
         description="Plan, price and renewal date for every client, billed on the catalog cycle."
-        crumbs={[{ label: 'Billing', to: '/app/invoices' }, { label: 'Subscriptions' }]}
+        crumbs={[{ label: 'Billing' }, { label: 'Subscriptions' }]}
         action={
           <Button size="md" iconLeft={<Plus className="h-3.5 w-3.5" />} onClick={() => setCreating(true)}>
             New subscription
@@ -118,9 +119,21 @@ export default function Subscriptions() {
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <KpiCard label="Active subscriptions" value={active.length} />
-        <KpiCard label="Recurring revenue / cycle" value={formatMoney(mrr, { compact: true })} hint="Active subscriptions, monthly management only" />
-        <KpiCard label="Past due" value={items.filter((subscription) => subscription.status === 'past_due').length} />
+        <KpiCard
+          label="Active subscriptions"
+          value={active.length}
+          onClick={() => setStatus((curr) => (curr === 'active' ? '' : 'active'))}
+        />
+        <KpiCard
+          label="Recurring revenue / cycle"
+          value={formatMoney(mrr, { compact: true })}
+          hint="Active subscriptions, monthly management only"
+        />
+        <KpiCard
+          label="Past due"
+          value={items.filter((subscription) => subscription.status === 'past_due').length}
+          onClick={() => setStatus((curr) => (curr === 'past_due' ? '' : 'past_due'))}
+        />
       </div>
 
       {/* Client-initiated cancellations are the one state the team must not

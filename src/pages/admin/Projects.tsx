@@ -1,9 +1,10 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
 import { Badge } from '@/components/ui/Badge';
 import { AdminHeader, ListToolbar } from '@/components/admin/AdminHeader';
-import { Modal } from '@/components/ui/Modal';
+import { ConfirmDialog, Modal } from '@/components/ui/Modal';
 import { Input, Select, Textarea } from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
 import { Progress } from '@/components/ui/Loader';
@@ -22,14 +23,24 @@ const STATUSES = ['planning', 'active', 'on_hold', 'completed', 'cancelled'];
 export default function Projects() {
   usePageMeta({ title: 'Projects', noIndex: true });
   const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('');
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState(() => searchParams.get('new') === '1');
   const [editing, setEditing] = useState<Project | null>(null);
+  const [deleting, setDeleting] = useState<Project | null>(null);
 
   const state = useAsync(() => projectsService.list(), []);
   const clients = useAsync(() => clientsService.list({ pageSize: 1000 }), []);
   const clientName = (id: string) => clients.data?.items.find((client) => client.id === id)?.businessName ?? '—';
+
+  const remove = useMutation((id: string) => projectsService.remove(id), {
+    onSuccess: async () => {
+      toast.success('Project deleted');
+      setDeleting(null);
+      await state.refetch().catch(() => undefined);
+    },
+  });
 
   const items = (state.data?.items ?? []).filter((project) => {
     const matchesQuery = !query || project.name.toLowerCase().includes(query.toLowerCase());
@@ -117,13 +128,22 @@ export default function Projects() {
                       → {titleCase(stage)}
                     </button>
                   ))}
-                  <button
-                    type="button"
-                    onClick={() => setEditing(project)}
-                    className="ml-auto text-2xs text-brand hover:underline"
-                  >
-                    Edit
-                  </button>
+                  <div className="ml-auto flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditing(project)}
+                      className="text-2xs text-brand hover:underline"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeleting(project)}
+                      className="text-2xs text-danger/80 hover:text-danger hover:underline"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -141,10 +161,31 @@ export default function Projects() {
         )}
       </AsyncBoundary>
 
-      <Modal open={creating} onClose={() => setCreating(false)} title="New project">
+      <Modal
+        open={creating}
+        onClose={() => {
+          setCreating(false);
+          if (searchParams.get('new') === '1') {
+            setSearchParams((prev) => {
+              const next = new URLSearchParams(prev);
+              next.delete('new');
+              return next;
+            }, { replace: true });
+          }
+        }}
+        title="New project"
+      >
         <ProjectForm
+          key="new-project"
           onDone={async () => {
             setCreating(false);
+            if (searchParams.get('new') === '1') {
+              setSearchParams((prev) => {
+                const next = new URLSearchParams(prev);
+                next.delete('new');
+                return next;
+              }, { replace: true });
+            }
             await state.refetch().catch(() => undefined);
           }}
         />
@@ -154,6 +195,7 @@ export default function Projects() {
         {editing ? (
           <div className="space-y-5">
             <ProjectForm
+              key={editing.id}
               project={editing}
               onDone={async () => {
                 setEditing(null);
@@ -164,6 +206,19 @@ export default function Projects() {
           </div>
         ) : null}
       </Modal>
+
+      <ConfirmDialog
+        open={!!deleting}
+        title="Delete this project?"
+        description={`"${deleting?.name}" and its milestones will be removed permanently. Attached client records remain intact.`}
+        confirmLabel="Delete project"
+        destructive
+        pending={remove.pending}
+        onClose={() => setDeleting(null)}
+        onConfirm={() => {
+          if (deleting) void remove.mutate(deleting.id).catch(() => undefined);
+        }}
+      />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Panel } from '@/components/ui/Card';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
@@ -36,7 +36,8 @@ const KIND_TONE: Record<string, string> = {
 export default function Calendar() {
   usePageMeta({ title: 'Calendar', noIndex: true });
   const toast = useToast();
-  const [creating, setCreating] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [creating, setCreating] = useState(() => searchParams.get('new') === '1');
   const [cursor, setCursor] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -239,23 +240,50 @@ export default function Calendar() {
         </Panel>
       </div>
 
-      <Drawer open={creating} onClose={() => setCreating(false)} title="Add a booking" width="md">
+      <Drawer
+        open={creating}
+        onClose={() => {
+          setCreating(false);
+          if (searchParams.get('new') === '1') {
+            setSearchParams((prev) => {
+              const next = new URLSearchParams(prev);
+              next.delete('new');
+              return next;
+            }, { replace: true });
+          }
+        }}
+        title="Add a booking"
+        width="md"
+      >
         <form
           onSubmit={async (event) => {
             event.preventDefault();
             const data = new FormData(event.currentTarget);
+            const rawStartsAt = String(data.get('startsAt') ?? '');
+            const parsedStartsAt = new Date(rawStartsAt);
+            if (!rawStartsAt || isNaN(parsedStartsAt.getTime())) {
+              toast.error('Invalid date', 'Please select a valid date and time for the booking.');
+              return;
+            }
             await createBooking
               .mutate({
                 customerName: String(data.get('customerName') ?? ''),
                 customerPhone: String(data.get('customerPhone') ?? '') || undefined,
                 email: String(data.get('email') ?? '') || undefined,
                 service: String(data.get('service') ?? '') || undefined,
-                startsAt: new Date(String(data.get('startsAt') ?? '')).toISOString(),
+                startsAt: parsedStartsAt.toISOString(),
                 durationMins: Number(data.get('durationMins') ?? 30),
                 notes: String(data.get('notes') ?? '') || undefined,
                 clientId: String(data.get('clientId') ?? '') || undefined,
               })
               .catch(() => undefined);
+            if (searchParams.get('new') === '1') {
+              setSearchParams((prev) => {
+                const next = new URLSearchParams(prev);
+                next.delete('new');
+                return next;
+              }, { replace: true });
+            }
           }}
           className="space-y-4"
         >
@@ -290,7 +318,20 @@ export default function Calendar() {
           <Textarea label="Notes" name="notes" rows={3} />
           {createBooking.error ? <p className="text-xs text-danger">{createBooking.error}</p> : null}
           <div className="flex justify-end gap-2 border-t border-line pt-4">
-            <Button variant="ghost" size="sm" onClick={() => setCreating(false)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setCreating(false);
+                if (searchParams.get('new') === '1') {
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    next.delete('new');
+                    return next;
+                  }, { replace: true });
+                }
+              }}
+            >
               Cancel
             </Button>
             <Button size="sm" type="submit" loading={createBooking.pending}>

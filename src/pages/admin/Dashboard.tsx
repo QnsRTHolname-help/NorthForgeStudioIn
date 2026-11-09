@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Check, CircleDollarSign, FolderKanban, ListChecks, Users, Workflow } from 'lucide-react';
 import { KpiCard, Panel } from '@/components/ui/Card';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
@@ -18,6 +18,7 @@ import { formatMoney, formatNumber, formatPercent, formatRelative, titleCase } f
  */
 export default function Dashboard() {
   usePageMeta({ title: 'Operations', noIndex: true });
+  const navigate = useNavigate();
   const state = useAsync(() => insightsService.adminDashboard(), []);
   const health = useAsync(() => systemService.health(), []);
 
@@ -61,28 +62,38 @@ export default function Dashboard() {
                 label="Collected revenue"
                 value={formatMoney(metrics?.revenue, { compact: true })}
                 icon={<CircleDollarSign className="h-4 w-4" />}
+                onClick={() => navigate('/app/invoices')}
               />
               <KpiCard
                 label="Recurring"
                 value={formatMoney(metrics?.recurringRevenue, { compact: true })}
                 hint="Per billing cycle"
                 icon={<CircleDollarSign className="h-4 w-4" />}
+                onClick={() => navigate('/app/subscriptions')}
               />
-              <KpiCard label="Leads" value={formatNumber(metrics?.leads)} icon={<Users className="h-4 w-4" />} />
+              <KpiCard
+                label="Leads"
+                value={formatNumber(metrics?.leads)}
+                icon={<Users className="h-4 w-4" />}
+                onClick={() => navigate('/app/leads')}
+              />
               <KpiCard
                 label="Active clients"
                 value={formatNumber(metrics?.activeClients)}
                 icon={<Users className="h-4 w-4" />}
+                onClick={() => navigate('/app/clients')}
               />
               <KpiCard
                 label="Open tasks"
                 value={formatNumber(metrics?.openTasks)}
                 icon={<ListChecks className="h-4 w-4" />}
+                onClick={() => navigate('/app/tasks')}
               />
               <KpiCard
                 label="Active projects"
                 value={formatNumber(metrics?.activeProjects)}
                 icon={<FolderKanban className="h-4 w-4" />}
+                onClick={() => navigate('/app/projects')}
               />
             </div>
 
@@ -115,7 +126,14 @@ export default function Dashboard() {
                 )}
               </Panel>
 
-              <Panel title="Pipeline by stage">
+              <Panel
+                title="Pipeline by stage"
+                action={
+                  <Link to="/app/pipeline" className="text-[13px] text-brand hover:underline">
+                    Pipeline board →
+                  </Link>
+                }
+              >
                 {dashboard.pipeline.length ? (
                   <BarChart
                     horizontal
@@ -154,18 +172,31 @@ export default function Dashboard() {
             </div>
 
             <div className="grid gap-4 lg:grid-cols-3">
-              <Panel title="Open tasks" className="lg:col-span-1">
+              <Panel
+                title="Open tasks"
+                className="lg:col-span-1"
+                action={
+                  <Link to="/app/tasks" className="text-[13px] text-brand hover:underline">
+                    All tasks →
+                  </Link>
+                }
+              >
                 {dashboard.openTasks.length ? (
                   <ul className="space-y-2">
                     {dashboard.openTasks.slice(0, 6).map((task) => (
-                      <li key={task.id} className="flex items-start justify-between gap-3 rounded border border-line bg-sunken/30 p-2.5">
-                        <span className="min-w-0">
-                          <span className="block truncate text-[13px] text-fg">{task.title}</span>
-                          <span className="text-2xs uppercase tracking-wider text-faint">{titleCase(task.status)}</span>
-                        </span>
-                        <Badge tone={task.priority === 'urgent' || task.priority === 'high' ? 'warning' : 'neutral'}>
-                          {titleCase(task.priority)}
-                        </Badge>
+                      <li key={task.id}>
+                        <Link
+                          to="/app/tasks"
+                          className="flex items-start justify-between gap-3 rounded border border-line bg-sunken/30 p-2.5 transition-colors hover:border-brand/40"
+                        >
+                          <span className="min-w-0">
+                            <span className="block truncate text-[13px] text-fg">{task.title}</span>
+                            <span className="text-2xs uppercase tracking-wider text-faint">{titleCase(task.status)}</span>
+                          </span>
+                          <Badge tone={task.priority === 'urgent' || task.priority === 'high' ? 'warning' : 'neutral'}>
+                            {titleCase(task.priority)}
+                          </Badge>
+                        </Link>
                       </li>
                     ))}
                   </ul>
@@ -174,21 +205,34 @@ export default function Dashboard() {
                 )}
               </Panel>
 
-              <Panel title="Workflows" className="lg:col-span-1">
+              <Panel
+                title="Workflows"
+                className="lg:col-span-1"
+                action={
+                  <Link to="/app/workflows" className="text-[13px] text-brand hover:underline">
+                    All workflows →
+                  </Link>
+                }
+              >
                 {dashboard.workflows.length ? (
                   <ul className="space-y-2">
                     {dashboard.workflows.slice(0, 5).map((workflow) => (
-                      <li key={workflow.id} className="flex items-center justify-between gap-3 rounded border border-line bg-sunken/30 p-2.5">
-                        <span className="flex min-w-0 items-center gap-2">
-                          <Workflow className="h-3.5 w-3.5 shrink-0 text-brand" aria-hidden />
-                          <span className="truncate text-[13px] text-fg">{workflow.name}</span>
-                        </span>
-                        <span className="flex shrink-0 items-center gap-2">
-                          <Sparkline values={[workflow.runs, Math.max(1, Math.round(workflow.runs * 0.7))]} className="w-12" />
-                          <Badge tone={workflow.status === 'active' ? 'success' : workflow.status === 'error' ? 'danger' : 'neutral'}>
-                            {titleCase(workflow.status)}
-                          </Badge>
-                        </span>
+                      <li key={workflow.id}>
+                        <Link
+                          to={`/app/workflows/${workflow.id}`}
+                          className="flex items-center justify-between gap-3 rounded border border-line bg-sunken/30 p-2.5 transition-colors hover:border-brand/40"
+                        >
+                          <span className="flex min-w-0 items-center gap-2">
+                            <Workflow className="h-3.5 w-3.5 shrink-0 text-brand" aria-hidden />
+                            <span className="truncate text-[13px] text-fg">{workflow.name}</span>
+                          </span>
+                          <span className="flex shrink-0 items-center gap-2">
+                            <Sparkline values={[workflow.runs, Math.max(1, Math.round(workflow.runs * 0.7))]} className="w-12" />
+                            <Badge tone={workflow.status === 'active' ? 'success' : workflow.status === 'error' ? 'danger' : 'neutral'}>
+                              {titleCase(workflow.status)}
+                            </Badge>
+                          </span>
+                        </Link>
                       </li>
                     ))}
                   </ul>
@@ -197,7 +241,15 @@ export default function Dashboard() {
                 )}
               </Panel>
 
-              <Panel title="Activity" className="lg:col-span-1">
+              <Panel
+                title="Activity"
+                className="lg:col-span-1"
+                action={
+                  <Link to="/app/activity" className="text-[13px] text-brand hover:underline">
+                    All activity →
+                  </Link>
+                }
+              >
                 {dashboard.recentActivity.length ? (
                   <Timeline
                     items={dashboard.recentActivity.slice(0, 6).map((entry) => ({

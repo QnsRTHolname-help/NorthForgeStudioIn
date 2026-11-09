@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, Workflow as WorkflowIcon } from 'lucide-react';
 import { Panel } from '@/components/ui/Card';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
@@ -27,7 +27,8 @@ const TRIGGERS = [
 export default function Workflows() {
   usePageMeta({ title: 'Workflows', noIndex: true });
   const toast = useToast();
-  const [creating, setCreating] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [creating, setCreating] = useState(() => searchParams.get('new') === '1');
   const state = useAsync(() => automationService.workflows(), []);
   const items = state.data?.items ?? [];
 
@@ -129,7 +130,20 @@ export default function Workflows() {
         </div>
       </Panel>
 
-      <Modal open={creating} onClose={() => setCreating(false)} title="New workflow">
+      <Modal
+        open={creating}
+        onClose={() => {
+          setCreating(false);
+          if (searchParams.get('new') === '1') {
+            setSearchParams((prev) => {
+              const next = new URLSearchParams(prev);
+              next.delete('new');
+              return next;
+            }, { replace: true });
+          }
+        }}
+        title="New workflow"
+      >
         <form
           onSubmit={async (event) => {
             event.preventDefault();
@@ -143,6 +157,13 @@ export default function Workflows() {
               });
               toast.success('Workflow created', 'Add steps in the builder.');
               setCreating(false);
+              if (searchParams.get('new') === '1') {
+                setSearchParams((prev) => {
+                  const next = new URLSearchParams(prev);
+                  next.delete('new');
+                  return next;
+                }, { replace: true });
+              }
               await state.refetch().catch(() => undefined);
             } catch {
               /* error surfaced by the toast layer */
@@ -154,7 +175,20 @@ export default function Workflows() {
           <Select label="Trigger" name="trigger" defaultValue="lead.created" options={TRIGGERS} />
           <Textarea label="Description" name="description" rows={3} placeholder="What this automation does." />
           <div className="flex justify-end gap-2 border-t border-line pt-4">
-            <Button variant="ghost" size="sm" onClick={() => setCreating(false)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setCreating(false);
+                if (searchParams.get('new') === '1') {
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    next.delete('new');
+                    return next;
+                  }, { replace: true });
+                }
+              }}
+            >
               Cancel
             </Button>
             <Button size="sm" type="submit">
