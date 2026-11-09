@@ -62,10 +62,10 @@
     --nf-line-strong: 54 59 70;
 
     --nf-fg: 245 245 242;
-    --nf-muted: 168 171 178;
+    --nf-muted: 184 188 196;
     /* 112 116 125 sat at ~4.2:1 on the dark canvas — under WCAG AA for
        small text. This clears 4.5:1 while staying visually quiet. */
-    --nf-faint: 126 130 140;
+    --nf-faint: 148 152 162;
 
     --nf-blue: 59 130 255;
     --nf-violet: 124 92 255;
@@ -118,8 +118,8 @@
        least readable text in the product and every one of its call sites
        inherited a WCAG AA failure. Both steps now clear 4.5:1 for small text
        while keeping a visible difference between them. */
-    --nf-muted: 98 96 90; /* #62605A — 5.58:1 on cream */
-    --nf-faint: 110 108 102; /* #6E6C66 — 4.66:1, still a real step down */
+    --nf-muted: 72 70 65; /* #484641 — high-contrast crisp text on cream */
+    --nf-faint: 92 90 84; /* #5C5A54 — crisp legible secondary */
 
     /* The bright brand blue is a dark-surface accent. On cream it read
        3.2:1 as text and white on it was 3.6:1 — both under AA. The deeper

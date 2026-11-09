@@ -118,8 +118,8 @@ export function KpiCard({
       )}
     >
       <div className="flex items-center justify-between gap-3">
-        <span className="text-[13px] font-medium text-muted">{label}</span>
-        {icon ? <span className="text-faint transition-colors group-hover:text-brand">{icon}</span> : null}
+        <span className="text-[13px] font-semibold text-fg/85">{label}</span>
+        {icon ? <span className="text-fg/60 transition-colors group-hover:text-brand">{icon}</span> : null}
       </div>
 
       {loading ? (
@@ -143,7 +143,7 @@ export function KpiCard({
       )}
 
       {children}
-      {hint ? <p className="text-xs leading-relaxed text-faint">{hint}</p> : null}
+      {hint ? <p className="text-xs leading-relaxed font-medium text-fg/75">{hint}</p> : null}
     </Tag>
   );
 }

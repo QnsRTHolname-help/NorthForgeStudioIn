@@ -182,14 +182,14 @@ export default function Subscription() {
                 {plan?.features.length ? (
                   <ul className="grid gap-2 sm:grid-cols-2">
                     {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-2 text-[13px] leading-relaxed text-muted">
+                      <li key={feature} className="flex items-start gap-2 text-[13px] leading-relaxed text-fg/90">
                         <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" aria-hidden />
-                        {feature}
+                        <span>{feature}</span>
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-[13px] text-muted">
+                  <p className="text-[13px] text-fg/80">
                     Your plan is customised. Raise a request if you would like the details listed out.
                   </p>
                 )}
@@ -229,7 +229,7 @@ export default function Subscription() {
                 <div>
                   <span className="text-2xs font-semibold uppercase tracking-wider text-brand">Upgrade & Retention Incentives</span>
                   <h4 className="text-sm font-semibold text-fg mt-0.5">Save 15% with Quarterly Commitment</h4>
-                  <p className="text-xs text-muted mt-0.5">
+                  <p className="text-xs text-fg/80 mt-0.5">
                     Switch to a quarterly commitment to unlock a 15% upfront discount and an extra employee seat at no cost.
                   </p>
                 </div>
@@ -372,7 +372,7 @@ function CancelPlan({
           />
         </dl>
 
-        <p className="text-xs leading-relaxed text-faint">
+        <p className="text-xs leading-relaxed font-medium text-fg/75">
           Cancelling a plan does not close your account. Your workspace, history and files stay available — only
           future billing stops. Manage everything else from{' '}
           <Link to="/portal/settings" className="text-brand hover:underline" onClick={onClose}>
@@ -392,7 +392,7 @@ function CancelPlan({
 
   return (
     <div className="space-y-4">
-      <p className="text-[13px] leading-relaxed text-muted">
+      <p className="text-[13px] leading-relaxed font-medium text-fg/85">
         This stops your plan from renewing. It does not delete your subscription, your workspace or any invoice.
       </p>
 
@@ -452,7 +452,7 @@ function CancelPlan({
 function Row({ label, value, tone }: { label: string; value: React.ReactNode; tone?: 'warning' }) {
   return (
     <div className="flex items-start justify-between gap-4 px-4 py-2.5">
-      <dt className="text-[13px] text-muted">{label}</dt>
+      <dt className="text-[13px] font-medium text-fg/80">{label}</dt>
       <dd className={cn('max-w-[60%] text-right text-[13px] font-medium text-fg', tone === 'warning' && 'text-warning')}>
         {value}
       </dd>
@@ -504,18 +504,18 @@ function PlanChangeRequest({
     >
       <div className="rounded-lg border border-brand/20 bg-brand/[0.04] p-3 text-xs space-y-1">
         <p className="font-semibold text-fg">Active Member Incentives & Offers</p>
-        <p className="text-muted">
+        <p className="text-fg/85 font-medium">
           • <strong className="text-brand">Founder Beta Pass:</strong> Save ₹5,000 on Setup with code <strong className="text-fg">FOUNDER5K</strong>.
         </p>
-        <p className="text-muted">
+        <p className="text-fg/85 font-medium">
           • <strong className="text-success">Quarterly Retention:</strong> Save 15% + get 1 extra team seat included free.
         </p>
-        <p className="text-muted">
+        <p className="text-fg/85 font-medium">
           • <strong className="text-warning">Capacity Note:</strong> Only 3 implementation spots left this month.
         </p>
       </div>
 
-      <p className="text-[13px] leading-relaxed text-muted">
+      <p className="text-[13px] leading-relaxed font-medium text-fg/85">
         Tell us which plan you would like. We will confirm the change and it takes effect from your next billing cycle.
       </p>
       {/* Options come from the live catalog — never a hardcoded list that
@@ -656,7 +656,7 @@ function ActivateSubscriptionView({ onActivated }: { onActivated: () => void }) 
           <CheckCircle2 className="h-6 w-6" />
         </span>
         <h3 className="text-xl font-semibold text-fg">Subscription Activation Requested!</h3>
-        <p className="mt-2 text-[14px] text-muted max-w-lg mx-auto">
+        <p className="mt-2 text-[14px] text-fg/85 font-medium max-w-lg mx-auto">
           We have received your activation for the <strong className="text-fg">{selectedPlan.name}</strong> plan (
           {billingCycle}). Your onboarding and deployment sequence is underway.
         </p>
@@ -682,7 +682,7 @@ function ActivateSubscriptionView({ onActivated }: { onActivated: () => void }) 
             <Zap className="h-4 w-4 text-brand" />
             <span className="font-semibold text-fg">New Member Incentives Applied</span>
           </div>
-          <div className="flex flex-wrap items-center gap-3 text-muted">
+          <div className="flex flex-wrap items-center gap-3 font-medium text-fg/80">
             <span className="flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-warning animate-pulse" />
               Only 3 spots left this month
@@ -695,7 +695,7 @@ function ActivateSubscriptionView({ onActivated }: { onActivated: () => void }) 
       {/* Plan Selection Cards */}
       <div>
         <h3 className="text-base font-semibold text-fg">1. Choose your plan tier</h3>
-        <p className="mt-1 text-xs text-muted">Select the tier that matches your business scale.</p>
+        <p className="mt-1 text-xs font-medium text-fg/80">Select the tier that matches your business scale.</p>
 
         <div className="mt-4 grid gap-4 grid-cols-1 md:grid-cols-3">
           {PLANS.filter((p) => p.amount !== null).map((p) => {
@@ -721,14 +721,14 @@ function ActivateSubscriptionView({ onActivated }: { onActivated: () => void }) 
                   <span className="text-sm font-semibold text-fg">{p.name}</span>
                   {isSelected ? <Check className="h-4 w-4 text-brand" /> : null}
                 </div>
-                <p className="mt-1 text-xs text-muted line-clamp-2">{p.tagline}</p>
+                <p className="mt-1 text-xs text-fg/80 line-clamp-2">{p.tagline}</p>
                 <div className="mt-4 border-t border-line/60 pt-3">
                   <p className="nf-num text-xl font-bold text-fg">
                     {formatMoney(isQuarterly ? Math.round(p.amount! * 0.85) : p.amount!)}
-                    <span className="text-xs font-normal text-muted">/mo</span>
+                    <span className="text-xs font-medium text-fg/75">/mo</span>
                   </p>
-                  <p className="mt-1 text-2xs text-muted">
-                    Setup fee: <span className="text-fg">{planSetupLabel(p)}</span>
+                  <p className="mt-1 text-2xs text-fg/80">
+                    Setup fee: <span className="font-semibold text-fg">{planSetupLabel(p)}</span>
                   </p>
                 </div>
               </button>
@@ -753,7 +753,7 @@ function ActivateSubscriptionView({ onActivated }: { onActivated: () => void }) 
           >
             <div>
               <p className="text-[13px] font-semibold text-fg">Monthly billing</p>
-              <p className="mt-0.5 text-xs text-muted">Standard month-to-month flexibility. Cancel anytime.</p>
+              <p className="mt-0.5 text-xs text-fg/80">Standard month-to-month flexibility. Cancel anytime.</p>
             </div>
             {billingCycle === 'monthly' ? <Check className="h-4 w-4 text-brand" /> : null}
           </button>
@@ -773,7 +773,7 @@ function ActivateSubscriptionView({ onActivated }: { onActivated: () => void }) 
                 <p className="text-[13px] font-semibold text-fg">Quarterly commitment</p>
                 <Badge tone="success" className="text-2xs">Save 15%</Badge>
               </div>
-              <p className="mt-0.5 text-xs text-muted">15% off monthly fee + 1 extra employee seat included free.</p>
+              <p className="mt-0.5 text-xs text-fg/80">15% off monthly fee + 1 extra employee seat included free.</p>
             </div>
             {billingCycle === 'quarterly' ? <Check className="h-4 w-4 text-brand" /> : null}
           </button>
@@ -852,27 +852,27 @@ function ActivateSubscriptionView({ onActivated }: { onActivated: () => void }) 
           />
 
           {/* Pricing Summary */}
-          <div className="rounded-xl border border-line bg-sunken/40 p-4 space-y-2 text-xs">
-            <div className="flex justify-between text-muted">
+          <div className="rounded-xl border border-line bg-surface p-4 space-y-2.5 text-xs shadow-2xs">
+            <div className="flex justify-between text-fg/85 font-medium">
               <span>Selected plan</span>
-              <span className="font-medium text-fg">{selectedPlan.name} ({billingCycle})</span>
+              <span className="font-semibold text-fg">{selectedPlan.name} ({billingCycle})</span>
             </div>
-            <div className="flex justify-between text-muted">
+            <div className="flex justify-between text-fg/85 font-medium">
               <span>Monthly subscription</span>
               <span className="font-semibold text-fg">{formatMoney(monthlyDisplay)}/mo</span>
             </div>
-            <div className="flex justify-between text-muted">
+            <div className="flex justify-between text-fg/85 font-medium">
               <span>Setup & onboarding fee</span>
               <span className="font-semibold text-fg">
                 {formatMoney(setupDisplay)}
                 {discount > 0 ? (
-                  <span className="ml-1 text-2xs text-brand font-normal">(-₹5,000 w/ FOUNDER5K)</span>
+                  <span className="ml-1 text-2xs text-brand font-semibold">(-₹5,000 w/ FOUNDER5K)</span>
                 ) : null}
               </span>
             </div>
-            <div className="border-t border-line pt-2 flex justify-between text-sm font-bold text-fg">
+            <div className="border-t border-line pt-2.5 flex justify-between text-sm font-bold text-fg">
               <span>Total first investment</span>
-              <span className="nf-num">{formatMoney(monthlyDisplay + setupDisplay)}</span>
+              <span className="nf-num text-base font-bold text-fg">{formatMoney(monthlyDisplay + setupDisplay)}</span>
             </div>
           </div>
 

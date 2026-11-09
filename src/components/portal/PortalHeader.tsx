@@ -63,8 +63,8 @@ export function MetricRow({
   };
   return (
     <div className="flex items-baseline justify-between gap-4 border-b border-line py-2.5 last:border-0">
-      <span className="text-[13px] text-muted">{label}</span>
-      <span className={cn('nf-num text-[13px] font-medium', tones[tone ?? 'default'])}>{value}</span>
+      <span className="text-[13px] font-medium text-fg/80">{label}</span>
+      <span className={cn('nf-num text-[13px] font-semibold', tones[tone ?? 'default'])}>{value}</span>
     </div>
   );
 }

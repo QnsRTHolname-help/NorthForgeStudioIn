@@ -311,10 +311,10 @@ export default function Overview() {
                           >
                             <span className="min-w-0">
                               <span className="block text-[13px] font-medium text-fg">{action.label}</span>
-                              <span className="mt-0.5 block text-xs text-muted">{action.detail}</span>
+                              <span className="mt-0.5 block text-xs font-medium text-fg/75">{action.detail}</span>
                             </span>
                             <ArrowRight
-                              className="mt-0.5 h-4 w-4 shrink-0 text-faint transition-transform group-hover:translate-x-0.5 group-hover:text-brand"
+                              className="mt-0.5 h-4 w-4 shrink-0 text-fg/60 transition-transform group-hover:translate-x-0.5 group-hover:text-brand"
                               aria-hidden
                             />
                           </Link>

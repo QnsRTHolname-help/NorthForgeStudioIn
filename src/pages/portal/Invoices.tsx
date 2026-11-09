@@ -47,7 +47,7 @@ export default function Invoices() {
           size="sm"
           ariaLabel="Invoice filter"
         />
-        <div className="flex gap-4 text-[13px] text-muted">
+        <div className="flex gap-4 text-[13px] font-medium text-fg/80">
           <span>
             Outstanding <span className="nf-num font-medium text-fg">{formatMoney(outstanding)}</span>
           </span>
@@ -75,7 +75,7 @@ export default function Invoices() {
                   >
                     <div className="min-w-0">
                       <p className="font-mono text-[13px] font-medium text-fg">{invoice.number}</p>
-                      <p className="mt-0.5 text-xs text-muted">
+                      <p className="mt-0.5 text-xs text-fg/75">
                         Issued {formatDate(invoice.issuedAt)} · Due {formatDate(invoice.dueAt)}
                       </p>
                     </div>
@@ -108,7 +108,7 @@ export default function Invoices() {
                 <li key={payment.id} className="flex items-center justify-between gap-3 px-4 py-3">
                   <div>
                     <p className="text-[13px] text-fg">{formatDate(payment.paidAt)}</p>
-                    <p className="text-xs text-muted">{payment.method ? titleCase(payment.method) : 'Payment'}</p>
+                    <p className="text-xs text-fg/75">{payment.method ? titleCase(payment.method) : 'Payment'}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge tone={payment.status === 'succeeded' ? 'success' : 'danger'}>{titleCase(payment.status)}</Badge>
@@ -127,7 +127,7 @@ export default function Invoices() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="font-mono text-[15px] font-semibold text-fg">{detail.number}</p>
-                <p className="text-xs text-muted">Issued {formatDate(detail.issuedAt)}</p>
+                <p className="text-xs text-fg/75">Issued {formatDate(detail.issuedAt)}</p>
               </div>
               <Badge tone={detail.status === 'paid' ? 'success' : 'warning'}>{titleCase(detail.status)}</Badge>
             </div>
@@ -137,7 +137,7 @@ export default function Invoices() {
               <div className="overflow-hidden rounded border border-line">
                 <table className="w-full text-[13px]">
                   <thead>
-                    <tr className="border-b border-line bg-sunken/40 text-left text-2xs uppercase tracking-wider text-faint">
+                    <tr className="border-b border-line bg-sunken/50 text-left text-2xs uppercase tracking-wider font-semibold text-fg/80">
                       <th className="px-3 py-2 font-medium">Item</th>
                       <th className="px-3 py-2 text-right font-medium">Amount</th>
                     </tr>
@@ -184,7 +184,7 @@ export default function Invoices() {
       </Drawer>
 
       <Panel className="mt-6" title="How these amounts are calculated">
-        <p className="text-[13px] leading-relaxed text-muted">
+        <p className="text-[13px] leading-relaxed font-medium text-fg/85">
           The total is the sum of the line items above — NorthForge adds no tax or processing fee on top. Amounts are
           stored in paise so nothing is rounded twice, which means what you see here is exactly what the ledger holds.
         </p>

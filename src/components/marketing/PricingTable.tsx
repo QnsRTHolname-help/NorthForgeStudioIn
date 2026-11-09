@@ -69,7 +69,7 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
               'rounded-lg px-4 py-1.5 text-xs font-semibold transition-all duration-200',
               billingCycle === 'monthly'
                 ? 'bg-brand text-white shadow-sm'
-                : 'text-muted hover:text-fg',
+                : 'text-fg/80 hover:text-fg font-medium',
             )}
           >
             Monthly Billing
@@ -81,7 +81,7 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
               'flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-semibold transition-all duration-200',
               billingCycle === 'quarterly'
                 ? 'bg-brand text-white shadow-sm'
-                : 'text-muted hover:text-fg',
+                : 'text-fg/80 hover:text-fg font-medium',
             )}
           >
             <span>Quarterly Commitment</span>
@@ -144,19 +144,19 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
                           : planAmountLabel(plan)}
                       </span>
                       {!custom ? (
-                        <span className="text-[13px] text-faint">
+                        <span className="text-[13px] font-medium text-fg/75">
                           {billingCycle === 'quarterly' ? '/ mo (billed quarterly)' : '/ month'}
                         </span>
                       ) : null}
                     </div>
 
                     {!custom && billingCycle === 'quarterly' && savings ? (
-                      <p className="mt-1 text-2xs font-medium text-success">
+                      <p className="mt-1 text-2xs font-semibold text-success">
                         Save ₹{(savings.savings / 100).toLocaleString('en-IN')} / quarter + free seat
                       </p>
                     ) : null}
 
-                    <div className="mt-2.5 flex items-center justify-between text-[13px] text-muted">
+                    <div className="mt-2.5 flex items-center justify-between text-[13px] font-medium text-fg/80">
                       <span className="nf-num">{planSetupLabel(plan)}</span>
                       {!custom ? (
                         <span className="rounded bg-brand/10 px-1.5 py-0.5 text-2xs font-semibold text-brand">
@@ -166,7 +166,7 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
                     </div>
                   </div>
 
-                  <p className="mt-5 text-[13px] leading-relaxed text-muted">{plan.description}</p>
+                  <p className="mt-5 text-[13px] leading-relaxed text-fg/80">{plan.description}</p>
 
                   <ul className="mt-6 flex-1 space-y-2.5 border-t border-line pt-5">
                     {plan.features.slice(0, 7).map((feature) => (
@@ -188,7 +188,7 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
                     </LinkButton>
                     <Link
                       to="/pricing#scope"
-                      className="nf-focus mt-2.5 block text-center text-xs text-muted underline decoration-line-strong underline-offset-4 transition-colors hover:text-fg"
+                      className="nf-focus mt-2.5 block text-center text-xs font-medium text-fg/80 underline decoration-line-strong underline-offset-4 transition-colors hover:text-brand"
                     >
                       See full pricing details
                     </Link>
@@ -211,7 +211,7 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
             <caption className="sr-only">Plan scope comparison</caption>
             <thead>
               <tr className="border-b border-line">
-                <th scope="col" className="w-[38%] py-3 pr-4 text-2xs font-medium uppercase tracking-eyebrow text-faint">
+                <th scope="col" className="w-[38%] py-3 pr-4 text-2xs font-semibold uppercase tracking-eyebrow text-fg/80">
                   Scope
                 </th>
                 {priced.map((plan) => (
@@ -231,7 +231,7 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
             <tbody>
               {PLAN_SCOPE_ROWS.map((row) => (
                 <tr key={row} className="border-b border-line/60">
-                  <th scope="row" className="py-3 pr-4 text-[13px] font-normal text-muted">
+                  <th scope="row" className="py-3 pr-4 text-[13px] font-medium text-fg/90">
                     {row}
                   </th>
                   {priced.map((plan) => (
@@ -239,7 +239,7 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
                       key={plan.id}
                       className={cn(
                         'py-3 pr-4 text-[13px]',
-                        plan.scope[row] === '—' ? 'text-faint' : 'text-fg',
+                        plan.scope[row] === '—' ? 'text-fg/40 font-mono' : 'text-fg font-medium',
                       )}
                     >
                       {plan.scope[row] ?? '—'}
@@ -250,7 +250,7 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
             </tbody>
           </table>
         </div>
-        <p className="mt-4 text-[13px] text-muted">
+        <p className="mt-4 text-[13px] text-fg/80">
           Workflow limits are confirmed after discovery and can be revised as infrastructure and third-party costs
           change. We do not promise unlimited automation.
         </p>
@@ -260,28 +260,28 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
       {/* Honest billing notes (spec §123, §124) */}
       {showDetail ? (
         <div className="mt-14 grid gap-6 lg:grid-cols-2">
-        <div className="rounded-lg border border-line bg-sunken/30 p-6">
+        <div className="rounded-lg border border-line bg-surface/90 p-6 shadow-2xs">
           <h3 className="text-[13px] font-semibold uppercase tracking-wider text-fg">How billing works</h3>
           <ul className="mt-4 space-y-2.5">
             {BILLING_FACTS.map((fact) => (
-              <li key={fact} className="flex items-start gap-2 text-[13px] leading-relaxed text-muted">
+              <li key={fact} className="flex items-start gap-2.5 text-[13px] leading-relaxed text-fg/90">
                 <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" aria-hidden />
-                {fact}
+                <span>{fact}</span>
               </li>
             ))}
           </ul>
         </div>
 
-        <div className="rounded-lg border border-line bg-sunken/30 p-6">
+        <div className="rounded-lg border border-line bg-surface/90 p-6 shadow-2xs">
           <h3 className="text-[13px] font-semibold uppercase tracking-wider text-fg">
             Separate third-party costs
           </h3>
           <ul className="mt-4 space-y-2.5">
             {THIRD_PARTY_COSTS.map((cost) => (
-              <li key={cost.label} className="flex items-start gap-2 text-[13px] leading-relaxed text-muted">
-                <Minus className="mt-0.5 h-3.5 w-3.5 shrink-0 text-faint" aria-hidden />
+              <li key={cost.label} className="flex items-start gap-2.5 text-[13px] leading-relaxed text-fg/90">
+                <Minus className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand" aria-hidden />
                 <span>
-                  <span className="text-fg">{cost.label}</span> — {cost.note}
+                  <strong className="font-semibold text-fg">{cost.label}</strong> — <span className="text-fg/80">{cost.note}</span>
                 </span>
               </li>
             ))}
@@ -295,29 +295,29 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
         <div className="nf-glass-card mt-8 rounded-2xl border border-brand/20 bg-brand/[0.04] p-6 backdrop-blur-md shadow-2xs">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <span className="nf-glass-pill inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-3xs font-semibold uppercase tracking-wider text-brand shadow-2xs">
+              <span className="nf-glass-pill inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-2xs font-semibold uppercase tracking-wider text-brand shadow-2xs">
                 Retention & Growth Incentives
               </span>
               <h4 className="mt-2 text-base font-semibold text-fg">Long-term alignment without lock-in contracts</h4>
-              <p className="mt-1 text-xs text-muted">
+              <p className="mt-1 text-xs text-fg/80 font-medium">
                 Choose quarterly or annual commitments for compounding savings and dedicated engineering support.
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 shrink-0">
-              <div className="nf-glass-card rounded-xl border border-white/60 p-3 text-center shadow-2xs">
+              <div className="rounded-xl border border-line/80 bg-surface/95 p-3 text-center shadow-2xs">
                 <span className="text-2xs font-bold text-success uppercase">Quarterly Upfront</span>
                 <p className="text-xs font-semibold text-fg mt-0.5">15% Savings</p>
-                <span className="text-3xs text-muted">+1 free employee seat</span>
+                <span className="text-2xs font-medium text-fg/80 block mt-0.5">+1 free employee seat</span>
               </div>
-              <div className="nf-glass-card rounded-xl border border-white/60 p-3 text-center shadow-2xs">
+              <div className="rounded-xl border border-line/80 bg-surface/95 p-3 text-center shadow-2xs">
                 <span className="text-2xs font-bold text-brand uppercase">Annual Commit</span>
                 <p className="text-xs font-semibold text-fg mt-0.5">2 Months Free</p>
-                <span className="text-3xs text-muted">Priority WhatsApp builder</span>
+                <span className="text-2xs font-medium text-fg/80 block mt-0.5">Priority WhatsApp builder</span>
               </div>
-              <div className="nf-glass-card rounded-xl border border-white/60 p-3 text-center shadow-2xs">
+              <div className="rounded-xl border border-line/80 bg-surface/95 p-3 text-center shadow-2xs">
                 <span className="text-2xs font-bold text-fg uppercase">Risk-Free Handover</span>
                 <p className="text-xs font-semibold text-fg mt-0.5">Full Data Export</p>
-                <span className="text-3xs text-muted">Source code handover anytime</span>
+                <span className="text-2xs font-medium text-fg/80 block mt-0.5">Source code handover anytime</span>
               </div>
             </div>
           </div>
@@ -325,7 +325,7 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
       ) : null}
 
       <div className="mt-12 flex flex-col items-center gap-4 border-t border-line pt-12 text-center">
-        <p className="max-w-xl text-[15px] leading-relaxed text-muted">
+        <p className="max-w-xl text-[15px] leading-relaxed text-fg/85 font-medium">
           Not sure what to automate first? Send us your details and we will tell you honestly where the time and the
           enquiries are going — including if you do not need us yet.
         </p>
@@ -337,7 +337,7 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
         {!showDetail ? (
           <Link
             to="/pricing#scope"
-            className="nf-focus text-[13px] text-muted underline decoration-line-strong underline-offset-4 transition-colors hover:text-fg"
+            className="nf-focus text-[13px] font-medium text-fg/80 underline decoration-line-strong underline-offset-4 transition-colors hover:text-brand"
           >
             See full pricing details — what each plan includes
           </Link>

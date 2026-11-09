@@ -109,7 +109,7 @@ export default function Payments() {
                     <span className="block truncate text-[13px] font-medium text-fg">
                       {clientName(payment.clientId, payment.billedTo)}
                     </span>
-                    <span className="block text-2xs text-muted">
+                    <span className="block text-xs font-medium text-fg/80">
                       {payment.method ? titleCase(payment.method) : 'Payment'} · {formatDate(payment.paidAt)}
                     </span>
                   </span>
@@ -132,7 +132,7 @@ export default function Payments() {
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(payment.id)}
-                    className="shrink-0 rounded p-1.5 text-faint transition-colors hover:bg-sunken hover:text-danger"
+                    className="shrink-0 rounded p-1.5 text-fg/60 transition-colors hover:bg-sunken hover:text-danger"
                     aria-label={`Delete payment for ${clientName(payment.clientId, payment.billedTo)}`}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -151,7 +151,7 @@ export default function Payments() {
       </AsyncBoundary>
 
       <Panel className="mt-6" title="Currency handling">
-        <p className="text-[13px] leading-relaxed text-muted">
+        <p className="text-[13px] leading-relaxed font-medium text-fg/85">
           All amounts are stored in paise as integers and formatted once, here at the edge. That avoids the rounding drift
           you get from storing rupees as floats — the ledger always reconciles to the paisa.
         </p>

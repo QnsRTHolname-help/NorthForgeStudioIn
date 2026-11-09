@@ -55,7 +55,7 @@ export default function Plans() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="text-[15px] font-semibold text-fg">{plan.name}</p>
-                    <p className="text-2xs uppercase tracking-wider text-faint">{plan.slug}</p>
+                    <p className="text-2xs uppercase tracking-wider font-semibold text-fg/75">{plan.slug}</p>
                   </div>
                   {plan.recommended ? <Badge tone="info">Recommended</Badge> : null}
                 </div>
@@ -63,20 +63,20 @@ export default function Plans() {
                 <p className="mt-4 nf-num text-[24px] font-semibold text-fg">
                   {plan.amount === null ? 'Custom' : formatMoney(plan.amount)}
                   {plan.amount !== null ? (
-                    <span className="ml-1 text-[13px] font-normal text-faint">/ {plan.intervalDays}d</span>
+                    <span className="ml-1 text-[13px] font-medium text-fg/75">/ {plan.intervalDays}d</span>
                   ) : null}
                 </p>
-                <p className="mt-1 text-[13px] leading-relaxed text-muted">{plan.tagline}</p>
+                <p className="mt-1 text-[13px] leading-relaxed text-fg/80">{plan.tagline}</p>
 
                 <ul className="mt-4 flex-1 space-y-1.5 border-t border-line pt-3">
                   {plan.features.map((feature) => (
-                    <li key={feature} className="text-[13px] leading-relaxed text-muted">
+                    <li key={feature} className="text-[13px] leading-relaxed text-fg/85">
                       · {feature}
                     </li>
                   ))}
                 </ul>
 
-                <p className="mt-4 border-t border-line pt-3 text-2xs text-faint">
+                <p className="mt-4 border-t border-line pt-3 text-xs font-medium text-fg/75">
                   {plan.subscribers} subscriber{plan.subscribers === 1 ? '' : 's'}
                 </p>
               </div>
@@ -89,7 +89,7 @@ export default function Plans() {
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <Panel title="Billing rules">
-          <ul className="space-y-2 text-[13px] leading-relaxed text-muted">
+          <ul className="space-y-2 text-[13px] leading-relaxed font-medium text-fg/85">
             <li>· Billed every {BILLING_INTERVAL_DAYS} days, in advance.</li>
             <li>· Amounts stored in paise; formatted only for display.</li>
             <li>· Plan changes apply from the next cycle, never mid-cycle.</li>
@@ -102,7 +102,7 @@ export default function Plans() {
             {THIRD_PARTY_COSTS.map((cost) => (
               <li key={cost.label} className="flex items-baseline justify-between gap-3 border-b border-line py-2 last:border-0">
                 <span className="text-[13px] text-fg">{cost.label}</span>
-                <span className="text-right text-[13px] text-muted">{cost.note}</span>
+                <span className="text-right text-[13px] font-medium text-fg/80">{cost.note}</span>
               </li>
             ))}
           </ul>

@@ -237,13 +237,13 @@ export default function Invoices() {
                   >
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-mono text-[13px] font-medium text-fg">{invoice.number}</span>
-                      <span className="block truncate text-2xs text-muted">
+                      <span className="block truncate text-xs font-medium text-fg/80">
                         {clientName(invoice.clientId, invoice.billedTo)} · {invoice.lineItems[0]?.label ?? 'No line items'}{' '}
                         · issued{' '}
                         {formatDate(invoice.issuedAt)}
                       </span>
                     </span>
-                    <span className="shrink-0 text-2xs text-faint">Due {formatDate(invoice.dueAt)}</span>
+                    <span className="shrink-0 text-xs font-medium text-fg/75">Due {formatDate(invoice.dueAt)}</span>
                     <Badge tone={invoice.status === 'paid' ? 'success' : invoice.status === 'open' ? 'warning' : 'neutral'}>
                       {titleCase(invoice.status)}
                     </Badge>
@@ -270,7 +270,7 @@ export default function Invoices() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="font-mono text-[15px] font-semibold text-fg">{detail.number}</p>
-                <p className="text-[13px] text-muted">{clientName(detail.clientId, detail.billedTo)}</p>
+                <p className="text-[13px] font-medium text-fg/80">{clientName(detail.clientId, detail.billedTo)}</p>
               </div>
               <Badge tone={detail.status === 'paid' ? 'success' : detail.status === 'open' ? 'warning' : 'neutral'}>
                 {titleCase(detail.status)}
@@ -368,7 +368,7 @@ export default function Invoices() {
                             <TD>
                               <span className="block font-medium text-fg">{line.label}</span>
                               {line.description ? (
-                                <span className="mt-0.5 block text-2xs text-muted">{line.description}</span>
+                                <span className="mt-0.5 block text-xs text-fg/75">{line.description}</span>
                               ) : null}
                             </TD>
                             <TD align="right" className="nf-num">
@@ -591,7 +591,7 @@ function Totals({
   compact?: boolean;
 }) {
   return (
-    <div className={compact ? 'space-y-1' : 'space-y-1 rounded border border-line bg-sunken/30 p-4'}>
+    <div className={compact ? 'space-y-1' : 'space-y-1 rounded border border-line bg-surface p-4 shadow-2xs'}>
       <Row label="Subtotal" value={formatMoneyPrecise(totals.subtotal)} />
       {/* Only legacy invoices carry a tax figure; showing "Tax ₹0.00" on a
           fresh invoice would imply a charge that is coming back. */}
@@ -606,7 +606,7 @@ function Totals({
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-4 py-1.5">
-      <span className="text-[13px] text-muted">{label}</span>
+      <span className="text-[13px] font-medium text-fg/80">{label}</span>
       <span className="nf-num text-right text-[13px] font-medium text-fg">{value}</span>
     </div>
   );

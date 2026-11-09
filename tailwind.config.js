@@ -38,6 +38,7 @@ export default {
                 mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
             },
             fontSize: {
+                '3xs': ['0.625rem', { lineHeight: '0.875rem', letterSpacing: '0.04em' }],
                 '2xs': ['0.6875rem', { lineHeight: '1rem', letterSpacing: '0.04em' }],
                 display: ['clamp(2.75rem, 7.2vw, 6.25rem)', { lineHeight: '1.08', letterSpacing: '-0.035em', fontWeight: '600' }],
                 // Editorial hero headline — the type is the design (spec §30).

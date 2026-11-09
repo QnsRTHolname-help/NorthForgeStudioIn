@@ -182,12 +182,12 @@ export default function Subscriptions() {
                       >
                         {clientName(subscription.clientId)}
                       </Link>
-                      <span className="block text-2xs text-muted">
+                      <span className="block text-xs font-medium text-fg/80">
                         {plan ? `${plan.name} · ${formatMoney(plan.amount ?? 0)} / ${plan.intervalDays ?? 30} days` : 'Plan removed from catalog'}
                         {plan?.setupAmount ? ` · setup ${formatMoney(plan.setupAmount)}` : ''}
                       </span>
                     </span>
-                    <span className="shrink-0 text-2xs text-faint">
+                    <span className="shrink-0 text-xs font-medium text-fg/75">
                       {subscription.status === 'cancellation_pending' || subscription.status === 'cancelled'
                         ? `Ends ${formatDate(subscription.cancelAt)}`
                         : `Renews ${formatDate(subscription.renewsAt)}`}
@@ -252,7 +252,7 @@ export default function Subscriptions() {
             hint="The renewal date is set from the plan's own billing interval."
           />
           {selectedNewPlan ? (
-            <p className="rounded border border-line bg-sunken/40 px-3 py-2 text-xs text-muted">
+            <p className="rounded border border-line bg-surface shadow-2xs px-3 py-2 text-xs font-medium text-fg/85">
               {selectedNewPlan.name}: {planPriceSummary(selectedNewPlan)}.
             </p>
           ) : null}
@@ -354,7 +354,7 @@ export default function Subscriptions() {
       />
 
       <Panel className="mt-6" title="Changing a plan">
-        <p className="text-[13px] leading-relaxed text-muted">
+        <p className="text-[13px] leading-relaxed font-medium text-fg/85">
           Changes take effect from the client's next billing cycle. Their history stays intact and the invoice trail is
           never rewritten — which is what makes the numbers trustworthy later.
         </p>
