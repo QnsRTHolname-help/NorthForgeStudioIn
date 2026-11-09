@@ -34,6 +34,48 @@ describe('Motion System & Smooth Scroll Tuning', () => {
     expect(DURATION.ui).toBe(0.35);
     expect(DURATION.panel).toBe(1.15);
   });
+
+  it('validates frame-independent exponential momentum integration math', () => {
+    // Fraction formula: 1 - Math.exp(-18 * dt)
+    const decayRate = 18;
+    const calcFraction = (dt: number) => 1 - Math.exp(-decayRate * dt);
+
+    // At 60Hz (~16.67ms), per-frame release is ~26%
+    const frac60 = calcFraction(1 / 60);
+    expect(frac60).toBeGreaterThanOrEqual(0.24);
+    expect(frac60).toBeLessThanOrEqual(0.28);
+
+    // At 120Hz (~8.33ms), per-frame release is ~14% (two frames compound to ~26%)
+    const frac120 = calcFraction(1 / 120);
+    expect(frac120).toBeGreaterThanOrEqual(0.12);
+    expect(frac120).toBeLessThanOrEqual(0.16);
+
+    const compoundedTwoFramesAt120 = 1 - Math.pow(1 - frac120, 2);
+    // Compounded 120Hz matches 60Hz wall-clock travel within 1%
+    expect(Math.abs(compoundedTwoFramesAt120 - frac60)).toBeLessThan(0.015);
+  });
+
+  it('validates physical mouse wheel notch detection predicate', () => {
+    const isNotched = (deltaMode: number, deltaY: number) =>
+      deltaMode !== 0 || Math.abs(deltaY) >= 30 || (deltaY !== 0 && deltaY % 10 === 0);
+
+    // Windows Chrome standard notch
+    expect(isNotched(0, 100)).toBe(true);
+    expect(isNotched(0, -100)).toBe(true);
+
+    // Windows Edge / High-res notch
+    expect(isNotched(0, 120)).toBe(true);
+    expect(isNotched(0, -120)).toBe(true);
+
+    // Firefox line-based notch (deltaMode === 1)
+    expect(isNotched(1, 3)).toBe(true);
+    expect(isNotched(1, -3)).toBe(true);
+
+    // macOS trackpad continuous micro-deltas (should bypass notch buffer for 1:1 direct tracking)
+    expect(isNotched(0, 1.42)).toBe(false);
+    expect(isNotched(0, 2.85)).toBe(false);
+    expect(isNotched(0, -0.73)).toBe(false);
+  });
 });
 
 describe('SplitText Text Splitting & Boundary Logic', () => {

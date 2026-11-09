@@ -37,6 +37,10 @@ const SmoothScrollContext = createContext<SmoothScrollValue | null>(null);
 export function SmoothScrollProvider({ children, enabled = true }: { children: ReactNode; enabled?: boolean }) {
   const [lenis, setLenis] = useState<Lenis | null>(null);
   const instanceRef = useRef<Lenis | null>(null);
+  const momentumRef = useRef<{ remaining: number; targetOffset: number }>({
+    remaining: 0,
+    targetOffset: 0,
+  });
 
   useEffect(() => {
     if (!enabled) return;
@@ -46,10 +50,16 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
     // Mark documentElement so CSS rules (height: auto, scroll-behavior: auto !important) apply
     document.documentElement.classList.add('lenis', 'lenis-smooth');
 
+    const momentum = momentumRef.current;
+    momentum.remaining = 0;
+    momentum.targetOffset = window.scrollY;
+
     // Root instance configured with kinematic damping (lerp) for continuous exponential damping.
     // By omitting duration and easing from the root options, Lenis uses frame-independent
-    // lerp damping on mouse wheel events rather than stepped duration-based easing curves,
-    // blending individual wheel notches seamlessly into silky-smooth continuous momentum.
+    // lerp damping on mouse wheel events rather than stepped duration-based easing curves.
+    // In addition, virtualScroll intercepts discrete notched mouse wheel ticks and feeds them
+    // into our frame-independent continuous momentum integrator, blending successive notches
+    // into silky-smooth continuous glide without stepped velocity spikes.
     const instance = new Lenis({
       lerp: LENIS_CONFIG.lerp,
       wheelMultiplier: LENIS_CONFIG.wheelMultiplier,
@@ -68,6 +78,40 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
         easing: LENIS_CONFIG.easing,
       },
       stopInertiaOnNavigate: true,
+      virtualScroll: (data) => {
+        // Continuous momentum integration for physical mouse wheels:
+        // Desktop mouse wheels send discrete notch ticks (deltaMode 1, or deltaY multiples of 100/120)
+        // rather than continuous high-frequency stream deltas. By intercepting discrete notches,
+        // we feed an impulse into our frame-independent momentum integrator that bleeds smoothly
+        // into targetScroll across frames, eliminating stepped velocity shocks on each wheel detent notch.
+        if (data.event.type === 'wheel') {
+          const wheelEv = data.event as WheelEvent;
+          const isNotched =
+            wheelEv.deltaMode !== 0 ||
+            Math.abs(data.deltaY) >= 30 ||
+            (data.deltaY !== 0 && data.deltaY % 10 === 0);
+
+          if (isNotched) {
+            if (data.event.cancelable) data.event.preventDefault();
+
+            // Reverse direction protection: immediately sync to current scroll position
+            // if the user turns the wheel in the opposite direction
+            if (
+              (data.deltaY > 0 && momentum.remaining < 0) ||
+              (data.deltaY < 0 && momentum.remaining > 0)
+            ) {
+              momentum.remaining = 0;
+              momentum.targetOffset = instance.animatedScroll;
+            } else if (Math.abs(momentum.remaining) < 1) {
+              momentum.targetOffset = instance.targetScroll;
+            }
+
+            momentum.remaining += data.deltaY;
+            return false;
+          }
+        }
+        return true;
+      },
     });
     instanceRef.current = instance;
     setLenis(instance);
@@ -78,7 +122,24 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
     };
     instance.on('scroll', onScroll);
 
-    const raf = (time: number) => {
+    const raf = (time: number, deltaTime?: number) => {
+      // Frame-independent continuous momentum integration for notched mouse wheels:
+      // Gradually bleed the accumulated wheel impulse into targetScroll across frames,
+      // eliminating the harsh stepped velocity shock on each wheel detent notch.
+      if (Math.abs(momentum.remaining) > 0.05) {
+        const dt = Math.min((deltaTime || 16.67) * 0.001, 0.1);
+        const fraction = 1 - Math.exp(-18 * dt);
+        const chunk = momentum.remaining * fraction;
+        momentum.remaining -= chunk;
+        momentum.targetOffset = Math.max(0, Math.min(instance.limit, momentum.targetOffset + chunk));
+        instance.scrollTo(momentum.targetOffset, {
+          programmatic: false,
+          lerp: LENIS_CONFIG.lerp,
+        });
+      } else if (momentum.remaining !== 0) {
+        momentum.remaining = 0;
+      }
+
       instance.raf(time * 1000);
     };
     gsap.ticker.add(raf);
@@ -120,6 +181,7 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
 
     return () => {
       mounted = false;
+      momentum.remaining = 0;
       cancelAnimationFrame(refreshTimer);
       if (resizeTimer !== null) window.clearTimeout(resizeTimer);
       window.removeEventListener('resize', onWindowResize);
@@ -138,6 +200,7 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
     () => ({
       lenis,
       scrollTo: (target, options) => {
+        momentumRef.current.remaining = 0;
         const instance = instanceRef.current;
         if (instance) {
           instance.scrollTo(target as never, {
@@ -160,7 +223,10 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
           target.scrollIntoView({ behavior: options?.immediate ? 'auto' : 'smooth', block: 'start' });
         }
       },
-      stop: () => instanceRef.current?.stop(),
+      stop: () => {
+        momentumRef.current.remaining = 0;
+        instanceRef.current?.stop();
+      },
       start: () => instanceRef.current?.start(),
     }),
     [lenis],
