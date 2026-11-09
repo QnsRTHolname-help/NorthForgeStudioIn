@@ -97,7 +97,7 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
         ) : null}
       </div>
 
-      <div className="mt-8 grid gap-5 lg:grid-cols-4">
+      <div className="mt-8 grid gap-5 pt-3.5 lg:grid-cols-4">
         {PLANS.map((plan) => {
           const recommended = plan.recommended;
           const custom = plan.amount === null;
@@ -108,7 +108,7 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
               <TiltCard max={recommended ? 5 : 3} className="h-full">
                 <div
                   className={cn(
-                    'nf-glass-card nf-glass-interactive group relative flex h-full flex-col overflow-hidden rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1',
+                    'nf-glass-card nf-glass-interactive group relative flex h-full flex-col rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1',
                     recommended
                       ? 'nf-glass-elevated border-brand/60 ring-1 ring-brand/30 shadow-[0_28px_70px_-32px_rgb(var(--nf-blue)/0.55)] lg:-translate-y-2 lg:hover:-translate-y-3'
                       : 'border-white/60 hover:border-white/90 shadow-2xs',
@@ -119,16 +119,19 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
                       : '0 12px 32px -8px rgb(60 48 32 / 0.08), inset 0 1px 0 rgb(255 255 255 / 0.95)',
                   }}
                 >
-                  {/* Subtle top rim highlight */}
-                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent" aria-hidden />
+                  {/* Confined illumination glow & rim highlight */}
+                  <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl" aria-hidden>
+                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent" />
+                    {recommended ? (
+                      <div className="absolute -top-12 -right-12 h-36 w-36 rounded-full bg-brand/15 blur-2xl" />
+                    ) : null}
+                  </div>
 
-                  {/* Featured illumination glow for Convert plan */}
                   {recommended ? (
-                    <div className="pointer-events-none absolute -top-12 -right-12 h-36 w-36 rounded-full bg-brand/15 blur-2xl" aria-hidden />
-                  ) : null}
-
-                  {recommended ? (
-                    <span className="nf-glass-pill absolute -top-3 left-6 inline-flex items-center gap-1 rounded-full bg-brand px-3 py-0.5 text-2xs font-semibold uppercase tracking-wider text-white shadow-sm ring-2 ring-white/80">
+                    <span
+                      className="nf-glass-pill absolute -top-3 left-6 z-20 inline-flex items-center gap-1 rounded-full bg-brand px-3 py-0.5 text-2xs font-semibold uppercase tracking-wider text-white shadow-sm ring-2 ring-white/80"
+                      style={{ transform: 'translateZ(20px)' }}
+                    >
                       Most chosen
                     </span>
                   ) : null}

@@ -697,7 +697,7 @@ function ActivateSubscriptionView({ onActivated }: { onActivated: () => void }) 
         <h3 className="text-base font-semibold text-fg">1. Choose your plan tier</h3>
         <p className="mt-1 text-xs font-medium text-fg/80">Select the tier that matches your business scale.</p>
 
-        <div className="mt-4 grid gap-4 grid-cols-1 md:grid-cols-3">
+        <div className="mt-4 grid gap-4 pt-2 grid-cols-1 md:grid-cols-3">
           {PLANS.filter((p) => p.amount !== null).map((p) => {
             const isSelected = selectedPlan.id === p.id;
             return (
@@ -713,7 +713,7 @@ function ActivateSubscriptionView({ onActivated }: { onActivated: () => void }) 
                 )}
               >
                 {p.slug === 'convert' ? (
-                  <span className="absolute -top-2.5 right-4 rounded-full bg-brand px-2.5 py-0.5 text-2xs font-bold text-white shadow-sm">
+                  <span className="absolute -top-2.5 right-4 z-10 rounded-full bg-brand px-2.5 py-0.5 text-2xs font-bold text-white shadow-sm">
                     Most Popular
                   </span>
                 ) : null}
