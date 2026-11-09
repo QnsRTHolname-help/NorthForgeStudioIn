@@ -30,9 +30,12 @@ const QUICK_ACTIONS: QuickAction[] = [
   { id: 'task', label: 'New task', group: 'Create', to: '/app/tasks?new=1', adminOnly: true },
   { id: 'project', label: 'New project', group: 'Create', to: '/app/projects?new=1', adminOnly: true },
   { id: 'invoice', label: 'New invoice', group: 'Create', to: '/app/invoices?new=1', adminOnly: true },
+  { id: 'payment', label: 'Record payment', group: 'Create', to: '/app/payments?new=1', adminOnly: true },
   { id: 'booking', label: 'New appointment', group: 'Create', to: '/app/bookings?new=1', adminOnly: true },
-  { id: 'request', label: 'New request', group: 'Create', to: '/portal/requests?new=1' },
+  { id: 'website', label: 'New website', group: 'Create', to: '/app/websites?new=1', adminOnly: true },
+  { id: 'announcement', label: 'New announcement', group: 'Create', to: '/app/announcements?new=1', adminOnly: true },
   { id: 'workflow', label: 'New workflow', group: 'Create', to: '/app/workflows?new=1', adminOnly: true },
+  { id: 'request', label: 'New request', group: 'Create', to: '/portal/requests?new=1' },
 ];
 
 const NAV_TARGETS: QuickAction[] = [

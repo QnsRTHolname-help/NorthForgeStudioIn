@@ -318,10 +318,10 @@ export default function Dashboard() {
               <Panel title="Quick actions">
                 <ul className="space-y-2">
                   {[
-                    { label: 'Add a lead', to: '/app/leads' },
-                    { label: 'Create a task', to: '/app/tasks' },
-                    { label: 'Generate an invoice', to: '/app/invoices' },
-                    { label: 'Build a workflow', to: '/app/workflows' },
+                    { label: 'Add a lead', to: '/app/leads?new=1' },
+                    { label: 'Create a task', to: '/app/tasks?new=1' },
+                    { label: 'Generate an invoice', to: '/app/invoices?new=1' },
+                    { label: 'Build a workflow', to: '/app/workflows?new=1' },
                   ].map((action) => (
                     <li key={action.to}>
                       <Link

@@ -41,7 +41,7 @@ const DUE_OPTIONS = [
 export default function Invoices() {
   usePageMeta({ title: 'Invoices', noIndex: true });
   const toast = useToast();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [status, setStatusFilter] = useState('');
   const [query, setQuery] = useState('');
   const [detail, setDetail] = useState<Invoice | null>(null);
@@ -128,6 +128,13 @@ export default function Invoices() {
         setIncludeSetup(false);
         setSetupTouched(false);
         setDueInDays('14');
+        if (searchParams.get('new') === '1') {
+          setSearchParams((prev) => {
+            const next = new URLSearchParams(prev);
+            next.delete('new');
+            return next;
+          }, { replace: true });
+        }
         await state.refetch().catch(() => undefined);
       },
     },
@@ -463,7 +470,20 @@ export default function Invoices() {
         ) : null}
       </Drawer>
 
-      <Modal open={generating} onClose={() => setGenerating(false)} title="Generate an invoice">
+      <Modal
+        open={generating}
+        onClose={() => {
+          setGenerating(false);
+          if (searchParams.get('new') === '1') {
+            setSearchParams((prev) => {
+              const next = new URLSearchParams(prev);
+              next.delete('new');
+              return next;
+            }, { replace: true });
+          }
+        }}
+        title="Generate an invoice"
+      >
         <form
           onSubmit={async (event) => {
             event.preventDefault();

@@ -32,8 +32,8 @@ export default function Notifications() {
   const markRead = useMutation(
     (id?: string) => insightsService.markRead(id),
     {
-      onSuccess: async () => {
-        if (!items.some((item) => !item.read)) toast.success('All notifications marked as read');
+      onSuccess: async (_result, id) => {
+        toast.success(id ? 'Notification marked as read' : 'All notifications marked as read');
         await state.refetch().catch(() => undefined);
       },
     },
@@ -47,7 +47,7 @@ export default function Notifications() {
         crumbs={[{ label: 'Notifications' }]}
         action={
           items.some((item) => !item.read) ? (
-            <Button variant="secondary" size="md" iconLeft={<Check className="h-3.5 w-3.5" />} onClick={() => void markRead.mutate().catch(() => undefined)}>
+            <Button variant="secondary" size="md" iconLeft={<Check className="h-3.5 w-3.5" />} onClick={() => void markRead.mutate(undefined).catch(() => undefined)}>
               Mark all as read
             </Button>
           ) : undefined

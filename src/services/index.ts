@@ -634,7 +634,7 @@ export const calendarService = {
         detail: String(row.service ?? 'Consultation'),
         date: String(row.starts_at ?? ''),
         status: String(row.status ?? 'pending'),
-        href: '/portal/bookings',
+        href: '/app/bookings',
       })),
       ...(tasks ?? []).map((row) => ({
         id: `task-${row.id}`,

@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { useAsync, useMutation } from '@/hooks/useAsync';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useToast } from '@/app/providers/ToastProvider';
+import { ClientSelect } from '@/components/admin/ClientSelect';
 import { billingService, clientsService } from '@/services';
 import { formatDate, formatMoney, titleCase } from '@/lib/format';
 import type { PaymentStatus } from '@/types';
@@ -59,6 +60,13 @@ export default function Payments() {
         setPaymentClientId('');
         setPaymentAmount('');
         setPaymentInvoiceId('');
+        if (searchParams.get('new') === '1') {
+          setSearchParams((prev) => {
+            const next = new URLSearchParams(prev);
+            next.delete('new');
+            return next;
+          }, { replace: true });
+        }
         await Promise.all([
           state.refetch().catch(() => undefined),
           result.invoiceSettled ? invoices.refetch().catch(() => undefined) : Promise.resolve(),
@@ -234,16 +242,11 @@ export default function Payments() {
             ]}
             hint="Selecting an invoice auto-fills the client and amount due."
           />
-          <Select
+          <ClientSelect
             label="Client"
-            name="clientId"
             value={paymentClientId}
-            onChange={(e) => setPaymentClientId(e.target.value)}
+            onChange={(clientId) => setPaymentClientId(clientId)}
             required
-            options={[
-              { value: '', label: 'Select a client…' },
-              ...(clients.data?.items ?? []).map((client) => ({ value: client.id, label: client.businessName })),
-            ]}
           />
           <Input
             label="Amount (₹)"

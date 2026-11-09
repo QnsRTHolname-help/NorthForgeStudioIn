@@ -158,12 +158,18 @@ export default function FollowUps() {
             onSubmit={async (event) => {
               event.preventDefault();
               const data = new FormData(event.currentTarget);
+              const rawDueAt = String(data.get('dueAt') ?? '');
+              const parsed = new Date(rawDueAt);
+              if (!rawDueAt || isNaN(parsed.getTime())) {
+                toast.error('Invalid date', 'Please select a valid date and time for the follow-up.');
+                return;
+              }
               await logAction
                 .mutate({
                   lead: logging,
                   nextAction: String(data.get('nextAction') ?? ''),
                   title: String(data.get('title') ?? ''),
-                  dueAt: new Date(String(data.get('dueAt') ?? '')).toISOString(),
+                  dueAt: parsed.toISOString(),
                 })
                 .catch(() => undefined);
             }}

@@ -21,6 +21,13 @@ const MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
+export function toLocalDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 const KIND_TONE: Record<string, string> = {
   booking: 'bg-brand',
   task: 'bg-warning',
@@ -64,7 +71,9 @@ export default function Calendar() {
   const byDay = useMemo(() => {
     const map = new Map<string, typeof events>();
     for (const event of events) {
-      const key = event.date.slice(0, 10);
+      if (!event.date) continue;
+      const parsed = new Date(event.date);
+      const key = isNaN(parsed.getTime()) ? event.date.slice(0, 10) : toLocalDateKey(parsed);
       map.set(key, [...(map.get(key) ?? []), event]);
     }
     return map;
@@ -143,9 +152,9 @@ export default function Calendar() {
 
           <div className="grid grid-cols-7">
             {grid.map((cell) => {
-              const key = cell.date.toISOString().slice(0, 10);
+              const key = toLocalDateKey(cell.date);
               const dayEvents = byDay.get(key) ?? [];
-              const isToday = key === new Date().toISOString().slice(0, 10);
+              const isToday = key === toLocalDateKey(new Date());
 
               return (
                 <div

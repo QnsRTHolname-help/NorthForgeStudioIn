@@ -35,7 +35,7 @@ const STATUS_LABELS: Record<string, string> = {
 export default function Subscriptions() {
   usePageMeta({ title: 'Subscriptions', noIndex: true });
   const toast = useToast();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [status, setStatus] = useState(() => searchParams.get('status') ?? '');
   const [query, setQuery] = useState(() => searchParams.get('plan') ?? searchParams.get('q') ?? '');
   const [creating, setCreating] = useState(() => searchParams.get('new') === '1');
@@ -53,7 +53,14 @@ export default function Subscriptions() {
   const clientName = (id: string) => clients.data?.items.find((client) => client.id === id)?.businessName ?? 'Unknown client';
 
   const items = (state.data?.items ?? []).filter((subscription) => {
-    const matchesQuery = !query || clientName(subscription.clientId).toLowerCase().includes(query.toLowerCase());
+    const plan = getPlanById(subscription.planId);
+    const needle = query.trim().toLowerCase();
+    const matchesQuery =
+      !needle ||
+      clientName(subscription.clientId).toLowerCase().includes(needle) ||
+      (plan?.name.toLowerCase().includes(needle) ?? false) ||
+      (plan?.slug.toLowerCase().includes(needle) ?? false) ||
+      subscription.planId.toLowerCase().includes(needle);
     return matchesQuery && (!status || subscription.status === status);
   });
 
@@ -72,6 +79,13 @@ export default function Subscriptions() {
         setNewClientId('');
         setNewPlanId('');
         setNewStatus('active');
+        if (searchParams.get('new') === '1') {
+          setSearchParams((prev) => {
+            const next = new URLSearchParams(prev);
+            next.delete('new');
+            return next;
+          }, { replace: true });
+        }
         await state.refetch().catch(() => undefined);
       },
     },
@@ -235,7 +249,20 @@ export default function Subscriptions() {
       </AsyncBoundary>
 
       {/* ── Create ─────────────────────────────────────────────── */}
-      <Modal open={creating} onClose={() => setCreating(false)} title="New subscription">
+      <Modal
+        open={creating}
+        onClose={() => {
+          setCreating(false);
+          if (searchParams.get('new') === '1') {
+            setSearchParams((prev) => {
+              const next = new URLSearchParams(prev);
+              next.delete('new');
+              return next;
+            }, { replace: true });
+          }
+        }}
+        title="New subscription"
+      >
         <form
           onSubmit={async (event) => {
             event.preventDefault();
@@ -271,7 +298,20 @@ export default function Subscriptions() {
           ) : null}
           {create.error ? <p className="text-xs text-danger">{create.error}</p> : null}
           <div className="flex justify-end gap-2 border-t border-line pt-4">
-            <Button variant="ghost" size="sm" onClick={() => setCreating(false)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setCreating(false);
+                if (searchParams.get('new') === '1') {
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    next.delete('new');
+                    return next;
+                  }, { replace: true });
+                }
+              }}
+            >
               Cancel
             </Button>
             <Button size="sm" type="submit" loading={create.pending} disabled={!newClientId || !newPlanId}>

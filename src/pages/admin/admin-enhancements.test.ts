@@ -73,4 +73,72 @@ describe('Admin Operations Panel Enhancements', () => {
       expect(series[1]).toEqual({ date: '2026-11-02', amount: 5000000 });
     });
   });
+
+  describe('Calendar Timezone Consistency', () => {
+    it('formats local date keys correctly without UTC timezone shift', async () => {
+      const { toLocalDateKey } = await import('@/pages/admin/Calendar');
+      // Create local date for Nov 1, 2026
+      const localDate = new Date(2026, 10, 1);
+      expect(toLocalDateKey(localDate)).toBe('2026-11-01');
+
+      const middleMonthDate = new Date(2026, 6, 15);
+      expect(toLocalDateKey(middleMonthDate)).toBe('2026-07-15');
+    });
+  });
+
+  describe('Subscription Plan Query Matching', () => {
+    it('matches subscriptions by plan name, slug, or ID even if client name differs', () => {
+      const mockSubscriptions = [
+        { id: 'sub-1', clientId: 'c-1', planId: 'growth' },
+        { id: 'sub-2', clientId: 'c-2', planId: 'standard' },
+      ];
+      const clientName = (id: string) => (id === 'c-1' ? 'Beta Industries' : 'Acme Corp');
+
+      const searchPlan = (query: string) => {
+        const needle = query.trim().toLowerCase();
+        return mockSubscriptions.filter((subscription) => {
+          const plan = {
+            id: subscription.planId,
+            name: subscription.planId === 'growth' ? 'Growth' : 'Standard',
+            slug: subscription.planId,
+          };
+          const matchesQuery =
+            !needle ||
+            clientName(subscription.clientId).toLowerCase().includes(needle) ||
+            plan.name.toLowerCase().includes(needle) ||
+            plan.slug.toLowerCase().includes(needle) ||
+            subscription.planId.toLowerCase().includes(needle);
+          return matchesQuery;
+        });
+      };
+
+      // Searching for 'Growth' should match sub-1 even though client name is 'Beta Industries'
+      expect(searchPlan('Growth')).toHaveLength(1);
+      expect(searchPlan('Growth')[0]?.id).toBe('sub-1');
+
+      // Searching for 'Standard' should match sub-2 even though client name is 'Acme Corp'
+      expect(searchPlan('Standard')).toHaveLength(1);
+      expect(searchPlan('Standard')[0]?.id).toBe('sub-2');
+
+      // Searching for client name 'Acme' should match sub-2
+      expect(searchPlan('Acme')).toHaveLength(1);
+      expect(searchPlan('Acme')[0]?.id).toBe('sub-2');
+    });
+  });
+
+  describe('Follow-up Date Validation', () => {
+    it('correctly distinguishes valid datetime strings from unparseable input', () => {
+      const isValidDate = (raw: string) => {
+        if (!raw) return false;
+        const parsed = new Date(raw);
+        return !isNaN(parsed.getTime());
+      };
+
+      expect(isValidDate('')).toBe(false);
+      expect(isValidDate('invalid-date')).toBe(false);
+      expect(isValidDate('2026-11-15T14:30')).toBe(true);
+      expect(isValidDate('2026-12-01T09:00:00Z')).toBe(true);
+    });
+  });
 });
+

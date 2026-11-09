@@ -22,7 +22,7 @@ const TYPES = ['website_change', 'content_change', 'technical_issue', 'automatio
 export default function Requests() {
   usePageMeta({ title: 'Client requests', noIndex: true });
   const toast = useToast();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [status, setStatus] = useState(() => searchParams.get('status') ?? '');
   const [query, setQuery] = useState('');
   const [detail, setDetail] = useState<ClientRequest | null>(null);
@@ -157,7 +157,21 @@ export default function Requests() {
         )}
       </AsyncBoundary>
 
-      <Drawer open={!!detail} onClose={() => setDetail(null)} title="Request" width="md">
+      <Drawer
+        open={!!detail}
+        onClose={() => {
+          setDetail(null);
+          if (searchParams.get('id')) {
+            setSearchParams((prev) => {
+              const next = new URLSearchParams(prev);
+              next.delete('id');
+              return next;
+            }, { replace: true });
+          }
+        }}
+        title="Request"
+        width="md"
+      >
         {detail ? (
           <div className="space-y-5">
             <div>

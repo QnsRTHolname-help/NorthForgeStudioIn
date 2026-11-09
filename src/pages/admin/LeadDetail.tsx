@@ -134,7 +134,11 @@ export default function LeadDetail() {
                 )}
 
                 <Panel title="Follow-ups">
-                  <FollowUps leadId={lead.id} onChanged={() => state.refetch().catch(() => undefined)} />
+                  <FollowUps
+                    leadId={lead.id}
+                    items={state.data?.followUps ?? []}
+                    onChanged={() => state.refetch().catch(() => undefined)}
+                  />
                 </Panel>
               </div>
 
@@ -259,10 +263,17 @@ function Field({ label, value }: { label: string; value: string | null }) {
   );
 }
 
-function FollowUps({ leadId, onChanged }: { leadId: string; onChanged: () => void }) {
+function FollowUps({
+  leadId,
+  items,
+  onChanged,
+}: {
+  leadId: string;
+  items: Array<{ id: string; title: string; dueAt: string; status: string }>;
+  onChanged: () => void;
+}) {
   const [title, setTitle] = useState('');
   const [dueAt, setDueAt] = useState('');
-  const followUps = useAsync(() => leadsService.get(leadId), [leadId]);
 
   const toggleDone = useMutation(
     (followUp: { id: string; status: string }) =>
@@ -272,7 +283,6 @@ function FollowUps({ leadId, onChanged }: { leadId: string; onChanged: () => voi
     {
       onSuccess: () => {
         onChanged();
-        followUps.refetch().catch(() => undefined);
       },
     },
   );
@@ -288,12 +298,9 @@ function FollowUps({ leadId, onChanged }: { leadId: string; onChanged: () => voi
         setTitle('');
         setDueAt('');
         onChanged();
-        followUps.refetch().catch(() => undefined);
       },
     },
   );
-
-  const items = followUps.data?.followUps ?? [];
 
   return (
     <div className="space-y-3">
