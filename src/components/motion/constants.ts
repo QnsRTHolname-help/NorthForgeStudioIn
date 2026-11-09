@@ -68,7 +68,8 @@ export const START = {
 export const SCRUB: boolean | number = true;
 
 /** Lenis smooth scroll kinematic tuning (spec §8, §9).
- * Continuous kinematic duration and exponential ease-out eliminate stepped mouse wheel notches. */
+ * Continuous exponential damping (lerp) delivers silky, notch-free momentum gliding on mouse wheel,
+ * while duration and easing govern cinematic programmatic and anchor scrolls. */
 export const LENIS_CONFIG = {
   duration: 1.2,
   easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),

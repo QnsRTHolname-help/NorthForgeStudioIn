@@ -2,7 +2,6 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, type R
 import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { useReducedMotion } from '@/hooks';
 import { setScrollProgress } from '@/hooks/scrollProgress';
 import { LENIS_CONFIG } from '@/components/motion/constants';
 
@@ -34,27 +33,24 @@ const SmoothScrollContext = createContext<SmoothScrollValue | null>(null);
  * • Drives GSAP ScrollTrigger from a single ticker so the two never fight.
  * • Never takes over the browser's scroll — native scroll, anchors,
  *   keyboard navigation and find-in-page all keep working.
- * • Disables itself completely under `prefers-reduced-motion`.
  */
 export function SmoothScrollProvider({ children, enabled = true }: { children: ReactNode; enabled?: boolean }) {
-  const reduced = useReducedMotion();
   const [lenis, setLenis] = useState<Lenis | null>(null);
   const instanceRef = useRef<Lenis | null>(null);
 
   useEffect(() => {
-    if (!enabled || reduced) return;
+    if (!enabled) return;
 
     let mounted = true;
 
     // Mark documentElement so CSS rules (height: auto, scroll-behavior: auto !important) apply
     document.documentElement.classList.add('lenis', 'lenis-smooth');
 
-    // Root instance configured with kinematic duration and continuous exponential damping.
-    // This allows successive mouse wheel notches to smoothly ease out into targetScroll
-    // without resetting currentTime or creating stepped acceleration jolts.
+    // Root instance configured with kinematic damping (lerp) for continuous exponential damping.
+    // By omitting duration and easing from the root options, Lenis uses frame-independent
+    // lerp damping on mouse wheel events rather than stepped duration-based easing curves,
+    // blending individual wheel notches seamlessly into silky-smooth continuous momentum.
     const instance = new Lenis({
-      duration: LENIS_CONFIG.duration,
-      easing: LENIS_CONFIG.easing,
       lerp: LENIS_CONFIG.lerp,
       wheelMultiplier: LENIS_CONFIG.wheelMultiplier,
       orientation: 'vertical',
@@ -65,6 +61,7 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
       syncTouch: LENIS_CONFIG.syncTouch,
       touchMultiplier: LENIS_CONFIG.touchMultiplier,
       autoResize: LENIS_CONFIG.autoResize,
+      respectReducedMotion: false,
       anchors: {
         offset: -76,
         duration: LENIS_CONFIG.anchorDuration,
@@ -135,7 +132,7 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
       instanceRef.current = null;
       setLenis(null);
     };
-  }, [enabled, reduced]);
+  }, [enabled]);
 
   const value = useMemo<SmoothScrollValue>(
     () => ({
@@ -149,7 +146,7 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
             duration: options?.immediate ? 0 : (options?.duration ?? LENIS_CONFIG.anchorDuration),
             easing: options?.immediate
               ? undefined
-              : (options?.easing ?? ((t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)))),
+              : (options?.easing ?? LENIS_CONFIG.easing),
             lock: options?.lock,
           });
           return;
