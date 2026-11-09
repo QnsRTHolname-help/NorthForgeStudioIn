@@ -48,22 +48,13 @@ export function Hero3D({ className = '' }: { className?: string }) {
         .fromTo('[data-particle-layer]', { opacity: 0 }, { opacity: 1, duration: 0.8 }, 0.25);
     }, container);
 
-    // Cache container geometry and throttle scroll updates via RAF to eliminate layout thrashing
-    let containerRect = container.getBoundingClientRect();
+    // Cache container geometry on resize to eliminate scroll-time layout thrashing
+    let containerRect: DOMRect | null = null;
     const updateRect = () => {
       if (container) containerRect = container.getBoundingClientRect();
     };
-    let scrollTicking = false;
-    const onScrollUpdate = () => {
-      if (scrollTicking || window.scrollY > 800) return;
-      scrollTicking = true;
-      requestAnimationFrame(() => {
-        scrollTicking = false;
-        updateRect();
-      });
-    };
+    updateRect();
     window.addEventListener('resize', updateRect, { passive: true });
-    window.addEventListener('scroll', onScrollUpdate, { passive: true });
 
     let latestMouseX = 0;
     let latestMouseY = 0;
@@ -78,6 +69,7 @@ export function Hero3D({ className = '' }: { className?: string }) {
       requestAnimationFrame(() => {
         ticking = false;
         if (!container) return;
+        if (!containerRect) containerRect = container.getBoundingClientRect();
         const rect = containerRect;
         const clientX = latestMouseX;
         const clientY = latestMouseY;
@@ -116,7 +108,6 @@ export function Hero3D({ className = '' }: { className?: string }) {
       quickTiltXRef.current = null;
       quickTiltYRef.current = null;
       window.removeEventListener('resize', updateRect);
-      window.removeEventListener('scroll', onScrollUpdate);
       if (!touch) {
         window.removeEventListener('mousemove', onWindowMove);
         document.removeEventListener('mouseleave', onWindowLeave);
@@ -289,14 +280,14 @@ function WireframeCube() {
     [0, 4], [1, 5], [2, 6], [3, 7], // connecting edges
   ];
 
-  // Translucent luminous faces
+  // Translucent luminous faces with modern slash-alpha syntax
   const faces = [
-    { vertices: [0, 1, 2, 3], color: 'rgba(var(--nf-blue), 0.08)', stroke: 'rgb(var(--nf-blue))' },
-    { vertices: [4, 5, 6, 7], color: 'rgba(var(--nf-violet), 0.08)', stroke: 'rgb(var(--nf-violet))' },
-    { vertices: [0, 1, 5, 4], color: 'rgba(var(--nf-cyan), 0.05)', stroke: 'rgb(var(--nf-cyan))' },
-    { vertices: [2, 3, 7, 6], color: 'rgba(var(--nf-amber), 0.05)', stroke: 'rgb(var(--nf-amber))' },
-    { vertices: [1, 2, 6, 5], color: 'rgba(var(--nf-blue), 0.06)', stroke: 'rgb(var(--nf-blue))' },
-    { vertices: [0, 3, 7, 4], color: 'rgba(var(--nf-violet), 0.06)', stroke: 'rgb(var(--nf-violet))' },
+    { vertices: [0, 1, 2, 3], color: 'rgb(var(--nf-blue) / 0.12)', stroke: 'rgb(var(--nf-blue))' },
+    { vertices: [4, 5, 6, 7], color: 'rgb(var(--nf-violet) / 0.12)', stroke: 'rgb(var(--nf-violet))' },
+    { vertices: [0, 1, 5, 4], color: 'rgb(var(--nf-cyan) / 0.08)', stroke: 'rgb(var(--nf-cyan))' },
+    { vertices: [2, 3, 7, 6], color: 'rgb(var(--nf-amber) / 0.08)', stroke: 'rgb(var(--nf-amber))' },
+    { vertices: [1, 2, 6, 5], color: 'rgb(var(--nf-blue) / 0.10)', stroke: 'rgb(var(--nf-blue))' },
+    { vertices: [0, 3, 7, 4], color: 'rgb(var(--nf-violet) / 0.10)', stroke: 'rgb(var(--nf-violet))' },
   ];
 
   return (

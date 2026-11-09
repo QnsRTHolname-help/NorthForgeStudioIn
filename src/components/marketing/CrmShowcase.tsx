@@ -119,6 +119,7 @@ export function CrmShowcase() {
         path === 'generative_ui' ||
         path === 'generative-ui' ||
         path === 'boost' ||
+        path === 'teamwork' ||
         path === 'teamwork-preview' ||
         path === 'application-security-testing' ||
         hash === 'systems' ||
@@ -129,7 +130,7 @@ export function CrmShowcase() {
           requestAnimationFrame(() => {
             const section = document.getElementById('systems');
             if (section) {
-              scrollTo(section, { offset: -80 });
+              scrollTo(section, { offset: 0 });
             }
           });
         });
@@ -141,8 +142,8 @@ export function CrmShowcase() {
     setViewMode(mode);
     const modePathMap: Record<ViewMode, string> = {
       pipeline: '/',
-      team: '/teamwork-preview',
-      generative: '/generative_ui',
+      team: '/teamwork',
+      generative: '/generative-ui',
       security: '/application-security-testing',
       boost: '/boost',
     };

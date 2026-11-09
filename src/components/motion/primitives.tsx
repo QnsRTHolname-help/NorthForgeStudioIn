@@ -104,6 +104,9 @@ export function SplitText({
           ease: 'expo.out',
           stagger: by === 'char' ? stagger * 0.35 : stagger,
           clearProps: 'transform,opacity,filter',
+          onComplete: () => {
+            gsap.set(inners, { clearProps: 'all' });
+          },
           ...(trigger === 'scroll'
             ? {
                 scrollTrigger: {
@@ -122,7 +125,7 @@ export function SplitText({
   }, [reduced, by, delay, stagger, duration, start, trigger, fade, blur, units]);
 
   return (
-    <Tag ref={ref as never} className={className}>
+    <Tag ref={ref as never} className={cn(by === 'line' ? 'block' : undefined, className)}>
       {units.map((unit, index) => {
         const isSpace = by === 'char' && unit === ' ';
         const isLine = by === 'line';
@@ -130,15 +133,19 @@ export function SplitText({
           <span key={`${unit}-${index}`} className={isLine ? 'block' : undefined}>
             <span
               className={cn(
-                isLine ? 'block' : 'inline-block',
-                'overflow-hidden align-bottom',
+                isLine ? 'block' : 'inline-block align-baseline',
+                'overflow-hidden',
               )}
-              style={{
-                paddingTop: '0.08em',
-                marginTop: '-0.08em',
-                paddingBottom: '0.22em',
-                marginBottom: '-0.22em',
-              }}
+              style={
+                isLine
+                  ? undefined
+                  : {
+                      paddingTop: '0.04em',
+                      marginTop: '-0.04em',
+                      paddingBottom: '0.14em',
+                      marginBottom: '-0.14em',
+                    }
+              }
               aria-hidden
             >
               <span

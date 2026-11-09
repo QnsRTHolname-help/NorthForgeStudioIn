@@ -50,6 +50,18 @@ export function PublicLayout() {
   }, [setOverride]);
 
   useEffect(() => {
+    // If arriving at a showcase deep-link, CrmShowcase coordinates smooth scroll to #systems
+    if (
+      pathname === '/boost' ||
+      pathname === '/teamwork' ||
+      pathname === '/teamwork-preview' ||
+      pathname === '/generative-ui' ||
+      pathname === '/generative_ui' ||
+      pathname === '/application-security-testing'
+    ) {
+      return;
+    }
+
     // Arriving with a hash (e.g. /#pricing) scrolls to that section instead
     // of the top; otherwise every route change starts at the top.
     if (hash) {
@@ -91,7 +103,7 @@ export function PublicLayout() {
     <SmoothScrollProvider>
       {/* The bottom padding reserves the space the mobile action bar floats
           over, so the footer's last row is never hidden behind it. */}
-      <div className="flex nf-min-h-viewport flex-col bg-canvas pb-20 lg:pb-0">
+      <div className="flex nf-min-h-viewport flex-col bg-canvas pb-20 lg:pb-0 overflow-x-clip">
         <ScrollProgress />
         <Navbar />
         <main id="main" className="flex-1 pt-16 lg:pt-[72px]">

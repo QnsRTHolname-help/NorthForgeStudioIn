@@ -110,10 +110,10 @@ export function PromiseSection() {
 
 export function WhyNorthForge() {
   return (
-    <section className="nf-shell py-20 lg:py-28">
+    <section className="nf-shell py-20 lg:py-28 overflow-hidden">
       <div className="grid gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16">
         <div className="lg:sticky lg:top-28 lg:self-start">
-          <Reveal>
+          <div>
             <span className="nf-eyebrow text-brand">Why NorthForge</span>
             <h2 className="mt-6 text-display-sm font-semibold text-fg">
               <SplitText text="We are not selling pages." />
@@ -129,7 +129,7 @@ export function WhyNorthForge() {
               whether that interest is captured, answered, followed up and measured without anyone chasing it.
             </p>
             <AnimatedRule className="mt-8" />
-          </Reveal>
+          </div>
         </div>
 
         <div className="divide-y divide-line border-y border-line">
@@ -309,7 +309,7 @@ const SYSTEM_PIECES = [
 
 export function IntroStatement() {
   return (
-    <section className="nf-shell relative py-24 lg:py-36">
+    <section className="nf-shell relative py-24 lg:py-36 overflow-hidden">
       <AtmosphericGlow color="violet" position="top-right" />
       <Reveal>
         <span className="nf-eyebrow">The system, not the page</span>

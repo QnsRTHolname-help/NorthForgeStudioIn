@@ -111,13 +111,20 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
         resizeTimer = null;
       }, 150);
     };
+    const onWindowLoad = () => {
+      if (!mounted) return;
+      instance.resize();
+      ScrollTrigger.refresh();
+    };
     window.addEventListener('resize', onWindowResize, { passive: true });
+    window.addEventListener('load', onWindowLoad);
 
     return () => {
       mounted = false;
       cancelAnimationFrame(refreshTimer);
       if (resizeTimer !== null) window.clearTimeout(resizeTimer);
       window.removeEventListener('resize', onWindowResize);
+      window.removeEventListener('load', onWindowLoad);
       document.documentElement.classList.remove('lenis', 'lenis-smooth');
       gsap.ticker.remove(raf);
       gsap.ticker.lagSmoothing(500, 33);

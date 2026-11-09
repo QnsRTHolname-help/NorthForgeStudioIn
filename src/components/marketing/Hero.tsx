@@ -75,22 +75,53 @@ export function Hero() {
           1.25,
         );
 
-      // Scroll-linked depth: the system panel and its ambient glow drift
-      // slightly as the user scrolls out of the hero, giving the panel a
-      // sense of physical space rather than a flat sticker.
-      // Parallax moves the inner console so it never conflicts with the
-      // entrance animation on the outer [data-hero-system] wrapper.
+      // Scroll-linked depth: the system panel, 3D layer, and ambient glow drift
+      // in parallax depth as the user scrolls out of the hero, giving the panel a
+      // sense of physical space and luxurious cinematic polish.
       const parallaxTarget = node.querySelector<HTMLElement>('[data-hero-system-parallax]');
       const glow = node.querySelector<HTMLElement>('[data-hero-glow]');
+      const threeD = node.querySelector<HTMLElement>('[data-hero-3d]');
+      const heroCopy = node.querySelector<HTMLElement>('[data-hero-copy]');
+
       if (parallaxTarget || glow) {
         gsap.to([parallaxTarget, glow].filter(Boolean), {
-          y: 28,
+          y: 32,
           ease: 'none',
           immediateRender: false,
           scrollTrigger: {
             trigger: node,
             start: 'top top',
             end: 'bottom top',
+            scrub: true,
+          },
+        });
+      }
+
+      if (threeD) {
+        gsap.to(threeD, {
+          y: 45,
+          rotationZ: 3,
+          ease: 'none',
+          immediateRender: false,
+          scrollTrigger: {
+            trigger: node,
+            start: 'top top',
+            end: 'bottom top',
+            scrub: true,
+          },
+        });
+      }
+
+      if (heroCopy) {
+        gsap.to(heroCopy, {
+          y: -14,
+          opacity: 0.85,
+          ease: 'none',
+          immediateRender: false,
+          scrollTrigger: {
+            trigger: node,
+            start: 'top top',
+            end: 'bottom 40%',
             scrub: true,
           },
         });
@@ -195,7 +226,8 @@ export function Hero() {
           <div data-hero-system className="relative nf-gpu">
             {/* 3D Visual Layer - Behind the system panel */}
             <div
-              className="pointer-events-none absolute -inset-10 -z-10 overflow-hidden"
+              data-hero-3d
+              className="pointer-events-none absolute -inset-10 -z-10 overflow-hidden nf-gpu will-change-transform"
               aria-hidden="true"
             >
               <Hero3D className="w-full h-full" />

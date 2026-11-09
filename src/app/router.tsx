@@ -126,6 +126,7 @@ export const AppRoutes: RouteDefinition[] = [
       { path: 'generative_ui', element: <Home /> },
       { path: 'generative-ui', element: <Home /> },
       { path: 'boost', element: <Home /> },
+      { path: 'teamwork', element: <Home /> },
       { path: 'teamwork-preview', element: <Home /> },
       { path: 'application-security-testing', element: <Home /> },
       { path: 'error', element: <ServerErrorPage /> },

@@ -357,6 +357,7 @@ export const SPA_REWRITES = [
   '/generative_ui',
   '/generative-ui',
   '/boost',
+  '/teamwork',
   '/teamwork-preview',
   '/application-security-testing',
 ];

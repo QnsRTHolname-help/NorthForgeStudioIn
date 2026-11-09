@@ -1,3 +1,4 @@
+@import 'lenis/dist/lenis.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -161,6 +162,7 @@
     height: auto;
     scroll-behavior: auto !important;
     overscroll-behavior-y: none;
+    overflow-x: clip;
   }
   .lenis:not(.lenis-autoToggle).lenis-stopped {
     overflow: clip;
@@ -191,7 +193,7 @@
     @apply bg-canvas text-fg font-sans antialiased;
     font-feature-settings: 'calt' 1, 'ss01' 1, 'cv11' 1;
     text-rendering: optimizeLegibility;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   ::selection {

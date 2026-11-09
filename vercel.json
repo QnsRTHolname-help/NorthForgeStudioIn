@@ -38,6 +38,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/teamwork",
+      "destination": "/index.html"
+    },
+    {
       "source": "/teamwork-preview",
       "destination": "/index.html"
     },
