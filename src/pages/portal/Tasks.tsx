@@ -29,7 +29,7 @@ export default function Tasks() {
   const [animatingId, setAnimatingId] = useState<string | null>(null);
 
   const state = useAsync(() => tasksService.list(), []);
-  const allTasks = state.data?.items ?? [];
+  const allTasks = useMemo(() => state.data?.items ?? [], [state.data?.items]);
   const completedTasks = allTasks.filter((task) => task.status === 'done');
   const totalTasks = allTasks.length;
   const completionPercent = totalTasks > 0 ? Math.round((completedTasks.length / totalTasks) * 100) : 0;

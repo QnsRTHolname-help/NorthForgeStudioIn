@@ -9,7 +9,7 @@ import { supabase, assertSupabaseConfigured } from '@/lib/supabase';
 import { authService, loadProfile, type AuthSession } from './public';
 import { authUserId } from './db';
 import { AuthError, mapAuthError, logAuthEvent } from '@/lib/auth-errors';
-import type { User, Session } from '@supabase/supabase-js';
+import type { User, Session, EmailOtpType } from '@supabase/supabase-js';
 
 export * from './public';
 export { authService, loadProfile, authUserId, AuthError, mapAuthError, logAuthEvent };
@@ -99,7 +99,7 @@ export async function exchangeUrlAuthSession(
     const code = targetUrl.searchParams.get('code');
     const hashParams = new URLSearchParams(targetUrl.hash.replace(/^#/, ''));
     const tokenHash = targetUrl.searchParams.get('token_hash') ?? hashParams.get('token_hash');
-    const tokenType = (targetUrl.searchParams.get('type') ?? hashParams.get('type') ?? 'signup') as any;
+    const tokenType = (targetUrl.searchParams.get('type') ?? hashParams.get('type') ?? 'signup') as EmailOtpType;
 
     if (tokenHash) {
       const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: tokenType });

@@ -10,6 +10,7 @@ import { useMutation } from '@/hooks/useAsync';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useCooldown } from '@/hooks/useCooldown';
 import { emailMfaService } from '@/services/public';
+import { supabase } from '@/lib/supabase';
 
 /**
  * Email second-factor challenge (migration 0016).
@@ -69,7 +70,20 @@ export default function EmailMfaVerify() {
         // never be dropped into the client portal.
         const fresh = await refresh();
         const role = fresh?.user.role;
-        navigate(role === 'admin' || role === 'super_admin' ? '/app' : '/portal', { replace: true });
+        if (role === 'admin' || role === 'super_admin') {
+          try {
+            const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+            if (assurance.data?.nextLevel === 'aal2' && assurance.data?.currentLevel !== 'aal2') {
+              navigate('/mfa', { replace: true });
+              return;
+            }
+          } catch {
+            // Proceed to admin home
+          }
+          navigate('/app', { replace: true });
+          return;
+        }
+        navigate('/portal', { replace: true });
       },
       onError: () => {
         // Codes expire; clear the boxes so the next attempt starts from typing.

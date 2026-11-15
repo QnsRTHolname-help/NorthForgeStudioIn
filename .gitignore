@@ -22,6 +22,8 @@ coverage
 .pnpm-store/
 tsconfig.tsbuildinfo
 *.tsbuildinfo
+vt*.txt
+done*.txt
 
 # Supabase CLI local state (project link cache)
 supabase/.temp/

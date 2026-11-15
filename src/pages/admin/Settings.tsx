@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { LogOut, Monitor, Moon, ShieldCheck, Sun } from 'lucide-react';
 import { Panel } from '@/components/ui/Card';
 import { AdminHeader } from '@/components/admin/AdminHeader';
-import { PasswordInput, FormError, HiddenUsername } from '@/components/ui/Form';
+import { Input, PasswordInput, FormError, HiddenUsername } from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { AsyncBoundary, EmptyState } from '@/components/ui/States';
@@ -12,10 +12,10 @@ import { useTheme } from '@/app/providers/ThemeProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { useAsync, useMutation } from '@/hooks/useAsync';
 import { authService, rolesService, systemService, type ProfileRole } from '@/services';
+import { mfaService } from '@/services/public';
 import { formatRelative } from '@/lib/format';
 import { cn } from '@/lib/cn';
 import { PasswordStrength } from '@/components/ui/PasswordStrength';
-import { TwoFactorPanel } from '@/pages/portal/Settings';
 import { PASSWORD_POLICY, scorePassword } from '@shared/password';
 import type { Role } from '@/types';
 
@@ -103,7 +103,7 @@ export default function Settings() {
         </Panel>
       </div>
 
-      <TwoFactorPanel />
+      <TotpPanel />
 
       <Panel title="Change password">
         <form onSubmit={submit} className="grid max-w-md gap-4">
@@ -276,5 +276,134 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
       <span className="text-[13px] text-muted">{label}</span>
       <span className="text-right text-[13px] font-medium text-fg">{value}</span>
     </div>
+  );
+}
+
+function TotpPanel() {
+  const toast = useToast();
+  const status = useAsync(() => mfaService.status(), []);
+
+  const [setup, setSetup] = useState<{ factorId: string; secret: string; uri: string } | null>(null);
+  const [code, setCode] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  const qrUri = useMemo(() => {
+    if (!setup) return null;
+    return `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(setup.uri)}`;
+  }, [setup]);
+
+  const confirm = useMutation(() => mfaService.confirmEnroll(setup!.factorId, code), {
+    onSuccess: () => {
+      setSetup(null);
+      setCode('');
+      toast.success('Two-factor authentication enabled', 'Your admin account now requires an authenticator code at sign-in.');
+      void status.refetch().catch(() => undefined);
+    },
+  });
+
+  const disable = useMutation(
+    () => {
+      if (!status.data?.enabled) throw new Error('not enabled');
+      return mfaService.verifiedFactorIds().then((ids) => mfaService.unenroll(ids[0]!));
+    },
+    {
+      onSuccess: () => {
+        toast.success('Two-factor authentication disabled');
+        void status.refetch().catch(() => undefined);
+      },
+    },
+  );
+
+  const enabled = status.data?.enabled ?? false;
+
+  return (
+    <Panel title="Two-factor authentication (Authenticator App)">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-[13px] text-muted">
+            Enforces native Supabase AAL2 security using an authenticator app (Google Authenticator, 1Password, Authy).
+            Required to inspect and modify client data under database RLS.
+          </p>
+          <p className="mt-1 flex items-center gap-1.5 text-2xs text-faint">
+            <ShieldCheck className={enabled ? 'h-3.5 w-3.5 text-success' : 'h-3.5 w-3.5'} aria-hidden />
+            {enabled
+              ? 'Enabled — sign-ins require a 6-digit authenticator code (AAL2).'
+              : 'Currently off — client business records are protected by AAL2.'}
+          </p>
+        </div>
+        <Badge tone={enabled ? 'success' : 'neutral'}>{enabled ? 'AAL2 Enrolled' : 'Off'}</Badge>
+      </div>
+
+      {!setup && !enabled && (
+        <div className="mt-4">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={async () => {
+              setError(null);
+              try {
+                setSetup(await mfaService.enroll());
+              } catch (err) {
+                setError((err as Error).message);
+              }
+            }}
+          >
+            Set up authenticator app
+          </Button>
+          {error ? <p className="mt-2 text-xs text-danger">{error}</p> : null}
+        </div>
+      )}
+
+      {setup && (
+        <div className="mt-4 grid gap-4 sm:grid-cols-[auto_1fr]">
+          <div className="rounded-lg border border-line bg-white p-2">
+            {qrUri ? <img src={qrUri} alt="QR code for your authenticator app" width={180} height={180} /> : null}
+          </div>
+          <div>
+            <p className="text-[13px] font-medium text-fg">1. Scan with your authenticator app</p>
+            <p className="mt-1 text-xs text-muted">
+              Or enter this key manually:{' '}
+              <code className="break-all rounded bg-sunken/50 px-1 py-0.5 font-mono text-[11px]">{setup.secret}</code>
+            </p>
+            <p className="mt-3 text-[13px] font-medium text-fg">2. Enter the 6-digit code</p>
+            <div className="mt-2 flex max-w-xs gap-2">
+              <Input
+                inputMode="numeric"
+                maxLength={6}
+                autoComplete="one-time-code"
+                value={code}
+                onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="000000"
+                className="font-mono tracking-[0.3em]"
+                aria-label="Authentication code"
+              />
+              <Button type="button" loading={confirm.pending} disabled={code.length !== 6} onClick={() => confirm.mutate()}>
+                Verify &amp; Activate
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setSetup(null)}>
+                Cancel
+              </Button>
+            </div>
+            {confirm.error ? <p className="mt-2 text-xs text-danger">{confirm.error}</p> : null}
+          </div>
+        </div>
+      )}
+
+      {enabled && (
+        <div className="mt-4 max-w-sm">
+          <div className="mt-3">
+            <Button
+              variant="secondary"
+              size="sm"
+              loading={disable.pending}
+              onClick={() => disable.mutate()}
+            >
+              Turn off authenticator app
+            </Button>
+          </div>
+          {disable.error ? <p className="mt-2 text-xs text-danger">{disable.error}</p> : null}
+        </div>
+      )}
+    </Panel>
   );
 }

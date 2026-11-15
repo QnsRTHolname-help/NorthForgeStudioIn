@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AlertTriangle, CheckCircle2, Mail, ShieldCheck } from 'lucide-react';
+import type { EmailOtpType } from '@supabase/supabase-js';
 import { Logo } from '@/components/brand/Logo';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Form';
@@ -89,16 +90,20 @@ export default function AuthCallback() {
       }
 
       // 3. Token hash verification (GoTrue signup/email links)
+      let currentDetail = '';
       const tokenHash = query.get('token_hash') ?? hash.get('token_hash');
-      const tokenType = (query.get('type') ?? hash.get('type') ?? 'signup') as any;
+      const tokenType = (query.get('type') ?? hash.get('type') ?? 'signup') as EmailOtpType;
       if (tokenHash) {
         try {
           const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: tokenType });
           if (error) {
+            currentDetail = error.message;
             if (!cancelled) setDetail(error.message);
           }
         } catch (error) {
-          if (!cancelled) setDetail((error as Error).message);
+          const msg = (error as Error).message;
+          currentDetail = msg;
+          if (!cancelled) setDetail(msg);
         }
       }
 
@@ -109,10 +114,13 @@ export default function AuthCallback() {
         try {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
           if (error && !/already|used|invalid flow state/i.test(error.message)) {
+            currentDetail = error.message;
             if (!cancelled) setDetail(error.message);
           }
         } catch (error) {
-          if (!cancelled) setDetail((error as Error).message);
+          const msg = (error as Error).message;
+          currentDetail = msg;
+          if (!cancelled) setDetail(msg);
         }
       }
 
@@ -131,7 +139,7 @@ export default function AuthCallback() {
       }
 
       if (cancelled) return;
-      setPhase(looksExpired(description, detail, errorCode) ? 'expired' : 'invalid');
+      setPhase(looksExpired(description, currentDetail, errorCode) ? 'expired' : 'invalid');
     };
 
     void run();

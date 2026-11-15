@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { PLANS } from './catalog';
 
 export interface EnquiryRelayEnv {
   supabaseUrl: string;
@@ -15,6 +16,16 @@ function cleanOrNull(val: unknown, maxLen: number): string | null {
   if (typeof val !== 'string') return null;
   const trimmed = val.trim().slice(0, maxLen);
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function normalizeWhatsAppNumber(raw: string): string | null {
+  let digits = (raw ?? '').replace(/\D/g, '');
+  if (!digits) return null;
+  if (digits.startsWith('00')) digits = digits.slice(2);
+  if (digits.length === 10) digits = `91${digits}`;
+  else if (digits.length === 11 && digits.startsWith('0')) digits = `91${digits.slice(1)}`;
+  if (digits.length < 8 || digits.length > 15 || digits.startsWith('0')) return null;
+  return digits;
 }
 
 async function readJsonBody(req: IncomingMessage & { body?: unknown }): Promise<Record<string, unknown>> {
@@ -66,6 +77,12 @@ export async function handleEnquiryRelayRequest(
   try {
     const body = await readJsonBody(req);
 
+    // Anti-spam honeypot: silent absorption of bot submissions
+    if (typeof body.website === 'string' && body.website.trim() !== '') {
+      sendJson(res, 200, { received: true, reference: null });
+      return;
+    }
+
     const name = String(body.name ?? '').trim().slice(0, 120);
     const email = String(body.email ?? '').trim().toLowerCase().slice(0, 200);
 
@@ -91,6 +108,23 @@ export async function handleEnquiryRelayRequest(
       Authorization: `Bearer ${secretKey}`,
       'Content-Type': 'application/json',
     };
+
+    const rawId = typeof body.id === 'string' && /^eq_[0-9a-f]{12}$/.test(body.id) ? body.id : undefined;
+
+    // Idempotency: if reference ID already exists, return success immediately
+    if (rawId) {
+      const existingRes = await fetch(
+        `${supabaseUrl}/rest/v1/enquiries?select=id&id=eq.${encodeURIComponent(rawId)}&limit=1`,
+        { headers },
+      );
+      if (existingRes.ok) {
+        const rows = (await existingRes.json().catch(() => [])) as Array<{ id?: string }>;
+        if (rows.length > 0) {
+          sendJson(res, 200, { received: true, reference: rawId });
+          return;
+        }
+      }
+    }
 
     // Per-address throttle (1/minute, 3/hour) and global throttle (40/10m)
     const now = Date.now();
@@ -137,20 +171,26 @@ export async function handleEnquiryRelayRequest(
       }
     }
 
-    const rawId = typeof body.id === 'string' && /^eq_[0-9a-f]{12}$/.test(body.id) ? body.id : undefined;
-    const plan = cleanOrNull(body.plan, 80);
+    const rawPlan = typeof body.plan === 'string' ? body.plan.trim() : null;
+    const matchedPlan = rawPlan
+      ? PLANS.find((p) => p.slug.toLowerCase() === rawPlan.toLowerCase() || p.name.toLowerCase() === rawPlan.toLowerCase())
+      : null;
+    const plan = matchedPlan ? matchedPlan.name : cleanOrNull(rawPlan, 80);
     const message = cleanOrNull(body.message, 4000);
+
+    const rawPhone = String(body.whatsapp ?? body.phone ?? '').trim();
+    const normalizedPhone = rawPhone ? normalizeWhatsAppNumber(rawPhone) ?? rawPhone.slice(0, 40) : null;
 
     const baseRow: Record<string, unknown> = {
       ...(rawId ? { id: rawId } : {}),
       name,
       email,
-      business_name: cleanOrNull(body.business_name, 200),
-      whatsapp: cleanOrNull(body.whatsapp, 40),
-      business_type: cleanOrNull(body.business_type, 80),
-      current_tools: cleanOrNull(body.current_tools, 300),
-      bottleneck: cleanOrNull(body.bottleneck, 300),
-      monthly_enquiries: cleanOrNull(body.monthly_enquiries, 80),
+      business_name: cleanOrNull(body.business_name ?? body.businessName, 200),
+      whatsapp: normalizedPhone,
+      business_type: cleanOrNull(body.business_type ?? body.businessType, 80),
+      current_tools: cleanOrNull(body.current_tools ?? body.currentTools, 300),
+      bottleneck: cleanOrNull(body.bottleneck ?? body.slowestProcess, 300),
+      monthly_enquiries: cleanOrNull(body.monthly_enquiries ?? body.monthlyEnquiries, 80),
       message,
       plan,
     };

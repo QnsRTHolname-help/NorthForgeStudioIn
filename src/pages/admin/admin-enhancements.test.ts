@@ -140,5 +140,37 @@ describe('Admin Operations Panel Enhancements', () => {
       expect(isValidDate('2026-12-01T09:00:00Z')).toBe(true);
     });
   });
+
+  describe('CRIT-01 & HIGH-03 Architecture Guards', () => {
+    it('verifies RequireAdmin is exported from RequireRole', async () => {
+      const guards = await import('@/app/guards/RequireRole');
+      expect(typeof guards.RequireAdmin).toBe('function');
+      expect(typeof guards.RequireRole).toBe('function');
+      expect(typeof guards.RequireClient).toBe('function');
+      expect(typeof guards.RequireGuest).toBe('function');
+    });
+
+    it('verifies Admin Settings has removed cross-boundary dependency on Portal Settings TwoFactorPanel', async () => {
+      const fs = await import('node:fs');
+      const path = await import('node:path');
+      const settingsContent = fs.readFileSync(
+        path.resolve(__dirname, 'Settings.tsx'),
+        'utf-8',
+      );
+      expect(settingsContent).not.toContain("from '@/pages/portal/Settings'");
+      expect(settingsContent).not.toContain('<TwoFactorPanel />');
+      expect(settingsContent).toContain('<TotpPanel />');
+    });
+
+    it('verifies Contact.tsx does not leak cached lead credentials into unparametrized /contact', async () => {
+      const fs = await import('node:fs');
+      const path = await import('node:path');
+      const contactContent = fs.readFileSync(
+        path.resolve(__dirname, '../public/Contact.tsx'),
+        'utf-8',
+      );
+      expect(contactContent).toContain("plan: selectedPlan ? selectedPlan.name : (searchParams.get('plan') ?? '')");
+    });
+  });
 });
 

@@ -150,4 +150,52 @@ describe('shared/enquiryRelay', () => {
     await handleEnquiryRelayRequest(req, res, fakeEnv);
     expect(res.statusCode).toBe(204);
   });
+
+  it('absorbs honeypot spam bot submissions without calling Supabase', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    try {
+      const { req, res } = createMockReqRes('POST', {
+        name: 'Spam Bot',
+        email: 'bot@spam.com',
+        website: 'https://evil-bot-site.com',
+      });
+      await handleEnquiryRelayRequest(req, res, fakeEnv);
+      expect(res.statusCode).toBe(200);
+      const parsed = JSON.parse(res.body);
+      expect(parsed.received).toBe(true);
+      expect(parsed.reference).toBeNull();
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
+  it('handles idempotent retries when enquiry ID already exists', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      const urlStr = String(url);
+      if (urlStr.includes('/rest/v1/enquiries?select=id&id=eq.eq_1234567890ab')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => [{ id: 'eq_1234567890ab' }],
+        } as Response;
+      }
+      return { ok: true, status: 200, json: async () => [] } as Response;
+    });
+
+    try {
+      const { req, res } = createMockReqRes('POST', {
+        id: 'eq_1234567890ab',
+        name: 'Jane Doe',
+        email: 'jane@example.com',
+      });
+      await handleEnquiryRelayRequest(req, res, fakeEnv);
+      expect(res.statusCode).toBe(200);
+      const parsed = JSON.parse(res.body);
+      expect(parsed.received).toBe(true);
+      expect(parsed.reference).toBe('eq_1234567890ab');
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
 });

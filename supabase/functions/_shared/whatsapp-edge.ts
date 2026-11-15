@@ -24,8 +24,19 @@ function toHex(bytes: Uint8Array): string {
   return out;
 }
 
+function hexToBytes(hex: string): Uint8Array | null {
+  if (hex.length % 2 !== 0) return null;
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    const val = parseInt(hex.substring(i, i + 2), 16);
+    if (Number.isNaN(val)) return null;
+    bytes[i / 2] = val;
+  }
+  return bytes;
+}
+
 /**
- * Constant-time string comparison.
+ * Constant-time string comparison fallback.
  *
  * `===` on a signature leaks how many leading characters matched through
  * timing, which is enough to forge a value one byte at a time. The length
@@ -52,7 +63,8 @@ export async function computeMetaSignature(rawBody: Uint8Array, appSecret: strin
 }
 
 /**
- * Verify `X-Hub-Signature-256` over the RAW request bytes.
+ * Verify `X-Hub-Signature-256` over the RAW request bytes using native constant-time
+ * WebCrypto HMAC verification (crypto.subtle.verify).
  *
  * Must be given the original bytes, never `JSON.stringify(parsedBody)`: any
  * difference in key order, whitespace or unicode escaping changes the digest,
@@ -69,9 +81,32 @@ export async function verifyMetaSignature(
 ): Promise<boolean> {
   if (!appSecret) return false;
   if (!header) return false;
-  if (!header.startsWith('sha256=')) return false;
-  const expected = await computeMetaSignature(rawBody, appSecret);
-  return safeEqual(header.trim().toLowerCase(), expected);
+  const trimmed = header.trim();
+  if (!trimmed.startsWith('sha256=')) return false;
+
+  const hex = trimmed.slice(7).trim().toLowerCase();
+  const signatureBytes = hexToBytes(hex);
+  if (!signatureBytes || signatureBytes.length !== 32) return false;
+
+  try {
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(appSecret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['verify'],
+    );
+    return await crypto.subtle.verify(
+      'HMAC',
+      key,
+      signatureBytes as unknown as ArrayBuffer,
+      rawBody as unknown as ArrayBuffer,
+    );
+  } catch {
+    // If WebCrypto verify throws for any platform reason, fallback to constant-time safeEqual
+    const expected = await computeMetaSignature(rawBody, appSecret);
+    return safeEqual(trimmed.toLowerCase(), expected);
+  }
 }
 
 /**

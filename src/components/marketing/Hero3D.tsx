@@ -56,11 +56,21 @@ export function Hero3D({ className = '' }: { className?: string }) {
     updateRect();
     window.addEventListener('resize', updateRect, { passive: true });
 
+    let isVisible = true;
+    const observer = new IntersectionObserver(([entry]) => {
+      isVisible = entry?.isIntersecting ?? false;
+      if (!isVisible && quickTiltXRef.current && quickTiltYRef.current) {
+        quickTiltXRef.current(0);
+        quickTiltYRef.current(0);
+      }
+    }, { threshold: 0.05 });
+    observer.observe(container);
+
     let latestMouseX = 0;
     let latestMouseY = 0;
     let ticking = false;
     const onWindowMove = (e: MouseEvent) => {
-      if (reduced || !quickTiltXRef.current || !quickTiltYRef.current) return;
+      if (reduced || !isVisible || !quickTiltXRef.current || !quickTiltYRef.current) return;
       if (window.scrollY > 800) return;
       latestMouseX = e.clientX;
       latestMouseY = e.clientY;
@@ -107,6 +117,7 @@ export function Hero3D({ className = '' }: { className?: string }) {
       ctx.revert();
       quickTiltXRef.current = null;
       quickTiltYRef.current = null;
+      observer.disconnect();
       window.removeEventListener('resize', updateRect);
       if (!touch) {
         window.removeEventListener('mousemove', onWindowMove);

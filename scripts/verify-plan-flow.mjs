@@ -168,8 +168,11 @@ await goto(`${WEB}/contact?plan=convert`);
       const proto = el instanceof HTMLSelectElement ? HTMLSelectElement.prototype
         : el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype
         : HTMLInputElement.prototype;
+      const tracker = el._valueTracker;
+      if (tracker) tracker.setValue(value + '_prev');
       Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, value);
       el.dispatchEvent(new Event(el instanceof HTMLSelectElement ? 'change' : 'input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
     };
     const inputByLabel = (text) => {
       const label = [...document.querySelectorAll('label')].find(l => l.textContent.trim().startsWith(text));
@@ -186,7 +189,7 @@ await goto(`${WEB}/contact?plan=convert`);
       document.querySelector('form button[type="submit"]').click();
       await new Promise(r => setTimeout(r, 3500));
       const done = [...document.querySelectorAll('h1')].some(h => /Enquiry received/i.test(h.textContent));
-      const error = document.querySelector('[role="alert"], .text-danger')?.textContent?.trim() ?? null;
+      const error = document.querySelector('[role="alert"], p.text-danger')?.textContent?.trim() ?? null;
       return JSON.stringify({ done, prefill, error });
     } catch (e) { return JSON.stringify({ done: false, prefill: null, error: String(e) }); }
   })()`);

@@ -137,6 +137,20 @@ Deno.serve(async (req) => {
         const text = String(message?.text?.body ?? '').trim().slice(0, 4096);
         if (!from || !text) continue;
 
+        const providerMsgId = String(message?.id ?? '') || null;
+        if (providerMsgId) {
+          const { data: existing } = await admin
+            .from('whatsapp_messages')
+            .select('id')
+            .eq('provider_message_id', providerMsgId)
+            .limit(1)
+            .maybeSingle();
+          if (existing) {
+            console.info('[whatsapp-webhook] duplicate delivery ignored', providerMsgId);
+            continue;
+          }
+        }
+
         // Link to a client by phone digits when possible (best-effort).
         const { data: client } = await admin
           .from('clients')
@@ -152,7 +166,7 @@ Deno.serve(async (req) => {
           status: 'read',
           automated: false,
           client_id: client?.id ?? null,
-          provider_message_id: String(message?.id ?? '') || null,
+          provider_message_id: providerMsgId,
         });
 
         if (error) {

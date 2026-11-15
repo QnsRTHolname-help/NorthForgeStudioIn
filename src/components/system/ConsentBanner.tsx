@@ -31,7 +31,7 @@ export function ConsentBanner() {
     <div
       role="dialog"
       aria-label="Cookie preferences"
-      className="fixed inset-x-3 bottom-24 z-[70] sm:inset-x-auto sm:right-6 sm:bottom-6 sm:max-w-sm"
+      className="fixed inset-x-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-[70] sm:inset-x-auto sm:right-6 sm:bottom-6 sm:max-w-sm"
     >
       <div className="rounded-lg border border-line bg-surface p-4 shadow-panel">
         <div className="flex items-start gap-3">

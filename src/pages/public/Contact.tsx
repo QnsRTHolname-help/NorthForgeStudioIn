@@ -98,7 +98,7 @@ export default function Contact() {
     };
     return {
       ...EMPTY,
-      plan: selectedPlan ? selectedPlan.name : (searchParams.get('plan') || savedCredentials.plan || ''),
+      plan: selectedPlan ? selectedPlan.name : (searchParams.get('plan') ?? ''),
       name: fromUrl.name || fromAuth.name || savedCredentials.name || '',
       businessName: fromUrl.businessName || fromAuth.businessName || savedCredentials.businessName || '',
       email: fromUrl.email || fromAuth.email || savedCredentials.email || '',

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { Panel } from '@/components/ui/Card';
@@ -68,9 +68,13 @@ export default function Requests() {
     },
   );
 
+  const autoSubmittedRef = useRef(false);
+
   // If autoSubmit flag is set with title, submit automatically
   useEffect(() => {
+    if (autoSubmittedRef.current) return;
     if (searchParams.get('autoSubmit') === '1' && queryTitle) {
+      autoSubmittedRef.current = true;
       void create.mutate({
         title: queryTitle,
         description: queryDescription || 'Activation request.',
@@ -78,7 +82,7 @@ export default function Requests() {
         priority: queryPriority,
       });
     }
-  }, []);
+  }, [create, queryDescription, queryPriority, queryTitle, queryType, searchParams]);
 
   return (
     <div>

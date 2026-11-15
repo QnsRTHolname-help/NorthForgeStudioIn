@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, ShieldAlert, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Logo } from '@/components/brand/Logo';
@@ -19,6 +19,7 @@ export default function VerifySuccess() {
   });
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { status, isAdmin, refresh } = useAuth();
   const [verificationState, setVerificationState] = useState<VerificationState>('checking');
 
@@ -53,11 +54,15 @@ export default function VerifySuccess() {
 
   const handleContinue = () => {
     if (status === 'authenticated') {
-      const destination = isAdmin ? '/app' : '/portal';
+      const nextParam = searchParams.get('next') ?? searchParams.get('redirectTo');
+      const safeNext = nextParam ? sanitizeRedirectUrl(nextParam, '') : '';
+      const destination = safeNext || (isAdmin ? '/app' : '/portal');
       const safeDest = sanitizeRedirectUrl(destination, '/portal');
       navigate(safeDest, { replace: true });
     } else {
-      navigate('/login', { replace: true });
+      const nextParam = searchParams.get('next') ?? searchParams.get('redirectTo');
+      const safeNext = nextParam ? sanitizeRedirectUrl(nextParam, '') : '';
+      navigate(safeNext ? `/login?next=${encodeURIComponent(safeNext)}` : '/login', { replace: true });
     }
   };
 

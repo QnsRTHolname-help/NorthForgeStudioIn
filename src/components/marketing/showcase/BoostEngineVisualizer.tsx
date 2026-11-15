@@ -144,7 +144,23 @@ export function BoostEngineVisualizer({ className }: BoostEngineVisualizerProps)
       return;
     }
 
+    let isIntersecting = true;
+    const startRender = () => {
+      if (animFrameRef.current) return;
+      animFrameRef.current = requestAnimationFrame(render);
+    };
+    const stopRender = () => {
+      if (animFrameRef.current) {
+        cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = null;
+      }
+    };
+
     const render = () => {
+      if (!isIntersecting) {
+        animFrameRef.current = null;
+        return;
+      }
       offset += 0.08;
       history.push(getSample(offset));
       if (history.length > maxPoints) history.shift();
@@ -153,7 +169,17 @@ export function BoostEngineVisualizer({ className }: BoostEngineVisualizerProps)
       animFrameRef.current = requestAnimationFrame(render);
     };
 
-    animFrameRef.current = requestAnimationFrame(render);
+    const io = new IntersectionObserver(([entry]) => {
+      isIntersecting = entry?.isIntersecting ?? false;
+      if (isIntersecting) {
+        startRender();
+      } else {
+        stopRender();
+      }
+    }, { threshold: 0.05 });
+    io.observe(canvas);
+
+    startRender();
 
     let resizeTimer: number | null = null;
     const observer = new ResizeObserver(() => {
@@ -170,8 +196,9 @@ export function BoostEngineVisualizer({ className }: BoostEngineVisualizerProps)
     observer.observe(canvas);
 
     return () => {
-      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      stopRender();
       if (resizeTimer) cancelAnimationFrame(resizeTimer);
+      io.disconnect();
       observer.disconnect();
     };
   }, [engineMode, reduced]);
