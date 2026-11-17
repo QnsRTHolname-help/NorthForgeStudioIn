@@ -112,9 +112,12 @@ export function Navbar() {
   }, [activeId, reduced]);
 
   const goToSection = (id: string) => {
+    start();
     setMenuOpen(false);
-    const target = document.getElementById(id);
-    if (target) scrollTo(target, { offset: -96 });
+    requestAnimationFrame(() => {
+      const target = document.getElementById(id);
+      if (target) scrollTo(target, { offset: -96, force: true });
+    });
   };
 
   return (
@@ -141,7 +144,20 @@ export function Navbar() {
                 : '0 4px 16px -4px rgb(60 48 32 / 0.06), inset 0 1px 0 rgb(255 255 255 / 0.75)',
             }}
           >
-            <Link to="/" className="nf-focus shrink-0 rounded-full pl-1 transition-transform duration-200 hover:scale-[1.02]" aria-label="NorthForge home">
+            <Link
+              to="/"
+              className="nf-focus shrink-0 rounded-full pl-1 transition-transform duration-200 hover:scale-[1.02]"
+              aria-label="NorthForge home"
+              onClick={(event) => {
+                if (HOME_ROUTES.has(location.pathname)) {
+                  event.preventDefault();
+                  if (location.pathname !== '/') {
+                    window.history.pushState(null, '', '/');
+                  }
+                  scrollTo(0);
+                }
+              }}
+            >
               <Logo />
             </Link>
 

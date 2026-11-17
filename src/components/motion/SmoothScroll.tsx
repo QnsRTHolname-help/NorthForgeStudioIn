@@ -17,6 +17,7 @@ interface SmoothScrollValue {
       duration?: number;
       easing?: (t: number) => number;
       lock?: boolean;
+      force?: boolean;
     },
   ) => void;
   stop: () => void;
@@ -50,6 +51,8 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
     // Lenis handles wheel normalization, inertia, and smooth momentum glide natively without
     // unnatural custom wheel event intercepts or stepped velocity shocks.
     const instance = new Lenis({
+      duration: LENIS_CONFIG.duration,
+      easing: LENIS_CONFIG.easing,
       lerp: LENIS_CONFIG.lerp,
       wheelMultiplier: LENIS_CONFIG.wheelMultiplier,
       orientation: 'vertical',
@@ -147,6 +150,7 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
               ? undefined
               : (options?.easing ?? LENIS_CONFIG.easing),
             lock: options?.lock,
+            force: options?.force,
           });
           return;
         }

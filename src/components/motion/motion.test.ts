@@ -35,6 +35,36 @@ describe('Motion System & Smooth Scroll Tuning', () => {
     expect(DURATION.panel).toBe(1.15);
   });
 
+  it('validates cinematic exponential easing curve for Lenis smooth scrolling', () => {
+    const easing = LENIS_CONFIG.easing;
+    // At t=0, starts immediately without initial lag
+    expect(easing(0)).toBeCloseTo(0.001, 3);
+    // At t=0.5 (halfway), moves ~97% of distance for rapid initial responsiveness
+    expect(easing(0.5)).toBeCloseTo(1.001 - Math.pow(2, -5), 3);
+    expect(easing(0.5)).toBeGreaterThan(0.96);
+    // At t=1.0, reaches completion cleanly clamped to 1
+    expect(easing(1)).toBe(1);
+    // Strictly monotonically non-decreasing
+    for (let t = 0; t <= 1; t += 0.05) {
+      expect(easing(t)).toBeGreaterThanOrEqual(easing(Math.max(0, t - 0.05)));
+    }
+  });
+
+  it('validates Lenis frame-independent kinematic damping math', () => {
+    // Lenis damp formula: damp(x, y, lerp * 60, dt) => 1 - Math.exp(-lerp * 60 * dt)
+    const lambda = LENIS_CONFIG.lerp * 60; // 0.085 * 60 = 5.1
+    const calcRelease = (dt: number) => 1 - Math.exp(-lambda * dt);
+
+    const rel60 = calcRelease(1 / 60);
+    expect(rel60).toBeGreaterThanOrEqual(0.075);
+    expect(rel60).toBeLessThanOrEqual(0.095);
+
+    const rel120 = calcRelease(1 / 120);
+    const compounded120 = 1 - Math.pow(1 - rel120, 2);
+    // Frame-rate independence: compounded 120Hz matches 60Hz wall-clock progress within 0.1%
+    expect(Math.abs(compounded120 - rel60)).toBeLessThan(0.001);
+  });
+
   it('validates frame-independent exponential momentum integration math', () => {
     // Fraction formula: 1 - Math.exp(-18 * dt)
     const decayRate = 18;
