@@ -76,6 +76,28 @@ describe('Motion System & Smooth Scroll Tuning', () => {
     expect(isNotched(0, 2.85)).toBe(false);
     expect(isNotched(0, -0.73)).toBe(false);
   });
+
+  it('verifies Lenis scroll progress subscription and distribution', async () => {
+    const { getScrollProgress, setScrollProgress, subscribeScrollProgress } = await import('@/hooks/scrollProgress');
+
+    const progressValues: number[] = [];
+    const unsub = subscribeScrollProgress((p) => {
+      progressValues.push(p);
+    });
+
+    setScrollProgress(0.42);
+    expect(getScrollProgress()).toBe(0.42);
+    expect(progressValues).toContain(0.42);
+
+    setScrollProgress(0.85);
+    expect(getScrollProgress()).toBe(0.85);
+    expect(progressValues).toContain(0.85);
+
+    unsub();
+    setScrollProgress(0.99);
+    // After unsubscribe, no new values delivered to the unsubscribed listener
+    expect(progressValues[progressValues.length - 1]).toBe(0.85);
+  });
 });
 
 describe('SplitText Text Splitting & Boundary Logic', () => {

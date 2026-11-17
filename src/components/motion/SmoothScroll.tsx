@@ -4,7 +4,6 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { setScrollProgress } from '@/hooks/scrollProgress';
 import { LENIS_CONFIG } from '@/components/motion/constants';
-import { useIsTouch, useReducedMotion } from '@/hooks';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -36,8 +35,6 @@ const SmoothScrollContext = createContext<SmoothScrollValue | null>(null);
  *   keyboard navigation and find-in-page all keep working.
  */
 export function SmoothScrollProvider({ children, enabled = true }: { children: ReactNode; enabled?: boolean }) {
-  const reduced = useReducedMotion();
-  const touch = useIsTouch();
   const [lenis, setLenis] = useState<Lenis | null>(null);
   const instanceRef = useRef<Lenis | null>(null);
   const momentumRef = useRef<{ remaining: number; targetOffset: number }>({
@@ -46,7 +43,7 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
   });
 
   useEffect(() => {
-    if (!enabled || reduced || touch) return;
+    if (!enabled) return;
 
     let mounted = true;
 
@@ -74,7 +71,7 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
       syncTouch: LENIS_CONFIG.syncTouch,
       touchMultiplier: LENIS_CONFIG.touchMultiplier,
       autoResize: LENIS_CONFIG.autoResize,
-      respectReducedMotion: true,
+      respectReducedMotion: false,
       anchors: {
         offset: -76,
         duration: LENIS_CONFIG.anchorDuration,
@@ -197,7 +194,7 @@ export function SmoothScrollProvider({ children, enabled = true }: { children: R
       instanceRef.current = null;
       setLenis(null);
     };
-  }, [enabled, reduced, touch]);
+  }, [enabled]);
 
   const value = useMemo<SmoothScrollValue>(
     () => ({
