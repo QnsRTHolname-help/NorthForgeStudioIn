@@ -98,6 +98,37 @@ describe('Motion System & Smooth Scroll Tuning', () => {
     // After unsubscribe, no new values delivered to the unsubscribed listener
     expect(progressValues[progressValues.length - 1]).toBe(0.85);
   });
+
+  it('verifies showcase deep-link route resolution for /boost and /teamwork', () => {
+    function resolveShowcaseMode(pathname: string, search = '', hash = '') {
+      const params = new URLSearchParams(search);
+      const viewParam = params.get('view');
+      const path = pathname.toLowerCase().replace(/^\//, '');
+      const cleanHash = hash.toLowerCase().replace(/^#/, '');
+
+      if (viewParam === 'generative' || path === 'generative_ui' || path === 'generative-ui' || cleanHash === 'generative_ui' || cleanHash === 'generative-ui') {
+        return 'generative';
+      } else if (viewParam === 'boost' || path === 'boost' || cleanHash === 'boost') {
+        return 'boost';
+      } else if (viewParam === 'team' || path === 'teamwork-preview' || path === 'teamwork' || cleanHash === 'teamwork-preview' || cleanHash === 'teamwork') {
+        return 'team';
+      } else if (viewParam === 'security' || path === 'application-security-testing' || cleanHash === 'application-security-testing' || cleanHash === 'appsec') {
+        return 'security';
+      } else if (viewParam === 'pipeline' || cleanHash === 'pipeline') {
+        return 'pipeline';
+      }
+      return null;
+    }
+
+    expect(resolveShowcaseMode('/boost')).toBe('boost');
+    expect(resolveShowcaseMode('/teamwork')).toBe('team');
+    expect(resolveShowcaseMode('/teamwork-preview')).toBe('team');
+    expect(resolveShowcaseMode('/generative-ui')).toBe('generative');
+    expect(resolveShowcaseMode('/application-security-testing')).toBe('security');
+    expect(resolveShowcaseMode('/', '?view=boost')).toBe('boost');
+    expect(resolveShowcaseMode('/', '', '#teamwork')).toBe('team');
+    expect(resolveShowcaseMode('/')).toBeNull();
+  });
 });
 
 describe('SplitText Text Splitting & Boundary Logic', () => {

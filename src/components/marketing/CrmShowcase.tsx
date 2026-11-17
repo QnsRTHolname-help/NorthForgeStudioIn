@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   ArrowRight,
@@ -93,7 +93,6 @@ export function CrmShowcase() {
   const [viewMode, setViewMode] = useState<ViewMode>('pipeline');
   const location = useLocation();
   const { scrollTo } = useSmoothScroll();
-  const isFirstMountRef = useRef(true);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -127,13 +126,11 @@ export function CrmShowcase() {
         hash === 'showcase' ||
         hash === targetMode
       ) {
-        const isFreshLanding = isFirstMountRef.current && (typeof window !== 'undefined' ? window.scrollY < 300 : false);
-        isFirstMountRef.current = false;
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             const section = document.getElementById('systems');
             if (section) {
-              scrollTo(section, { offset: 0, immediate: isFreshLanding });
+              scrollTo(section, { offset: 0 });
             }
           });
         });

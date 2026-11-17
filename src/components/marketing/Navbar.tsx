@@ -12,6 +12,16 @@ import { useScrolled, useReducedMotion, useFocusTrap } from '@/hooks';
 import { useSmoothScroll } from '@/components/motion/SmoothScroll';
 import { trackEvent } from '@/lib/analytics';
 
+const HOME_ROUTES = new Set([
+  '/',
+  '/boost',
+  '/teamwork',
+  '/teamwork-preview',
+  '/generative-ui',
+  '/generative_ui',
+  '/application-security-testing',
+]);
+
 /**
  * Public navigation.
  *
@@ -54,7 +64,7 @@ export function Navbar() {
 
   /* ── Scroll spy: which section is currently in view ─────────── */
   useEffect(() => {
-    if (location.pathname !== '/') {
+    if (!HOME_ROUTES.has(location.pathname)) {
       setActiveId(null);
       return;
     }
@@ -153,7 +163,7 @@ export function Navbar() {
                       data-nav-id={item.id}
                       aria-current={isActive ? 'location' : undefined}
                       onClick={(event) => {
-                        if (location.pathname !== '/') return;
+                        if (!HOME_ROUTES.has(location.pathname)) return;
                         if (!document.getElementById(item.id)) return;
                         event.preventDefault();
                         goToSection(item.id);
@@ -252,7 +262,7 @@ export function Navbar() {
                       to={item.to}
                       aria-current={location.pathname === item.to ? 'page' : undefined}
                       onClick={(event) => {
-                        if (location.pathname !== '/') return;
+                        if (!HOME_ROUTES.has(location.pathname)) return;
                         if (!document.getElementById(item.id)) return;
                         event.preventDefault();
                         goToSection(item.id);
