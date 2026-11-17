@@ -97,7 +97,7 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
         ) : null}
       </div>
 
-      <div className="mt-8 grid gap-5 pt-3.5 lg:grid-cols-4">
+      <div className="mt-8 grid gap-5 pt-5 sm:pt-6 lg:grid-cols-4">
         {PLANS.map((plan) => {
           const recommended = plan.recommended;
           const custom = plan.amount === null;
@@ -108,93 +108,102 @@ export function PricingTable({ showHeading = true, showDetail = true }: { showHe
               <TiltCard max={recommended ? 5 : 3} className="h-full">
                 <div
                   className={cn(
-                    'nf-glass-card nf-glass-interactive group relative flex h-full flex-col rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1',
+                    'group relative flex h-full flex-col transition-all duration-300',
                     recommended
-                      ? 'nf-glass-elevated border-brand/60 ring-1 ring-brand/30 shadow-[0_28px_70px_-32px_rgb(var(--nf-blue)/0.55)] lg:-translate-y-2 lg:hover:-translate-y-3'
-                      : 'border-white/60 hover:border-white/90 shadow-2xs',
+                      ? 'lg:-translate-y-2 lg:hover:-translate-y-3'
+                      : 'hover:-translate-y-1',
                   )}
-                  style={{
-                    boxShadow: recommended
-                      ? '0 28px 70px -32px rgb(var(--nf-blue)/0.45), 0 4px 16px -4px rgb(60 48 32 / 0.04), inset 0 1px 0 rgb(255 255 255 / 0.95)'
-                      : '0 12px 32px -8px rgb(60 48 32 / 0.08), inset 0 1px 0 rgb(255 255 255 / 0.95)',
-                  }}
                 >
-                  {/* Confined illumination glow & rim highlight */}
-                  <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl" aria-hidden>
-                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent" />
-                    {recommended ? (
-                      <div className="absolute -top-12 -right-12 h-36 w-36 rounded-full bg-brand/15 blur-2xl" />
-                    ) : null}
-                  </div>
-
                   {recommended ? (
                     <span
-                      className="nf-glass-pill absolute -top-3 left-6 z-20 inline-flex items-center gap-1 rounded-full bg-brand px-3 py-0.5 text-2xs font-semibold uppercase tracking-wider text-white shadow-sm ring-2 ring-white/80"
-                      style={{ transform: 'translateZ(20px)' }}
+                      className="absolute -top-3 left-6 z-30 inline-flex items-center gap-1 rounded-full bg-brand px-3 py-0.5 text-2xs font-semibold uppercase tracking-wider text-white shadow-md ring-2 ring-white/90"
+                      style={{ transform: 'translateZ(30px)' }}
                     >
                       Most chosen
                     </span>
                   ) : null}
 
-                  <h3 className="text-[13px] font-bold uppercase tracking-[0.12em] text-fg">{plan.name}</h3>
-                  <p className="mt-2 text-[13px] font-medium text-brand">{plan.outcome}</p>
-
-                  <div className="mt-6">
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="nf-num text-[32px] font-semibold leading-none tracking-tight text-fg">
-                        {!custom && billingCycle === 'quarterly' && savings
-                          ? `₹${Math.round(savings.quarterlyTotal / 3 / 100).toLocaleString('en-IN')}`
-                          : planAmountLabel(plan)}
-                      </span>
-                      {!custom ? (
-                        <span className="text-[13px] font-medium text-fg/75">
-                          {billingCycle === 'quarterly' ? '/ mo (billed quarterly)' : '/ month'}
-                        </span>
+                  <div
+                    className={cn(
+                      'nf-glass-card nf-glass-interactive relative flex h-full flex-col rounded-2xl p-6 transition-all duration-300',
+                      recommended
+                        ? 'nf-glass-elevated border-brand/60 ring-1 ring-brand/30 shadow-[0_28px_70px_-32px_rgb(var(--nf-blue)/0.55)]'
+                        : 'border-white/60 hover:border-white/90 shadow-2xs',
+                    )}
+                    style={{
+                      boxShadow: recommended
+                        ? '0 28px 70px -32px rgb(var(--nf-blue)/0.45), 0 4px 16px -4px rgb(60 48 32 / 0.04), inset 0 1px 0 rgb(255 255 255 / 0.95)'
+                        : '0 12px 32px -8px rgb(60 48 32 / 0.08), inset 0 1px 0 rgb(255 255 255 / 0.95)',
+                    }}
+                  >
+                    {/* Confined illumination glow & rim highlight */}
+                    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl" aria-hidden>
+                      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent" />
+                      {recommended ? (
+                        <div className="absolute -top-12 -right-12 h-36 w-36 rounded-full bg-brand/15 blur-2xl" />
                       ) : null}
                     </div>
 
-                    {!custom && billingCycle === 'quarterly' && savings ? (
-                      <p className="mt-1 text-2xs font-semibold text-success">
-                        Save ₹{(savings.savings / 100).toLocaleString('en-IN')} / quarter + free seat
-                      </p>
-                    ) : null}
+                    <h3 className="text-[13px] font-bold uppercase tracking-[0.12em] text-fg">{plan.name}</h3>
+                    <p className="mt-2 text-[13px] font-medium text-brand">{plan.outcome}</p>
 
-                    <div className="mt-2.5 flex items-center justify-between text-[13px] font-medium text-fg/80">
-                      <span className="nf-num">{planSetupLabel(plan)}</span>
-                      {!custom ? (
-                        <span className="rounded bg-brand/10 px-1.5 py-0.5 text-2xs font-semibold text-brand">
-                          -₹5,000 w/ code
+                    <div className="mt-6">
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="nf-num text-[32px] font-semibold leading-none tracking-tight text-fg">
+                          {!custom && billingCycle === 'quarterly' && savings
+                            ? `₹${Math.round(savings.quarterlyTotal / 3 / 100).toLocaleString('en-IN')}`
+                            : planAmountLabel(plan)}
                         </span>
+                        {!custom ? (
+                          <span className="text-[13px] font-medium text-fg/75">
+                            {billingCycle === 'quarterly' ? '/ mo (billed quarterly)' : '/ month'}
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {!custom && billingCycle === 'quarterly' && savings ? (
+                        <p className="mt-1 text-2xs font-semibold text-success">
+                          Save ₹{(savings.savings / 100).toLocaleString('en-IN')} / quarter + free seat
+                        </p>
                       ) : null}
+
+                      <div className="mt-2.5 flex items-center justify-between text-[13px] font-medium text-fg/80">
+                        <span className="nf-num">{planSetupLabel(plan)}</span>
+                        {!custom ? (
+                          <span className="rounded bg-brand/10 px-1.5 py-0.5 text-2xs font-semibold text-brand">
+                            -₹5,000 w/ code
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
 
-                  <p className="mt-5 text-[13px] leading-relaxed text-fg/80">{plan.description}</p>
+                    <p className="mt-5 text-[13px] leading-relaxed text-fg/80">{plan.description}</p>
 
-                  <ul className="mt-6 flex-1 space-y-2.5 border-t border-line pt-5">
-                    {plan.features.slice(0, 7).map((feature) => (
-                      <li key={feature} className="flex items-start gap-2 text-[13px] text-fg">
-                        <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand" aria-hidden />
-                        <span className="leading-snug">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
+                    <ul className="mt-6 flex-1 space-y-2.5 border-t border-line pt-5">
+                      {plan.features.slice(0, 7).map((feature) => (
+                        <li key={feature} className="flex items-start gap-2 text-[13px] text-fg">
+                          <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand" aria-hidden />
+                          <span className="leading-snug">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
 
-                  <div className="mt-7">
-                    <LinkButton
-                      to={`/contact?plan=${plan.slug}`}
-                      fullWidth
-                      variant={recommended ? 'primary' : 'secondary'}
-                      className={recommended ? 'nf-glass-glow shadow-md' : ''}
-                    >
-                      {custom ? 'Request a quote' : `Choose ${plan.name.toLowerCase()}`}
-                    </LinkButton>
-                    <Link
-                      to="/pricing#scope"
-                      className="nf-focus mt-2.5 block text-center text-xs font-medium text-fg/80 underline decoration-line-strong underline-offset-4 transition-colors hover:text-brand"
-                    >
-                      See full pricing details
-                    </Link>
+                    <div className="mt-7">
+                      <LinkButton
+                        to={`/contact?plan=${plan.slug}`}
+                        fullWidth
+                        variant={recommended ? 'primary' : 'secondary'}
+                        className={recommended ? 'nf-glass-glow shadow-md' : ''}
+                      >
+                        {custom ? 'Request a quote' : `Choose ${plan.name.toLowerCase()}`}
+                      </LinkButton>
+                      <Link
+                        to="/pricing#scope"
+                        className="nf-focus mt-2.5 block text-center text-xs font-medium text-fg/80 underline decoration-line-strong underline-offset-4 transition-colors hover:text-brand"
+                      >
+                        See full pricing details
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </TiltCard>
